@@ -1,37 +1,94 @@
 # B2BGearVia
 
-B2BGearVia is the isolated on-premise product maintained from the imported source snapshot in this repository. This repository is intentionally kept separate from the original product Git history, remotes, and deployment automation while the product is converted into a single-company Ubuntu installation package.
+B2BGearVia는 한 조직이 자체 서버에서 운영하는 B2B 온프레미스 협업 플랫폼입니다. 공개 회원가입이나 결제 중심의 SaaS 운영 대신, 회사 관리자가 사용자와 접근 정책을 관리하는 단일 서버·단일 조직 환경을 대상으로 합니다.
 
-## Current repository status
+## 주요 기능
 
-- Local-only Git repository with no configured remote.
-- Baseline source snapshot copied from commit `8647e981bd7b57930fd485965c33e718ff4462b6`.
-- Historical GitHub Actions workflows moved out of `.github/workflows` so this baseline cannot trigger the original CI/CD or EC2 deployment path.
+- 그룹, 팀원, 역할 기반 권한
+- 업무 요청, 승인, 담당자, 상태 흐름
+- 체크리스트, 댓글, 멘션, 캘린더, 알림
+- 프로젝트, 프로젝트 이슈, 긴급 이슈
+- 그룹 채팅, 자료 공유, 문서 업로드
+- 대시보드, 기본 리포트, PDF 출력
+- 로컬 계정, JWT 세션, 관리자 MFA
+- 선택형 OpenAI 기반 AI 비서와 AI 리포트
 
-## Supported baseline environment
+## 지원 환경
 
 - Ubuntu Server 24.04 LTS x86_64
-- Docker Engine installed by the server administrator before running the installer
-- Docker Compose v2 installed by the server administrator before running the installer
-- HTTPS-capable outbound network access during installation and updates for image and release downloads
-- Single-server, single-company deployment target
+- Docker Engine
+- Docker Compose v2
+- MySQL 8.4 컨테이너
+- 단일 서버, 단일 회사
+- HTTPS 443 접속
 
-## Network expectations
+운영 데이터베이스 이름은 `b2bgearvia`입니다. MySQL 3306과 백엔드 8081은 Docker 내부 네트워크에서만 사용하며, 웹 컨테이너만 호스트의 443 포트를 공개합니다.
 
-- External HTTPS access is required during installation and update workflows.
-- Core collaboration features are expected to keep working without general outbound internet access after installation.
-- Optional integrations such as OpenAI, SMTP mail delivery, and web push require their own outbound connectivity when enabled.
+## 기술 구성
 
-## Not supported
+| 영역 | 기술 |
+|---|---|
+| Backend | Java 21, Spring Boot, Spring Security, JPA, Flyway |
+| Frontend | React, TypeScript, Vite |
+| Database | MySQL 8.4 |
+| Runtime | Docker Compose, Nginx, systemd |
+| Authentication | Local account, JWT, refresh session, ADMIN MFA |
 
-- Managed SaaS deployment
-- Shared multi-tenant hosting
-- Non-Ubuntu production targets
-- Docker alternatives or manually unmanaged runtime layouts
-- Reusing original product GitHub remotes, secrets, or deployment workflows
+## 저장소 구조
 
-## Repository guidance
+```text
+backend/       Spring Boot API, Flyway schema, backend tests
+frontend/      React web application
+docs/contracts/ AI report JSON Schema contracts used by backend tests
+infra/b2b/     B2B Docker Compose, Nginx, runtime configuration example
+installer/     Optional integration configuration scripts
+```
 
-- Track repository documentation such as `README.md`, `B2B_TRANSITION_PLAN.md`, and files under `docs/`.
-- Keep private working notes under ignored names such as `*.private.md`, `*.notes.md`, or inside ignored local note folders.
-- Do not add a remote or publish this repository until B2B-specific workflows and hosting choices are explicitly defined.
+## 관리자 매뉴얼
+
+설치 준비, 시스템 구성, 환경설정, 관리자 온보딩과 운영 점검은 [B2BGearVia 온프레미스 구축 및 관리자 가이드](./B2BGearVia_B2B_설치운영_매뉴얼.pdf)를 참고하세요.
+
+## 로컬 빌드와 테스트
+
+### Backend
+
+```bash
+cd backend
+./mvnw test
+```
+
+### Frontend
+
+```bash
+cd frontend
+npm ci
+npm run build
+```
+
+### Compose 설정 검증
+
+`infra/b2b/runtime.env.example`을 `infra/b2b/runtime.env`로 복사하고 모든 예시 값을 실제 운영 값으로 교체한 다음 검증합니다.
+
+```bash
+docker compose \
+  --env-file infra/b2b/runtime.env \
+  -f infra/b2b/compose.yml config
+```
+
+정식 서버 기동에는 실제 컨테이너 이미지 digest와 TLS 인증서가 필요합니다.
+
+## 보안 주의사항
+
+- `runtime.env`, `ai.env`, TLS 개인키와 관리자 초기 비밀번호를 Git에 커밋하지 마세요.
+- `ADMIN_ALLOWED_IPS`는 실제 사내망 또는 VPN CIDR로 제한하세요.
+- 호스트에 MySQL 3306과 백엔드 8081을 공개하지 마세요.
+- 모든 관리자 계정에 MFA를 적용하세요.
+- 운영 DB를 테스트 초기화 대상으로 사용하지 마세요.
+
+## AI 기능
+
+OpenAI API 키가 없으면 AI 기능만 비활성화되고 일반 협업 기능은 계속 사용할 수 있습니다. AI를 활성화하면 사용자가 선택한 업무 맥락이 외부 AI 제공자에게 전송될 수 있으므로 조직의 개인정보 및 보안정책을 먼저 확인하세요.
+
+## 공개 범위
+
+이 저장소에는 애플리케이션 소스, B2B 배포 구성, 선택형 통합 스크립트, README와 관리자 매뉴얼만 포함합니다. 비밀정보, 인증서, 로컬 실행 데이터, 빌드 산출물과 내부 작업 문서는 포함하지 않습니다.

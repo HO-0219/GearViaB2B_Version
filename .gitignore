@@ -1,63 +1,69 @@
-# Local environment and secret files
-.env
-.env.*
-!.env.example
-*.local
-*.secret
-*.secrets
-secrets/
-# Installer-managed AI secret file (never commit or include in default backups).
-/installer/ai.env
+# Public repository allowlist
+# Only application source, B2B deployment files, the README, and the customer PDF are published.
+*
 
-# Private project notes and checklists
-*.private.md
-*.private.txt
-*.notes.md
-*.notes.txt
-private-notes/
-checklists/
-.superpowers/
-*.txt
-!GITHUB_ACTIONS_SECRETS_SETUP.txt
+!.gitignore
+!README.md
+!B2BGearVia_B2B_설치운영_매뉴얼.pdf
 
-# Credentials and certificates
-*.pem
-*.key
-*.p12
-*.pfx
-*.jks
-*.keystore
-*.crt
-*.cer
-credentials.json
-service-account*.json
-mysql-root-password
-runtime.env
-runtime.env.current
-runtime.env.previous
-deployment.env
-nginx-active.conf.template
+!backend/
+!backend/**
+!frontend/
+!frontend/**
+!docs/
+docs/*
+!docs/contracts/
+!docs/contracts/**
+!infra/
+infra/*
+!infra/b2b/
+!infra/b2b/**
+!installer/
+!installer/**
 
-.idea/
-.vscode/
-.worktrees/
+# Build outputs and local runtime data
 backend/target/
 backend/logs/
-backend/uploads/*
-!backend/uploads/.gitignore
+backend/uploads/
 frontend/node_modules/
 frontend/dist/
 frontend/*.tsbuildinfo
 frontend/vite.config.js
 frontend/vite.config.d.ts
 
-# Local editor, OS, log, cache, and temporary files
-.DS_Store
-Thumbs.db
-*.log
-*.tmp
-*.swp
-*.swo
-coverage/
-.cache/
-*.iml
+# Secrets, certificates, and local environment files
+**/.env
+**/.env.*
+**/*.local
+**/*.secret
+**/*.secrets
+**/secrets/
+**/runtime.env
+**/runtime.env.current
+**/runtime.env.previous
+**/deployment.env
+**/ai.env
+**/*.pem
+**/*.key
+**/*.p12
+**/*.pfx
+**/*.jks
+**/*.keystore
+**/*.crt
+**/*.cer
+**/credentials.json
+**/service-account*.json
+**/mysql-root-password
+
+# Editor, operating-system, logs, caches, and temporary files
+**/.DS_Store
+**/Thumbs.db
+**/.idea/
+**/.vscode/
+**/*.log
+**/*.tmp
+**/*.swp
+**/*.swo
+**/.cache/
+**/coverage/
+**/*.iml
