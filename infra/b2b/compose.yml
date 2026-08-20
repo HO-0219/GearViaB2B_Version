@@ -81,7 +81,7 @@ services:
       DOMAIN_NAME: ${DOMAIN_NAME:-_}
     ports: ["443:443"]
     read_only: true
-    tmpfs: [/var/cache/nginx, /var/run]
+    tmpfs: [/var/cache/nginx, /var/run, /etc/nginx/conf.d]
     volumes:
       - ${TLS_CERT_FILE:-./tls/fullchain.pem}:/etc/nginx/tls/fullchain.pem:ro
       - ${TLS_KEY_FILE:-./tls/privkey.pem}:/etc/nginx/tls/privkey.pem:ro
