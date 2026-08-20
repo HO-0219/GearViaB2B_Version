@@ -240,7 +240,6 @@ CREATE TABLE group_invite_links (
 ) ENGINE = InnoDB;
 
 ALTER TABLE work_groups
-    ADD COLUMN membership_plan ENUM('FREE', 'PAID') NOT NULL DEFAULT 'FREE',
     ADD COLUMN join_code VARCHAR(12) NULL;
 
 UPDATE work_groups
@@ -929,3 +928,16 @@ CREATE TABLE one_time_tokens (
     INDEX idx_one_time_tokens_lookup (email, purpose, created_at)
 ) ENGINE = InnoDB;
 ALTER TABLE users ADD COLUMN force_password_change BOOLEAN NOT NULL DEFAULT FALSE;
+
+CREATE TABLE user_consents (
+    id BIGINT NOT NULL AUTO_INCREMENT,
+    user_id BIGINT NOT NULL,
+    consent_type VARCHAR(40) NOT NULL,
+    policy_version VARCHAR(30) NOT NULL,
+    agreed BOOLEAN NOT NULL,
+    agreed_at DATETIME(6) NOT NULL,
+    source VARCHAR(30) NOT NULL,
+    PRIMARY KEY (id),
+    INDEX idx_user_consents_user_type_time (user_id, consent_type, agreed_at),
+    CONSTRAINT fk_user_consents_user FOREIGN KEY (user_id) REFERENCES users (id)
+) ENGINE = InnoDB;

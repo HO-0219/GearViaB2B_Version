@@ -35,10 +35,14 @@ class MySqlFlywayMigrationTest {
                 .load();
 
         flyway.migrate();
+        long adminsBeforeRerun = countRows("users", "role", "ADMIN");
         long tablesAfterFirstMigration = countSchemaObjects("information_schema.tables", "table_name", List.of("users", "work_groups", "tasks", "push_subscriptions"));
         flyway.migrate();
         assertThat(flyway.info().current().getVersion().getVersion()).isEqualTo("1");
         assertThat(countSchemaObjects("information_schema.tables", "table_name", List.of("users", "work_groups", "tasks", "push_subscriptions"))).isEqualTo(tablesAfterFirstMigration);
+        assertThat(countRows("users", "role", "ADMIN")).isEqualTo(adminsBeforeRerun);
+        assertThat(countSchemaObjects("information_schema.tables", "table_name", List.of("payment_methods", "payment_attempts", "group_subscriptions", "subscription_consents", "oauth_signup_requests", "social_accounts"))).isZero();
+        assertThat(countColumns("work_groups", List.of("membership_plan", "paid_period_start", "paid_period_end"))).isZero();
 
         assertThat(flyway.info().current().getVersion().getVersion()).isEqualTo("1");
         assertThat(countSchemaObjects(
@@ -147,6 +151,14 @@ class MySqlFlywayMigrationTest {
                 result.next();
                 return result.getLong(1);
             }
+        }
+    }
+
+    private long countRows(String table, String column, String value) throws Exception {
+        try (Connection connection = MYSQL.createConnection("");
+                PreparedStatement statement = connection.prepareStatement("SELECT COUNT(*) FROM " + table + " WHERE " + column + " = ?")) {
+            statement.setString(1, value);
+            try (ResultSet result = statement.executeQuery()) { result.next(); return result.getLong(1); }
         }
     }
 
