@@ -28,7 +28,7 @@ export function AiWeeklyReportAction({ groupId, group, selection }: Props) {
   /** 저장된 revision이 이미 있을 때만 채워진다. 재생성할지 물어보는 단계로 넘어간다. */
   const [existing, setExisting] = useState<{ language: 'KO' | 'EN'; report: GenerateReportResponse }>();
 
-  const canManage = group?.membershipPlan === 'PAID' && group.role === 'LEADER';
+  const canManage = group?.type === 'TEAM' && group.role === 'LEADER';
   const supportedSelection = selection.scope === 'GROUP';
 
   // 대시보드 기간을 그대로 사용한다. mondayOf 변환 없음.
@@ -42,7 +42,7 @@ export function AiWeeklyReportAction({ groupId, group, selection }: Props) {
   /**
    * 생성 요청의 타임아웃은 실패가 아니다. 서버가 이미 만들어 저장했을 수 있다(실제로
    * 31.8초 걸린 호출이 프런트 30초 벽에 걸려 성공한 리포트를 실패로 표시했다).
-   * 유료 호출이라 "다시 시도"로 밀면 사용자가 한 번 더 결제한다.
+   * 외부 AI 호출이라 "다시 시도"로 밀면 같은 리포트가 중복 생성될 수 있다.
    */
   function generationErrorMessage(caught: unknown) {
     const code = (caught as ApiError)?.code;
@@ -76,7 +76,7 @@ export function AiWeeklyReportAction({ groupId, group, selection }: Props) {
       });
 
       if (!res.createdNew) {
-        // 이미 만들어 둔 리포트가 있다. 유료 호출이라 사용자에게 먼저 물어본다.
+        // 이미 만들어 둔 리포트가 있다. 외부 AI 호출 전에 사용자에게 먼저 물어본다.
         setExisting({ language: langCode, report: res });
         setFailed(false);
         setMessage('');
@@ -128,7 +128,7 @@ export function AiWeeklyReportAction({ groupId, group, selection }: Props) {
     }
   }
 
-  // 유료 팀의 팀장이 아니면 버튼 자체를 노출하지 않는다.
+  // 서버 권한 규칙과 맞춰 팀장이 아니면 버튼 자체를 노출하지 않는다.
   if (!canManage) {
     return null;
   }

@@ -76,7 +76,7 @@ public class AiWeeklyReportController {
             @Valid @RequestBody GenerateReportRequest request
     ) {
         Long userId = (Long) authentication.getPrincipal();
-        GroupMember leader = accessService.requirePaidTeamLeader(groupId, userId);
+        GroupMember leader = accessService.requireAiWeeklyReportLeader(groupId, userId);
 
         validatePeriod(request.from(), request.toExclusive(), leader.getGroup().getTimezone());
 

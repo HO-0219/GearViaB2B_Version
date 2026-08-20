@@ -131,7 +131,7 @@ public class ProjectDocumentService {
             "PROJECT_DOCUMENT_URL_INVALID", HttpStatus.BAD_REQUEST, "올바른 HTTPS 링크를 입력해 주세요."); } }
     private byte[] validate(MultipartFile file, long maxBytes) {
         if (file == null || file.isEmpty() || file.getSize() > maxBytes) throw invalid(
-                "현재 플랜의 파일당 업로드 한도를 확인해 주세요.");
+                "관리자 정책의 파일당 업로드 한도를 확인해 주세요.");
         String filename = safeFilename(file.getOriginalFilename()); String extension = extension(filename);
         if (!EXTENSIONS.contains(extension)) throw invalid("허용되지 않는 파일 형식입니다.");
         try { byte[] bytes = file.getBytes(); if (!matchesSignature(extension, bytes))

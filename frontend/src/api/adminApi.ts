@@ -2,7 +2,7 @@ import { request } from './client';
 
 export type AdminUser = { id: number; username: string; maskedEmail: string; nickname: string; role: string; status: string; createdAt: string; lastLoginAt?: string };
 export type AdminOverview = { users: number; activeUsers: number; suspendedUsers: number; groups: number; teamGroups: number; reportDownloads: number; reportDeliveries: number; failedReportDeliveries: number };
-export type AdminGroup = { id: number; name: string; type: string; membershipPlan: string; activeMembers: number; reportScheduleActive: boolean; createdAt: string };
+export type AdminGroup = { id: number; name: string; type: string; activeMembers: number; reportScheduleActive: boolean; createdAt: string };
 export type AdminReportDownload = { id: number; groupId: number; groupName: string; requestedByUserId: number; scope: string; periodType: string; createdAt: string };
 export type AdminReportDelivery = { id: number; groupId: number; groupName: string; periodType: string; language: string; status: string; retryCount: number; errorCode?: string; lastAttemptAt?: string; nextRetryAt?: string; sentAt?: string; createdAt: string };
 export type AdminMfaStatus = { enabled: boolean; sessionVerified: boolean; encryptionConfigured: boolean; enabledAt?: string };

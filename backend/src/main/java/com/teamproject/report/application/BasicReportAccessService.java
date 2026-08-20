@@ -57,9 +57,7 @@ public class BasicReportAccessService {
         if (record) {
             downloads.save(new GroupReportDownload(group, member, scope, periodType));
         }
-        // 무료 플랜 리포트는 팀 정책상 횟수 제한이 없다. 과금은 구독 모듈이 담당한다.
-        return new ReportAccessResponse(true, group.getMembershipPlan().name(), scope.name(),
-                periodType.name(), null);
+        return new ReportAccessResponse(true, scope.name(), periodType.name(), null);
     }
 
     private GroupReportDownload.Scope scope(String value) {

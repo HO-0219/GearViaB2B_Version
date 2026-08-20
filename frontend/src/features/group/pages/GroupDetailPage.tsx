@@ -231,7 +231,7 @@ export function GroupDetailPage() {
       <dl><div><dt>{t('설명', 'Description')}</dt><dd>{group?.description || t('설명 없음', 'No description')}</dd></div><div><dt>{t('시간대', 'Time zone')}</dt><dd>{group?.timezone}</dd></div><div><dt>{t('대시보드', 'Dashboard')}</dt><dd>{group?.dashboardVisibility === 'MEMBERS' ? t('모든 멤버', 'All members') : t('팀장만', 'Leaders only')}</dd></div></dl>
     </section>)}
     {group?.type === 'TEAM' && settingsTab === 'plan' && <section className="settings-tab-panel group-subsection report-access-section"><header className="group-section-heading"><div><span className="page-eyebrow">REPORTS</span><h2>{t('그룹 리포트', 'Group reports')}</h2><p>{t('PDF 리포트와 메일 발송 일정을 관리합니다.', 'Manage PDF reports and email delivery schedules.')}</p></div></header>
-      <div className="membership-benefits"><strong>{t('사용 가능한 리포트', 'Available reports')}</strong><ul>
+      <div className="report-benefits"><strong>{t('사용 가능한 리포트', 'Available reports')}</strong><ul>
         <li>{t('주간·월간·연간, 내 업무·그룹 전체 PDF 리포트', 'Weekly, monthly, and yearly personal/group PDF reports')}</li>
         <li>{t('팀 업무 요약을 원하는 언어로 메일 발송', 'Email team summaries in your preferred language')}</li>
         <li>{t('업무·캘린더·댓글 흐름을 기준으로 한 운영 기록', 'Operational records based on tasks, calendars, and comments')}</li>

@@ -204,7 +204,7 @@ class GroupInvitationApiTest {
     }
 
     @Test
-    void freeAndPersonalReportsAreUnlimitedWhileGroupScopeStillRequiresLeader() throws Exception {
+    void companyPolicyReportsAreUnlimitedWhileGroupScopeStillRequiresLeader() throws Exception {
         Account owner = account("report_owner", "report-owner@example.com");
         Account member = account("report_member", "report-member@example.com");
         long teamId = team(owner.user(), "무료 리포트 팀");
@@ -216,7 +216,6 @@ class GroupInvitationApiTest {
                             .header("Authorization", bearer(owner))
                             .contentType(MediaType.APPLICATION_JSON).content(groupReport))
                     .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.membershipPlan").value("FREE"))
                     .andExpect(jsonPath("$.remainingThisWeek").doesNotExist());
         }
         mvc.perform(post("/api/v1/groups/{groupId}/reports/access", teamId)

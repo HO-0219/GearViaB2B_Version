@@ -43,7 +43,11 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@SpringBootTest(classes = B2BGearViaApplication.class)
+@SpringBootTest(classes = B2BGearViaApplication.class, properties = {
+        "app.ai-report.enabled=true",
+        "app.openai.api-key=test-openai-key",
+        "app.ai-report.api-key=test-openai-key"
+})
 @AutoConfigureMockMvc
 @Transactional
 class AiWeeklyReportApiTest {
@@ -68,7 +72,7 @@ class AiWeeklyReportApiTest {
     private User memberUser;
     private User nonMemberUser;
     private Group paidTeamGroup;
-    private Group freeGroup;
+    private Group personalGroup;
     private String leaderToken;
     private String memberToken;
     private String nonMemberToken;
@@ -88,14 +92,13 @@ class AiWeeklyReportApiTest {
         nonMemberUser = userRepository.save(new User("nonmember_api", "nonmember@test.local", "pass123!", "외부인", true));
 
         paidTeamGroup = Group.team("유료팀", "설명", "Asia/Seoul", leaderUser);
-        paidTeamGroup.switchTestMembership(Group.MembershipPlan.PAID, LocalDateTime.now());
         paidTeamGroup = groupRepository.save(paidTeamGroup);
 
-        freeGroup = groupRepository.save(Group.team("무료그룹", "설명", "Asia/Seoul", leaderUser));
+        personalGroup = groupRepository.save(Group.personal(leaderUser));
 
         memberRepository.save(GroupMember.leader(paidTeamGroup, leaderUser));
         memberRepository.save(GroupMember.member(paidTeamGroup, memberUser));
-        memberRepository.save(GroupMember.leader(freeGroup, leaderUser));
+        memberRepository.save(GroupMember.leader(personalGroup, leaderUser));
 
         leaderToken = sessionIssuer.issue(leaderUser).response().accessToken();
         memberToken = sessionIssuer.issue(memberUser).response().accessToken();
@@ -195,8 +198,8 @@ class AiWeeklyReportApiTest {
     }
 
     @Test
-    @DisplayName("무료 그룹에서 생성 요청 시 403 Forbidden (AI_REPORT_PAID_REQUIRED)을 반환한다")
-    void freeGroupCreationReturns403() throws Exception {
+    @DisplayName("개인 그룹에서 생성 요청 시 403 Forbidden (AI_GROUP_PERMISSION_REQUIRED)을 반환한다")
+    void personalGroupCreationReturns403() throws Exception {
         String body = """
                 {
                   "from": "2026-07-20",
@@ -206,12 +209,12 @@ class AiWeeklyReportApiTest {
                 }
                 """;
 
-        mvc.perform(post("/api/v1/groups/" + freeGroup.getId() + "/reports/ai-weekly")
+        mvc.perform(post("/api/v1/groups/" + personalGroup.getId() + "/reports/ai-weekly")
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + leaderToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(body))
                 .andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.code").value("AI_REPORT_PAID_REQUIRED"));
+                .andExpect(jsonPath("$.code").value("AI_GROUP_PERMISSION_REQUIRED"));
     }
 
     @Test
@@ -231,7 +234,7 @@ class AiWeeklyReportApiTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(body))
                 .andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.code").value("GROUP_LEADER_REQUIRED"));
+                .andExpect(jsonPath("$.code").value("AI_GROUP_PERMISSION_REQUIRED"));
     }
 
     @Test

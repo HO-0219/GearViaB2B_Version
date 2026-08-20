@@ -10,7 +10,7 @@ public final class AdminDtos {
             long failedReportDeliveries) {}
     public record AdminUserResponse(Long id, String username, String maskedEmail, String nickname,
             String role, String status, LocalDateTime createdAt, LocalDateTime lastLoginAt) {}
-    public record AdminGroupResponse(Long id, String name, String type, String membershipPlan,
+    public record AdminGroupResponse(Long id, String name, String type,
             long activeMembers, boolean reportScheduleActive, LocalDateTime createdAt) {}
     public record AdminAuditResponse(Long id, Long actorUserId, String method, String path,
             int status, String outcome, String ipAddress, String requestId, LocalDateTime occurredAt) {}

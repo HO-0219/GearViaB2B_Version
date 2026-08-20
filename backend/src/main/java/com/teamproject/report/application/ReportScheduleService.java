@@ -6,6 +6,7 @@ import com.teamproject.common.scheduling.DatabaseJobLock;
 import com.teamproject.group.application.GroupAuthorization;
 import com.teamproject.group.domain.Group;
 import com.teamproject.group.domain.GroupMember;
+import com.teamproject.organization.application.OrganizationFeaturePolicy;
 import com.teamproject.report.application.ReportDocumentService.Language;
 import com.teamproject.report.application.dto.ReportDtos.*;
 import com.teamproject.report.domain.*;
@@ -26,11 +27,13 @@ public class ReportScheduleService {
     private final ReportDocumentService documents;
     private final MailService mail;
     private final DatabaseJobLock jobLock;
+    private final OrganizationFeaturePolicy organizationPolicy;
     public ReportScheduleService(GroupAuthorization authorization, ReportScheduleRepository schedules,
             ReportDeliveryRepository deliveries, ReportDocumentService documents, MailService mail,
-            DatabaseJobLock jobLock) {
+            DatabaseJobLock jobLock, OrganizationFeaturePolicy organizationPolicy) {
         this.authorization = authorization; this.schedules = schedules; this.deliveries = deliveries;
         this.documents = documents; this.mail = mail; this.jobLock = jobLock;
+        this.organizationPolicy = organizationPolicy;
     }
     @Transactional
     public ReportScheduleResponse get(Long userId, Long groupId) {
@@ -42,10 +45,8 @@ public class ReportScheduleService {
     @Transactional
     public ReportScheduleResponse update(Long userId, Long groupId, UpdateReportScheduleRequest request) {
         GroupMember leader = requireTeamLeader(userId, groupId);
-        if ((request.weeklyEnabled() || request.monthlyEnabled())
-                && leader.getGroup().getMembershipPlan() != Group.MembershipPlan.PAID) {
-            throw new ApplicationException("REPORT_SCHEDULE_POLICY_REQUIRED", HttpStatus.FORBIDDEN,
-                    "자동 리포트 메일은 관리자 정책에서 허용된 팀 그룹에서 사용할 수 있습니다.");
+        if (request.weeklyEnabled() || request.monthlyEnabled()) {
+            organizationPolicy.requireReportScheduling(userId, groupId);
         }
         boolean weeklyEligible = eligible(leader.getGroup(), WEEKLY_MINIMUM_DAYS);
         boolean monthlyEligible = eligible(leader.getGroup(), MONTHLY_MINIMUM_DAYS);
@@ -91,7 +92,7 @@ public class ReportScheduleService {
                 ReportDelivery.Status.FAILED, LocalDateTime.now()).forEach(this::retry);
     }
     private void deliver(ReportSchedule schedule, ReportDelivery.PeriodType type, LocalDate from, LocalDate to) {
-        if (schedule.getGroup().getMembershipPlan() != Group.MembershipPlan.PAID) return;
+        if (!organizationPolicy.reportSchedulingEnabled(schedule.getGroup())) return;
         List<ReportDelivery.Language> languages = schedule.getLanguage() == ReportSchedule.Language.BOTH
                 ? List.of(ReportDelivery.Language.KO, ReportDelivery.Language.EN)
                 : List.of(schedule.getLanguage() == ReportSchedule.Language.KO
@@ -112,7 +113,7 @@ public class ReportScheduleService {
     }
     private void retry(ReportDelivery delivery) {
         ReportSchedule schedule = delivery.getSchedule();
-        if (!schedule.isActive() || schedule.getGroup().getMembershipPlan() != Group.MembershipPlan.PAID) {
+        if (!schedule.isActive() || !organizationPolicy.reportSchedulingEnabled(schedule.getGroup())) {
             delivery.abandon("SCHEDULE_INACTIVE");
             return;
         }

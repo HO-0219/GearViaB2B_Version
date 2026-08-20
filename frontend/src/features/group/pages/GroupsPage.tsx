@@ -72,7 +72,7 @@ export function GroupsPage() {
         {!loading && groups.filter((group) => group.type === 'TEAM').length === 0 && <p className="empty-state">{t('참여 중인 그룹이 없습니다.', 'You have not joined any groups yet.')}</p>}
         <div className="group-list group-card-grid">{groups.filter((group) => group.type === 'TEAM').map((group, index) => <article className="group-item group-card" key={group.id}>
           <Link className="group-link group-dashboard-link" to={`/groups/${group.id}/dashboard`}><span className={`group-avatar group-avatar-${index % 4}`} aria-hidden="true">{group.imageUrl ? <AuthenticatedImage src={group.imageUrl} alt="" /> : group.name.slice(0, 1)}</span>
-            <div><span className="group-type team">{group.membershipPlan === 'PAID' ? t('유료 그룹', 'Paid group') : t('무료 그룹', 'Free group')}</span><strong>{group.name}</strong></div>
+            <div><span className="group-type team">{t('팀 그룹', 'Team group')}</span><strong>{group.name}</strong></div>
             <p>{group.description || t('설명 없음', 'No description')}</p><small>{group.role === 'LEADER' ? t('팀장', 'Leader') : t('팀원', 'Member')}</small>
           </Link><div className="group-card-actions"><Link to={`/groups/${group.id}/members`}>{t('팀원 보기', 'Members')}</Link><Link to={`/groups/${group.id}`}>{t('설정', 'Settings')}</Link></div>
         </article>)}</div>

@@ -1,7 +1,6 @@
 package com.teamproject.chat.application;
 
 import com.teamproject.chat.domain.*;
-import com.teamproject.group.domain.Group;
 import com.teamproject.resource.storage.FileStorage;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.PageRequest;
@@ -16,27 +15,23 @@ import java.util.*;
 public class ChatRetentionCleanup {
     private final ChatMessageRepository messages;
     private final FileStorage storage;
-    private final int freeDays;
-    private final int paidDays;
+    private final int retentionDays;
     public ChatRetentionCleanup(ChatMessageRepository messages, FileStorage storage,
-            @Value("${app.features.chat.free-retention-days:10}") int freeDays,
-            @Value("${app.features.chat.paid-retention-days:365}") int paidDays) {
-        this.messages = messages; this.storage = storage; this.freeDays = freeDays; this.paidDays = paidDays;
+            @Value("${app.organization.chat.message-retention-days:365}") int retentionDays) {
+        this.messages = messages; this.storage = storage; this.retentionDays = retentionDays;
     }
-    @Scheduled(cron = "${app.features.chat.cleanup-cron:0 35 3 * * *}")
+    @Scheduled(cron = "${app.organization.chat.cleanup-cron:0 35 3 * * *}")
     @Transactional
     public void cleanup() {
         List<String> keys = new ArrayList<>();
-        deletePlan(Group.MembershipPlan.FREE, LocalDateTime.now().minusDays(freeDays), keys);
-        deletePlan(Group.MembershipPlan.PAID, LocalDateTime.now().minusDays(paidDays), keys);
+        deleteExpired(LocalDateTime.now().minusDays(retentionDays), keys);
         if (!keys.isEmpty()) TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
             @Override public void afterCommit() { keys.forEach(storage::delete); }
         });
     }
-    private void deletePlan(Group.MembershipPlan plan, LocalDateTime cutoff, List<String> keys) {
+    private void deleteExpired(LocalDateTime cutoff, List<String> keys) {
         while (true) {
-            List<ChatMessage> batch = messages.findByChannelGroupMembershipPlanAndCreatedAtBeforeOrderByIdAsc(
-                    plan, cutoff, PageRequest.of(0, 500));
+            List<ChatMessage> batch = messages.findByCreatedAtBeforeOrderByIdAsc(cutoff, PageRequest.of(0, 500));
             if (batch.isEmpty()) return;
             batch.stream().map(ChatMessage::getStorageKey).filter(Objects::nonNull).forEach(keys::add);
             messages.deleteAllInBatch(batch);

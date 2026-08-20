@@ -71,7 +71,6 @@ public class AdminService {
         var items = result.getContent().stream().map(group -> {
             ReportSchedule schedule = scheduleByGroup.get(group.getId());
             return new AdminGroupResponse(group.getId(), group.getName(), group.getType().name(),
-                    group.getMembershipPlan().name(),
                     memberCountByGroup.getOrDefault(group.getId(), 0L),
                     schedule != null && schedule.isActive(), group.getCreatedAt());
         }).toList();

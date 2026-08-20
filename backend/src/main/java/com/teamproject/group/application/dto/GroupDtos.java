@@ -21,19 +21,16 @@ public final class GroupDtos {
 
     public record GroupResponse(
             Long id, String type, String name, String description, String imageUrl, String timezone,
-            String dashboardVisibility, String membershipPlan, boolean joinCodeActive, String joinCode,
+            String dashboardVisibility, boolean joinCodeActive, String joinCode,
             Long memberId, String role,
-            LocalDateTime paidStartedAt, LocalDateTime paidUntil, LocalDateTime nextBillingAt,
-            boolean testPlanSwitchEnabled, LocalDateTime createdAt, LocalDateTime updatedAt) {}
+            LocalDateTime createdAt, LocalDateTime updatedAt) {}
 
     public record JoinGroupRequest(@NotBlank @Size(min = 8, max = 12) String code) {}
 
     public record ReportAccessRequest(@NotBlank String scope, @NotBlank String periodType) {}
 
-    public record ReportAccessResponse(boolean allowed, String membershipPlan, String scope,
+    public record ReportAccessResponse(boolean allowed, String scope,
             String periodType, Integer remainingThisWeek) {}
-
-    public record TestMembershipRequest(@NotBlank String plan) {}
 
     public record CreateInvitationRequest(@NotBlank @Email @Size(max = 255) String email) {}
 

@@ -105,7 +105,7 @@ export function ProjectsPage() {
       {group.role === 'LEADER' && <button className="primary" type="button" onClick={openCreate}>＋ {t('프로젝트 만들기', 'Create project')}</button>}
     </header>
     {features && <section className="project-plan-summary">
-      <div><span>{t('현재 플랜', 'Current plan')}</span><strong>{features.membershipPlan}</strong></div>
+      <div><span>{t('회사 정책', 'Company policy')}</span><strong>{features.projectEnabled ? t('프로젝트 사용', 'Projects enabled') : t('프로젝트 미사용', 'Projects off')}</strong></div>
       <div><span>{t('채팅 보관', 'Chat retention')}</span><strong>{t(`${features.messageRetentionDays}일`, `${features.messageRetentionDays} days`)}</strong></div>
       <div><span>{t('채팅 채널', 'Chat channels')}</span><strong>{features.multipleChatChannels ? t(`최대 ${features.chatChannelLimit}개`, `Up to ${features.chatChannelLimit}`) : t('그룹 공용 1개', '1 group channel')}</strong></div>
       <div><span>{t('그룹 저장공간', 'Group storage')}</span><strong>{formatBytes(features.storageLimitBytes)}</strong></div>

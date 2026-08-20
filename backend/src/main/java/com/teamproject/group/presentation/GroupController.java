@@ -16,7 +16,6 @@ import com.teamproject.group.application.dto.GroupDtos.ChangeMemberRoleRequest;
 import com.teamproject.group.application.dto.GroupDtos.JoinGroupRequest;
 import com.teamproject.group.application.dto.GroupDtos.ReportAccessRequest;
 import com.teamproject.group.application.dto.GroupDtos.ReportAccessResponse;
-import com.teamproject.group.application.dto.GroupDtos.TestMembershipRequest;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
@@ -86,12 +85,6 @@ public class GroupController {
     GroupResponse uploadImage(Authentication authentication, @PathVariable Long groupId,
             @RequestPart("file") MultipartFile file) {
         return groups.uploadImage((Long) authentication.getPrincipal(), groupId, file);
-    }
-
-    @PutMapping("/{groupId}/membership/test-plan")
-    GroupResponse switchTestMembership(Authentication authentication, @PathVariable Long groupId,
-            @Valid @RequestBody TestMembershipRequest request) {
-        return groups.switchTestMembership((Long) authentication.getPrincipal(), groupId, request.plan());
     }
 
     @PostMapping("/{groupId}/join-code")

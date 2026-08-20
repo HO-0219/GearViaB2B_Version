@@ -66,7 +66,8 @@ public class ChatService {
         GroupMember actor = authorization.requireActiveMember(groupId, userId); requireTeam(actor.getGroup());
         var policy = features.policy(userId, groupId);
         if (!policy.multipleChatChannels()) throw new ApplicationException(
-                "CHAT_PAID_CHANNEL_REQUIRED", HttpStatus.FORBIDDEN, "유료 그룹에서만 여러 채팅방을 만들 수 있습니다.");
+                "CHAT_CHANNEL_POLICY_REQUIRED", HttpStatus.FORBIDDEN,
+                "관리자 정책에서 허용된 팀 그룹에서만 여러 채팅방을 만들 수 있습니다.");
         ensureGeneral(actor);
         if (channels.countByGroupIdAndArchivedAtIsNull(groupId) >= policy.chatChannelLimit()) throw new ApplicationException(
                 "CHAT_CHANNEL_LIMIT", HttpStatus.CONFLICT, "채팅방 생성 한도에 도달했습니다.");
@@ -140,8 +141,8 @@ public class ChatService {
         GroupMember member = authorization.requireActiveMember(channel.getGroup().getId(), userId);
         var policy = features.policy(userId, channel.getGroup().getId());
         if (!policy.multipleChatChannels() && channel.getChannelType() != ChatChannel.Type.GENERAL)
-            throw new ApplicationException("CHAT_CHANNEL_PLAN_RESTRICTED", HttpStatus.FORBIDDEN,
-                    "현재 플랜에서는 그룹 공용 채팅방만 사용할 수 있습니다.");
+            throw new ApplicationException("CHAT_CHANNEL_POLICY_RESTRICTED", HttpStatus.FORBIDDEN,
+                    "관리자 정책에 따라 그룹 공용 채팅방만 사용할 수 있습니다.");
         return new ChatAccess(channel, member, policy.messageRetentionDays());
     }
     private void ensureGeneral(GroupMember actor) {
@@ -194,7 +195,7 @@ public class ChatService {
     private ApplicationException notFound(String name) { return new ApplicationException(
             "CHAT_NOT_FOUND", HttpStatus.NOT_FOUND, name + "을(를) 찾을 수 없습니다."); }
     private FileValue validate(MultipartFile file, long limit) {
-        if (file == null || file.isEmpty() || file.getSize() > limit) throw invalid("현재 플랜의 파일당 한도를 확인해 주세요.");
+        if (file == null || file.isEmpty() || file.getSize() > limit) throw invalid("관리자 정책의 파일당 한도를 확인해 주세요.");
         String filename = safeFilename(file.getOriginalFilename()); String extension = extension(filename);
         if (!EXTENSIONS.contains(extension)) throw invalid("허용되지 않는 파일 형식입니다.");
         try { byte[] bytes = file.getBytes(); if (!matches(extension, bytes)) throw invalid("파일 확장자와 실제 형식이 일치하지 않습니다.");

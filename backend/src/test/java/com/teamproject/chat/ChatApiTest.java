@@ -40,39 +40,35 @@ class ChatApiTest {
     @Autowired JdbcTemplate jdbc;
 
     @Test
-    void freeGroupUsesOneGeneralChannelAndTenDayHistory() throws Exception {
-        String owner = signupAndLogin("chat_free_owner", "chat-free-owner@example.com");
-        long groupId = createGroup(owner, "무료 채팅팀");
+    void companyPolicyUsesConfiguredChannelsAndHistory() throws Exception {
+        String owner = signupAndLogin("chat_policy_owner", "chat-policy-owner@example.com");
+        long groupId = createGroup(owner, "회사 정책 채팅팀");
         var listed = mvc.perform(get("/api/v1/groups/{groupId}/chat/channels", groupId)
                         .header("Authorization", "Bearer " + owner))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.length()").value(1))
                 .andExpect(jsonPath("$[0].type").value("GENERAL"))
-                .andExpect(jsonPath("$[0].retentionDays").value(10)).andReturn();
+                .andExpect(jsonPath("$[0].retentionDays").value(365)).andReturn();
         long channelId = number(listed.getResponse().getContentAsString(), "$[0].id");
         mvc.perform(post("/api/v1/groups/{groupId}/chat/channels", groupId)
                         .header("Authorization", "Bearer " + owner).contentType(MediaType.APPLICATION_JSON)
                         .content("{\"name\":\"추가 채팅\"}"))
-                .andExpect(status().isForbidden()).andExpect(jsonPath("$.code").value("CHAT_PAID_CHANNEL_REQUIRED"));
+                .andExpect(status().isCreated()).andExpect(jsonPath("$.type").value("TOPIC"));
         var message = mvc.perform(post("/api/v1/chat/channels/{channelId}/messages", channelId)
                         .header("Authorization", "Bearer " + owner).contentType(MediaType.APPLICATION_JSON)
                         .content("{\"content\":\"첫 번째 메시지\"}"))
                 .andExpect(status().isCreated()).andExpect(jsonPath("$.content").value("첫 번째 메시지")).andReturn();
         long messageId = number(message.getResponse().getContentAsString(), "$.id");
-        jdbc.update("UPDATE chat_messages SET created_at = ? WHERE id = ?", LocalDateTime.now().minusDays(11), messageId);
+        jdbc.update("UPDATE chat_messages SET created_at = ? WHERE id = ?", LocalDateTime.now().minusDays(366), messageId);
         mvc.perform(get("/api/v1/chat/channels/{channelId}/messages", channelId)
                         .header("Authorization", "Bearer " + owner))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.items.length()").value(0))
-                .andExpect(jsonPath("$.retentionDays").value(10));
+                .andExpect(jsonPath("$.retentionDays").value(365));
     }
 
     @Test
-    void paidGroupCreatesMajorTopicAndMembersExchangeAttachments() throws Exception {
-        String owner = signupAndLogin("chat_paid_owner", "chat-paid-owner@example.com");
-        long groupId = createGroup(owner, "유료 채팅팀");
-        mvc.perform(put("/api/v1/groups/{groupId}/membership/test-plan", groupId)
-                        .header("Authorization", "Bearer " + owner).contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"plan\":\"PAID\"}"))
-                .andExpect(status().isOk());
+    void teamCreatesMajorTopicAndMembersExchangeAttachments() throws Exception {
+        String owner = signupAndLogin("chat_team_owner", "chat-team-owner@example.com");
+        long groupId = createGroup(owner, "팀 채팅");
         long projectId = createProject(owner, groupId, "사용자 프로젝트");
         long majorId = createNode(owner, projectId, "사용자 관련 개발");
         var created = mvc.perform(post("/api/v1/groups/{groupId}/chat/channels", groupId)
@@ -84,8 +80,8 @@ class ChatApiTest {
                 .andExpect(jsonPath("$.retentionDays").value(365)).andReturn();
         long channelId = number(created.getResponse().getContentAsString(), "$.id");
 
-        String memberToken = signupAndLogin("chat_paid_member", "chat-paid-member@example.com");
-        var memberUser = users.findByUsernameIgnoreCase("chat_paid_member").orElseThrow();
+        String memberToken = signupAndLogin("chat_team_member", "chat-team-member@example.com");
+        var memberUser = users.findByUsernameIgnoreCase("chat_team_member").orElseThrow();
         members.saveAndFlush(GroupMember.member(groups.findById(groupId).orElseThrow(), memberUser));
         byte[] png = Base64.getDecoder().decode(
                 "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=");

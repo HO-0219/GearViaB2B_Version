@@ -113,25 +113,12 @@ class ProjectApiTest {
     }
 
     @Test
-    void featurePolicyChangesWithGroupPlan() throws Exception {
+    void featurePolicyUsesCompanyLimitsForTeamGroups() throws Exception {
         String token = signupAndLogin("feature_owner", "feature-owner@example.com");
         long groupId = createGroup(token, "기능 정책팀");
         mvc.perform(get("/api/v1/groups/{groupId}/features", groupId)
                         .header("Authorization", "Bearer " + token))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.membershipPlan").value("FREE"))
-                .andExpect(jsonPath("$.multipleChatChannels").value(false))
-                .andExpect(jsonPath("$.chatChannelLimit").value(1))
-                .andExpect(jsonPath("$.messageRetentionDays").value(10));
-
-        mvc.perform(put("/api/v1/groups/{groupId}/membership/test-plan", groupId)
-                        .header("Authorization", "Bearer " + token)
-                        .contentType(MediaType.APPLICATION_JSON).content("{\"plan\":\"PAID\"}"))
-                .andExpect(status().isOk());
-        mvc.perform(get("/api/v1/groups/{groupId}/features", groupId)
-                        .header("Authorization", "Bearer " + token))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.membershipPlan").value("PAID"))
                 .andExpect(jsonPath("$.multipleChatChannels").value(true))
                 .andExpect(jsonPath("$.chatChannelLimit").value(50))
                 .andExpect(jsonPath("$.messageRetentionDays").value(365));

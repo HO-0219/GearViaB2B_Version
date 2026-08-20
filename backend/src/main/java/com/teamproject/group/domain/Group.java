@@ -21,11 +21,6 @@ public class Group {
     private String timezone;
     @Enumerated(EnumType.STRING) @Column(nullable = false, length = 20)
     private DashboardVisibility dashboardVisibility;
-    @Enumerated(EnumType.STRING) @Column(nullable = false, length = 20)
-    private MembershipPlan membershipPlan;
-    private LocalDateTime paidStartedAt;
-    private LocalDateTime paidUntil;
-    private LocalDateTime nextBillingAt;
     @Column(name = "join_code_hash", length = 64, unique = true)
     private String joinCodeHash;
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
@@ -39,14 +34,12 @@ public class Group {
     protected Group() {}
 
     private Group(Type type, String name, String description, String timezone,
-            DashboardVisibility dashboardVisibility, MembershipPlan membershipPlan,
-            String joinCodeHash, User createdBy) {
+            DashboardVisibility dashboardVisibility, String joinCodeHash, User createdBy) {
         this.type = type;
         this.name = name;
         this.description = description;
         this.timezone = timezone;
         this.dashboardVisibility = dashboardVisibility;
-        this.membershipPlan = membershipPlan;
         this.joinCodeHash = joinCodeHash;
         this.createdBy = createdBy;
         this.createdAt = LocalDateTime.now();
@@ -55,7 +48,7 @@ public class Group {
 
     public static Group personal(User owner) {
         return new Group(Type.PERSONAL, owner.getNickname() + "의 개인 일정", null,
-                "Asia/Seoul", DashboardVisibility.MEMBERS, MembershipPlan.FREE, null, owner);
+                "Asia/Seoul", DashboardVisibility.MEMBERS, null, owner);
     }
 
     public static Group team(String name, String description, String timezone, User creator) {
@@ -64,7 +57,7 @@ public class Group {
 
     public static Group team(String name, String description, String timezone, String joinCodeHash, User creator) {
         return new Group(Type.TEAM, name, description, timezone,
-                DashboardVisibility.MEMBERS, MembershipPlan.FREE, joinCodeHash, creator);
+                DashboardVisibility.MEMBERS, joinCodeHash, creator);
     }
 
     public void updateSettings(String name, String description, String timezone,
@@ -79,21 +72,6 @@ public class Group {
     public void updateImage(String imageUrl) {
         this.imageUrl = imageUrl;
         this.updatedAt = LocalDateTime.now();
-    }
-
-    public void switchTestMembership(MembershipPlan plan, LocalDateTime now) {
-        if (type != Type.TEAM) throw new IllegalStateException("Personal groups cannot use paid membership.");
-        this.membershipPlan = plan;
-        if (plan == MembershipPlan.PAID) {
-            this.paidStartedAt = now;
-            this.paidUntil = now.plusDays(30);
-            this.nextBillingAt = paidUntil;
-        } else {
-            this.paidStartedAt = null;
-            this.paidUntil = null;
-            this.nextBillingAt = null;
-        }
-        this.updatedAt = now;
     }
 
     public void issueJoinCodeHash(String joinCodeHash) {
@@ -114,10 +92,6 @@ public class Group {
     public String getImageUrl() { return imageUrl; }
     public String getTimezone() { return timezone; }
     public DashboardVisibility getDashboardVisibility() { return dashboardVisibility; }
-    public MembershipPlan getMembershipPlan() { return membershipPlan; }
-    public LocalDateTime getPaidStartedAt() { return paidStartedAt; }
-    public LocalDateTime getPaidUntil() { return paidUntil; }
-    public LocalDateTime getNextBillingAt() { return nextBillingAt; }
     public String getJoinCodeHash() { return joinCodeHash; }
     public User getCreatedBy() { return createdBy; }
     public LocalDateTime getCreatedAt() { return createdAt; }
@@ -125,5 +99,4 @@ public class Group {
 
     public enum Type { PERSONAL, TEAM }
     public enum DashboardVisibility { LEADER_ONLY, MEMBERS }
-    public enum MembershipPlan { FREE, PAID }
 }

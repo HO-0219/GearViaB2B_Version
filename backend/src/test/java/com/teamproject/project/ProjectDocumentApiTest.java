@@ -18,8 +18,8 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @SpringBootTest(classes = B2BGearViaApplication.class, properties = {
-        "app.features.storage.free-bytes=12",
-        "app.features.storage.paid-bytes=1000"
+        "app.organization.storage.total-bytes=12",
+        "app.organization.storage.attachment-limit-bytes=1000"
 })
 @AutoConfigureMockMvc
 @Transactional

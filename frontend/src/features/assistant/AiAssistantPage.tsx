@@ -26,7 +26,7 @@ export function AiAssistantPage() {
   useEffect(() => {
     groupApi.list().then((values) => {
       setGroups(values);
-      const preferred = values.find((value) => value.type === 'TEAM' && value.membershipPlan === 'PAID') ?? values[0];
+      const preferred = values.find((value) => value.type === 'TEAM' && value.role === 'LEADER') ?? values[0];
       if (!groupId && preferred) setParams({ groupId: String(preferred.id) }, { replace: true });
     }).catch((caught) => setItems([assistantMessage(errorMessage(caught))]));
   }, []);
@@ -34,7 +34,7 @@ export function AiAssistantPage() {
   useEffect(() => {
     if (!groupId) return;
     const selected = groups.find((value) => value.id === groupId);
-    if (!selected || selected.type !== 'TEAM' || selected.membershipPlan !== 'PAID') {
+    if (!selected || selected.type !== 'TEAM' || selected.role !== 'LEADER') {
       if (groups.length > 0) setItems([]);
       return;
     }
@@ -101,7 +101,7 @@ export function AiAssistantPage() {
   }
 
   const selectedGroup = groups.find((group) => group.id === groupId);
-  const assistantEnabled = selectedGroup?.type === 'TEAM' && selectedGroup.membershipPlan === 'PAID';
+  const assistantEnabled = selectedGroup?.type === 'TEAM' && selectedGroup.role === 'LEADER';
 
   return <><AppNavigation /><main className="assistant-page app-page">
     <header className="assistant-header"><div><span className="page-eyebrow">AI ASSISTANT</span>
@@ -116,7 +116,7 @@ export function AiAssistantPage() {
         <option value={group.id} key={group.id}>{group.name}</option>)}</select></label>
     </header>
 
-    {!assistantEnabled && selectedGroup && <section className="assistant-policy-lock"><span aria-hidden="true">✦</span><div><h2>{t('AI 비서는 관리자 정책에서 허용된 팀 기능입니다.', 'AI assistant is available for teams enabled by an admin.')}</h2><p>{t('관리자가 AI 기능을 활성화하면 팀원 모두가 사용할 수 있습니다.', 'It becomes available to the whole team when an admin enables it.')}</p></div>{selectedGroup.role === 'LEADER' ? <Link className="primary" to={`/groups/${selectedGroup.id}?tab=plan`}>{t('AI 설정', 'Open AI settings')}</Link> : <small>{t('팀장에게 AI 기능 활성화를 요청해 주세요.', 'Ask your team leader to enable AI for this team.')}</small>}</section>}
+    {!assistantEnabled && selectedGroup && <section className="assistant-policy-lock"><span aria-hidden="true">✦</span><div><h2>{t('AI 비서는 관리자 정책에서 허용된 팀장 기능입니다.', 'AI assistant is available to team leaders when enabled by an admin.')}</h2><p>{t('서버 관리자가 AI 기능과 API 키를 설정하면 팀장이 사용할 수 있습니다.', 'Team leaders can use it after a server admin enables AI and configures an API key.')}</p></div>{selectedGroup.role === 'LEADER' ? <Link className="primary" to={`/groups/${selectedGroup.id}`}>{t('그룹 설정', 'Group settings')}</Link> : <small>{t('팀장에게 AI 기능 사용을 요청해 주세요.', 'Ask your team leader to use AI for this team.')}</small>}</section>}
     {assistantEnabled && <div className="assistant-workspace-layout"><section className="assistant-chat" aria-label={t('AI 비서 대화', 'AI assistant chat')}>
       <header className="assistant-chat-heading"><div><span>✦</span><div><strong>{t('B2BGearVia AI', 'B2BGearVia AI')}</strong><small>{t(`${selectedGroup?.name ?? ''}의 업무를 바탕으로 답변합니다.`, `Answers from work in ${selectedGroup?.name ?? ''}.`)}</small></div></div><b>{t('온라인', 'Online')}</b></header>
       <div className="assistant-messages" aria-live="polite">{items.map((item) =>
