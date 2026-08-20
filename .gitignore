@@ -38,6 +38,7 @@ nginx-active.conf.template
 
 .idea/
 .vscode/
+.worktrees/
 backend/target/
 backend/logs/
 backend/uploads/*
