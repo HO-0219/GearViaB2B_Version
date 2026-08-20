@@ -47,17 +47,17 @@ public class OpenAiWeeklyReportGateway implements AiWeeklyReportGateway {
     public Analysis analyze(AiWeeklyReportSnapshotV1 snapshot) {
         if (!properties.enabled()) {
             log.info("OpenAI report generation is disabled via properties");
-            throw new OpenAiReportUnavailableException("OpenAI report is disabled");
+            throw new OpenAiReportUnavailableException("AI 리포트가 비활성화되어 있습니다. 관리자에게 서버 AI 설정을 요청해 주세요.");
         }
         if (!properties.hasModel()) {
             log.warn("OpenAI model is missing");
-            throw new OpenAiReportUnavailableException("OpenAI model is missing");
+            throw new OpenAiReportUnavailableException("AI 리포트 모델이 설정되지 않았습니다. 관리자에게 서버 AI 설정을 요청해 주세요.");
         }
         // 키 없이 켜져 있으면 placeholder 키로 호출해 401을 받을 때까지 기다린다(최대 45초).
         // 결과는 어차피 fallback이므로 기다릴 이유가 없다.
         if (!properties.hasApiKey()) {
             log.warn("OpenAI API key is missing");
-            throw new OpenAiReportUnavailableException("OpenAI API key is missing");
+            throw new OpenAiReportUnavailableException("AI 리포트 API 키가 설정되지 않았습니다. 관리자에게 서버 AI 설정을 요청해 주세요.");
         }
 
         String snapshotJson;

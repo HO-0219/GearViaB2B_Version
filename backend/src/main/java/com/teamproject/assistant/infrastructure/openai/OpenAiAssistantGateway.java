@@ -44,7 +44,7 @@ public class OpenAiAssistantGateway implements AiAssistantGateway {
     public Decision decide(String context, List<ChatMessage> history, String message) {
         if (!properties.enabled() || !sharedProperties.hasApiKey() || properties.model().isBlank()) {
             throw new ApplicationException("AI_ASSISTANT_NOT_CONFIGURED", HttpStatus.SERVICE_UNAVAILABLE,
-                    "AI 비서가 아직 활성화되지 않았습니다.");
+                    "AI 비서가 비활성화되어 있습니다. 관리자에게 서버 AI 설정(기능 활성화와 API 키)을 요청해 주세요.");
         }
         var params = ResponseCreateParams.builder()
                 .instructions(INSTRUCTIONS)

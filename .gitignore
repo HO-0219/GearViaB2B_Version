@@ -6,6 +6,8 @@
 *.secret
 *.secrets
 secrets/
+# Installer-managed AI secret file (never commit or include in default backups).
+/installer/ai.env
 
 # Private project notes and checklists
 *.private.md
