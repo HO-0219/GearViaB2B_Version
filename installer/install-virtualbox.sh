@@ -156,21 +156,20 @@ fi
 INITIAL_CREDENTIALS="$INSTALL_ROOT/config/initial-admin.txt"
 BOOTSTRAP_ADMIN="$INSTALL_ROOT/bootstrap/admin.env"
 if [[ ! -f "$INITIAL_CREDENTIALS" && ! -f "$BOOTSTRAP_ADMIN" ]]; then
-  log "Generate the first administrator"
-  admin_password="Admin-$(openssl rand -hex 12)!"
+  log "Create the first administrator"
   cat > "$BOOTSTRAP_ADMIN" <<EOF
-username=company_admin
+username=admin
 email=admin@b2bgearvia.local
 name=B2BGearVia 관리자
-password=$admin_password
+password=admin
 EOF
   chown 10001:10001 "$BOOTSTRAP_ADMIN"
   chmod 600 "$BOOTSTRAP_ADMIN"
   cat > "$INITIAL_CREDENTIALS" <<EOF
 B2BGearVia initial administrator
 URL=https://$VM_IP
-username=company_admin
-password=$admin_password
+username=admin
+password=admin
 
 Change this password immediately after the first login, then delete this file.
 EOF

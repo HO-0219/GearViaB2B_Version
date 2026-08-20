@@ -10,7 +10,7 @@ export function LoginPage() {
   const navigate = useNavigate();
   const [params] = useSearchParams();
   const next = params.get('next');
-  const [username, setUsername] = useState('');
+  const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [mfaCode, setMfaCode] = useState('');
   const [showMfa, setShowMfa] = useState(params.get('adminMfa') === 'required');
@@ -33,7 +33,7 @@ export function LoginPage() {
   async function submit(event: FormEvent) {
     event.preventDefault(); setPending(true); setError('');
     try {
-      const tokens = await authApi.login(username, password, mfaCode);
+      const tokens = await authApi.login(identifier, password, mfaCode);
       accessToken.set(tokens.accessToken, tokens.expiresIn);
       sessionMode.clear();
       const me = await authApi.me();
@@ -45,8 +45,8 @@ export function LoginPage() {
     finally { setPending(false); }
   }
 
-  return <AuthLayout title={t('로그인', 'Log in')} description={t('B2BGearVia에 다시 오신 것을 환영합니다.', 'Welcome back to B2BGearVia.')}>
-    <form onSubmit={submit} className="form"><Field label={t('아이디', 'Username')} value={username} onChange={e => setUsername(e.target.value)} autoComplete="username" required /><Field label={t('비밀번호', 'Password')} type="password" value={password} onChange={e => setPassword(e.target.value)} autoComplete="current-password" required />
+  return <AuthLayout title={t('로그인', 'Log in')} description={t('회사에서 등록한 계정으로 접속하세요.', 'Sign in with the account provided by your company.')}>
+    <form onSubmit={submit} className="form"><Field label={t('회사 메일 또는 관리자 ID', 'Company email or admin ID')} value={identifier} onChange={e => setIdentifier(e.target.value)} autoComplete="username" required /><Field label={t('비밀번호', 'Password')} type="password" value={password} onChange={e => setPassword(e.target.value)} autoComplete="current-password" required />
       {showMfa && <Field label={t('관리자 MFA 코드', 'Admin MFA code')} value={mfaCode} onChange={e => setMfaCode(e.target.value)} autoComplete="one-time-code" required />}
       {error && <p className="error">{error}</p>}<SubmitButton pending={pending}>{t('로그인', 'Log in')}</SubmitButton>
     </form>

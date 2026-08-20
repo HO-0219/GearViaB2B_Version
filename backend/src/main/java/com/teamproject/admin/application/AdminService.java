@@ -12,10 +12,12 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import java.security.SecureRandom;
+import java.util.Locale;
+import java.util.UUID;
 
 @Service
 public class AdminService {
+    private static final String INITIAL_PASSWORD = "user123";
     private final UserRepository users;
     private final GroupRepository groups;
     private final GroupMemberRepository members;
@@ -65,23 +67,29 @@ public class AdminService {
     }
     @Transactional
     public TemporaryPasswordResponse createUser(CreateUserRequest request) {
-        if (users.existsByUsernameIgnoreCase(request.username()) || users.existsByEmailIgnoreCase(request.email()))
+        String email = request.email().trim().toLowerCase(Locale.ROOT);
+        if (users.existsByEmailIgnoreCase(email))
             throw new ApplicationException("USER_ALREADY_EXISTS", HttpStatus.CONFLICT, "이미 사용 중인 계정입니다.");
-        String temp = temporaryPassword();
-        User user = new User(request.username().trim(), request.email().trim(), passwordEncoder.encode(temp), request.name().trim(), true);
+        User user = new User(employeeUsername(), email, passwordEncoder.encode(INITIAL_PASSWORD), request.name().trim(), true);
         if ("ADMIN".equalsIgnoreCase(request.role())) user.promoteToAdmin();
         user.requirePasswordChange();
-        return new TemporaryPasswordResponse(toResponse(users.save(user)), temp);
+        return new TemporaryPasswordResponse(toResponse(users.save(user)), INITIAL_PASSWORD);
     }
     @Transactional
     public TemporaryPasswordResponse resetPassword(Long userId) {
         User user = users.findById(userId).orElseThrow(() -> new ApplicationException("USER_NOT_FOUND", HttpStatus.NOT_FOUND, "사용자를 찾을 수 없습니다."));
-        String temp = temporaryPassword(); user.changePassword(passwordEncoder.encode(temp)); user.requirePasswordChange(); user.invalidateSessions();
+        String temp = INITIAL_PASSWORD; user.changePassword(passwordEncoder.encode(temp)); user.requirePasswordChange(); user.invalidateSessions();
         refreshTokens.findAllByUserId(userId).forEach(RefreshToken::revoke);
         return new TemporaryPasswordResponse(toResponse(user), temp);
     }
     @Transactional public void endSessions(Long userId) { User u = users.findById(userId).orElseThrow(() -> new ApplicationException("USER_NOT_FOUND", HttpStatus.NOT_FOUND, "사용자를 찾을 수 없습니다.")); u.invalidateSessions(); refreshTokens.findAllByUserId(userId).forEach(RefreshToken::revoke); }
-    private String temporaryPassword() { String s = ""; String chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789"; SecureRandom r = new SecureRandom(); for (int i=0;i<14;i++) s += chars.charAt(r.nextInt(chars.length())); return s; }
+    private String employeeUsername() {
+        String username;
+        do {
+            username = "employee_" + UUID.randomUUID().toString().replace("-", "").substring(0, 20);
+        } while (users.existsByUsernameIgnoreCase(username));
+        return username;
+    }
     private AdminUserResponse toResponse(User u) { return new AdminUserResponse(u.getId(),u.getUsername(),mask(u.getEmail()),u.getNickname(),u.getSystemRole().name(),u.getStatus().name(),u.getCreatedAt(),u.getLastLoginAt(),u.isForcePasswordChange()); }
     @Transactional(readOnly = true)
     public PageResponse<AdminGroupResponse> groups(int page, int size) {

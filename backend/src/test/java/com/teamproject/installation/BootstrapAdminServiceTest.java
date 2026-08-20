@@ -18,7 +18,7 @@ class BootstrapAdminServiceTest {
     @Test
     void createsLocalAdminFromOneTimeFileOnlyWhenUserTableIsEmpty() throws Exception {
         Path secret = tempDir.resolve("bootstrap-admin.env");
-        Files.writeString(secret, "username=admin\nemail=admin@example.test\nname=System Admin\npassword=CorrectHorseBatteryStaple!\n");
+        Files.writeString(secret, "username=admin\nemail=admin@b2bgearvia.local\nname=B2BGearVia 관리자\npassword=admin\n");
         UserRepository users = mock(UserRepository.class);
         when(users.count()).thenReturn(0L);
         when(users.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
@@ -28,8 +28,9 @@ class BootstrapAdminServiceTest {
 
         assertThat(admin.getSystemRole()).isEqualTo(User.SystemRole.ADMIN);
         assertThat(admin.getUsername()).isEqualTo("admin");
-        assertThat(admin.getPasswordHash()).isNotEqualTo("CorrectHorseBatteryStaple!");
-        assertThat(new BCryptPasswordEncoder().matches("CorrectHorseBatteryStaple!", admin.getPasswordHash())).isTrue();
+        assertThat(admin.getPasswordHash()).isNotEqualTo("admin");
+        assertThat(new BCryptPasswordEncoder().matches("admin", admin.getPasswordHash())).isTrue();
+        assertThat(admin.isForcePasswordChange()).isTrue();
         verify(users).save(admin);
         assertThat(Files.exists(secret)).isFalse();
     }

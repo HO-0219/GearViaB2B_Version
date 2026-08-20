@@ -13,7 +13,7 @@ export const adminApi = {
   overview: () => request<AdminOverview>('/admin/overview', {}, true),
   users: () => request<Page<AdminUser>>('/admin/users?size=50', {}, true),
   userStatus: (id: number, status: 'ACTIVE' | 'SUSPENDED') => request<AdminUser>(`/admin/users/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status }) }, true),
-  createUser: (body: { username: string; email: string; name: string; role?: string }) => request<{ user: AdminUser; temporaryPassword: string }>('/admin/users', { method: 'POST', body: JSON.stringify(body) }, true),
+  createUser: (body: { email: string; name: string; role?: string }) => request<{ user: AdminUser; temporaryPassword: string }>('/admin/users', { method: 'POST', body: JSON.stringify(body) }, true),
   resetTemporaryPassword: (id: number) => request<{ user: AdminUser; temporaryPassword: string }>(`/admin/users/${id}/temporary-password`, { method: 'POST' }, true),
   endSessions: (id: number) => request<void>(`/admin/users/${id}/end-sessions`, { method: 'POST' }, true),
   groups: () => request<Page<AdminGroup>>('/admin/groups?size=50', {}, true),

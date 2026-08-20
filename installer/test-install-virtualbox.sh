@@ -10,6 +10,8 @@ test -x "$INSTALLER"
 bash -n "$INSTALLER"
 rg -q 'command -v curl' "$INSTALLER"
 rg -q '^MYSQL_ROOT_PASSWORD=gearvia$' "$INSTALLER"
+rg -q '^username=admin$' "$INSTALLER"
+rg -q '^password=admin$' "$INSTALLER"
 rg -Fq 'if ! "${COMPOSE[@]}" up -d' "$INSTALLER"
 rg -q 'logs --tail=100' "$INSTALLER"
 

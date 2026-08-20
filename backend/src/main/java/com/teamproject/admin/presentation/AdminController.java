@@ -23,7 +23,7 @@ public class AdminController {
             @RequestBody Map<String, String> request) {
         return admin.changeStatus((Long) auth.getPrincipal(), userId, request.getOrDefault("status", ""));
     }
-    @PostMapping("/users") TemporaryPasswordResponse create(@RequestBody CreateUserRequest request) { return admin.createUser(request); }
+    @PostMapping("/users") TemporaryPasswordResponse create(@jakarta.validation.Valid @RequestBody CreateUserRequest request) { return admin.createUser(request); }
     @PostMapping("/users/{userId}/temporary-password") TemporaryPasswordResponse reset(@PathVariable Long userId) { return admin.resetPassword(userId); }
     @PostMapping("/users/{userId}/end-sessions") void endSessions(@PathVariable Long userId) { admin.endSessions(userId); }
     @GetMapping("/groups")

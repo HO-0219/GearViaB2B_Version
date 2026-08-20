@@ -38,6 +38,7 @@ public class BootstrapAdminService {
         String password = required(values, "password");
         User admin = new User(required(values, "username"), required(values, "email"), passwordEncoder.encode(password), required(values, "name"), true);
         admin.promoteToAdmin();
+        admin.requirePasswordChange();
         User saved = users.save(admin);
         if (!TransactionSynchronizationManager.isSynchronizationActive()) {
             try { Files.deleteIfExists(secretFile); } catch (IOException ignored) { }

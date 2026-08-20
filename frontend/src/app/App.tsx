@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { BrowserRouter, Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
+import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { LoginPage } from '../features/auth/pages/LoginPage';
 import { GroupsPage } from '../features/group/pages/GroupsPage';
 import { GroupDetailPage } from '../features/group/pages/GroupDetailPage';
@@ -16,13 +16,10 @@ import { GroupDashboardPage } from '../features/dashboard/pages/GroupDashboardPa
 import { PwaStatus } from './PwaStatus';
 import { LanguageProvider } from './LanguageContext';
 import { useLanguage } from './LanguageContext';
-import { LandingPage } from './LandingPage';
-import { B2BPage, ContactPage, PricingPage, PrivacyPage, ProductPage, SiteMapPage, TermsPage } from './PublicPages';
+import { PrivacyPage, TermsPage } from './PublicPages';
 import { PageMeta } from './PageMeta';
-import { isRunningStandalone } from './pwa';
 import { SessionKeepAlive } from './SessionKeepAlive';
 import { AdminPage } from '../features/admin/AdminPage';
-import { DemoPage } from './DemoPage';
 import { AiAssistantPage } from '../features/assistant/AiAssistantPage';
 import { ProjectsPage } from '../features/project/pages/ProjectsPage';
 import { ProjectFlowPage } from '../features/project/pages/ProjectFlowPage';
@@ -33,20 +30,13 @@ export default function App() {
   return <LanguageProvider><BrowserRouter>
     <SkipLink />
     <RouteAnnouncer />
-    <StandalonePublicGuard />
     <PageMeta />
     <SessionKeepAlive />
     <div id="main-content" tabIndex={-1}><Routes>
-    <Route path="/" element={<LandingPage />} />
-    <Route path="/demo" element={<DemoPage />} />
+    <Route path="/" element={<Navigate to="/login" replace />} />
     <Route path="/app" element={<HomePage />} />
     <Route path="/privacy" element={<PrivacyPage />} />
     <Route path="/terms" element={<TermsPage />} />
-    <Route path="/site-map" element={<SiteMapPage />} />
-    <Route path="/product" element={<ProductPage />} />
-    <Route path="/b2b" element={<B2BPage />} />
-    <Route path="/pricing" element={<PricingPage />} />
-    <Route path="/contact" element={<ContactPage />} />
     <Route path="/profile" element={<ProfilePage />} />
     <Route path="/account" element={<AccountPage />} />
     <Route path="/admin" element={<AdminPage />} />
@@ -72,19 +62,6 @@ export default function App() {
   </BrowserRouter></LanguageProvider>;
 }
 
-function StandalonePublicGuard() {
-  const location = useLocation();
-  const navigate = useNavigate();
-  useEffect(() => {
-    if (!isRunningStandalone()) return;
-    const publicOnly = new Set(['/', '/product', '/b2b', '/pricing', '/contact', '/site-map']);
-    if (publicOnly.has(location.pathname)) {
-      navigate('/app', { replace: true });
-    }
-  }, [location.pathname, navigate]);
-  return null;
-}
-
 function SkipLink() {
   const { t } = useLanguage();
   return <a className="skip-link" href="#main-content">{t('본문으로 건너뛰기', 'Skip to main content')}</a>;
@@ -102,16 +79,13 @@ function RouteAnnouncer() {
 
 function pageLabel(pathname: string, language: 'ko' | 'en') {
   if (language === 'en') {
-    if (pathname === '/') return 'B2BGearVia'; if (pathname === '/app') return 'Dashboard'; if (pathname === '/chat') return 'Chat'; if (pathname === '/calendar') return 'Calendar'; if (pathname === '/notifications') return 'Alerts'; if (pathname === '/assistant') return 'AI assistant';
-    if (pathname === '/demo') return 'Product demo';
+    if (pathname === '/') return 'Log in'; if (pathname === '/app') return 'Dashboard'; if (pathname === '/chat') return 'Chat'; if (pathname === '/calendar') return 'Calendar'; if (pathname === '/notifications') return 'Alerts'; if (pathname === '/assistant') return 'AI assistant';
     if (pathname === '/groups') return 'Groups'; if (pathname === '/profile') return 'Profile'; if (pathname === '/account') return 'Account settings';
     if (pathname === '/admin') return 'Admin';
-    if (pathname === '/product') return 'Product'; if (pathname === '/b2b') return 'B2B solutions'; if (pathname === '/pricing') return 'Pricing'; if (pathname === '/contact') return 'Contact';
     if (/\/dashboard$/.test(pathname)) return 'Group dashboard'; if (/\/members$/.test(pathname)) return 'Team members'; if (/\/chat$/.test(pathname)) return 'Group chat'; if (/\/projects$/.test(pathname)) return 'Projects'; if (/^\/projects\/\d+\/flow$/.test(pathname)) return 'Project issue flow'; if (/\/tasks$/.test(pathname)) return 'Tasks'; if (/^\/tasks\//.test(pathname)) return 'Task details';
     if (/^\/groups\/\d+$/.test(pathname)) return 'Group settings'; if (pathname === '/login') return 'Log in';
   }
-  if (pathname === '/') return 'B2BGearVia';
-  if (pathname === '/demo') return '제품 데모';
+  if (pathname === '/') return '로그인';
   if (pathname === '/app') return '내 대시보드';
   if (pathname === '/chat') return '채팅';
   if (pathname === '/calendar') return '캘린더';
@@ -129,7 +103,6 @@ function pageLabel(pathname: string, language: 'ko' | 'en') {
   if (pathname === '/profile') return '프로필';
   if (pathname === '/account') return '계정 설정';
   if (pathname === '/admin') return '운영자';
-  if (pathname === '/product') return '제품'; if (pathname === '/b2b') return 'B2B 솔루션'; if (pathname === '/pricing') return '가격'; if (pathname === '/contact') return '문의';
   if (pathname === '/login') return '로그인';
   return 'B2BGearVia';
 }

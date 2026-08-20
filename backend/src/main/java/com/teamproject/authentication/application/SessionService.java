@@ -61,7 +61,10 @@ public class SessionService {
 
     @Transactional
     public IssuedTokens login(LoginRequest request, ClientMode mode, SessionDevice device) {
-        User user = users.findByUsernameIgnoreCase(request.username().trim()).orElseThrow(this::credentials);
+        String identifier = request.username().trim();
+        User user = identifier.contains("@")
+                ? users.findByEmailIgnoreCase(identifier).orElseThrow(this::credentials)
+                : users.findByUsernameIgnoreCase(identifier).orElseThrow(this::credentials);
         if (user.getPasswordHash() == null || !passwordEncoder.matches(request.password(), user.getPasswordHash())) {
             throw credentials();
         }
@@ -145,6 +148,6 @@ public class SessionService {
 
     private ApplicationException credentials() {
         return new ApplicationException("INVALID_CREDENTIALS", HttpStatus.UNAUTHORIZED,
-                "아이디 또는 비밀번호가 올바르지 않습니다.");
+                "회사 메일 또는 비밀번호가 올바르지 않습니다.");
     }
 }

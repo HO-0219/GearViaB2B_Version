@@ -8,11 +8,11 @@ export type DeviceSessionResponse = {
 };
 
 export const authApi = {
-  login: (username: string, password: string, mfaCode?: string) =>
+  login: (identifier: string, password: string, mfaCode?: string) =>
     request<TokenResponse>('/auth/login', {
       method: 'POST',
       headers: sessionClientHeaders(),
-      body: JSON.stringify({ username, password, mfaCode: mfaCode || undefined }),
+      body: JSON.stringify({ username: identifier, password, mfaCode: mfaCode || undefined }),
     }),
   demo: () => request<TokenResponse>('/auth/demo-session', { method: 'POST' }),
   refresh: () => request<TokenResponse>('/auth/refresh', {

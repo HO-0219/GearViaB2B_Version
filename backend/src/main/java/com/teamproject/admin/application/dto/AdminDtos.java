@@ -1,5 +1,7 @@
 package com.teamproject.admin.application.dto;
 
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -10,7 +12,7 @@ public final class AdminDtos {
             long failedReportDeliveries) {}
     public record AdminUserResponse(Long id, String username, String maskedEmail, String nickname,
             String role, String status, LocalDateTime createdAt, LocalDateTime lastLoginAt, boolean forcePasswordChange) {}
-    public record CreateUserRequest(String username, String email, String name, String role) {}
+    public record CreateUserRequest(@NotBlank @Email String email, @NotBlank String name, String role) {}
     public record TemporaryPasswordResponse(AdminUserResponse user, String temporaryPassword) {}
     public record AdminGroupResponse(Long id, String name, String type,
             long activeMembers, boolean reportScheduleActive, LocalDateTime createdAt) {}

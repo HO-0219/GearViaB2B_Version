@@ -66,11 +66,11 @@ sudo ./installer/install-virtualbox.sh
 - 운영 파일을 `/opt/b2bgearvia`에 배치
 - JWT, MFA, MySQL 비밀값 생성
 - VirtualBox 테스트용 자체서명 TLS 인증서 생성
-- 최초 관리자 계정과 임시 비밀번호 생성
+- 최초 관리자 계정 생성
 - 백엔드와 프론트엔드 이미지 빌드
 - 서비스 실행 및 준비 상태 확인
 
-설치가 끝나면 화면에 접속 주소와 최초 관리자 정보 파일 위치가 표시됩니다. 기본 위치는 `/opt/b2bgearvia/config/initial-admin.txt`이며 첫 로그인 후 비밀번호를 변경하고 해당 파일을 삭제하세요.
+설치가 끝나면 `admin / admin`으로 로그인합니다. 최초 로그인 시 비밀번호 변경 화면으로 이동합니다. 관리자 정보 파일은 `/opt/b2bgearvia/config/initial-admin.txt`에 생성되며 비밀번호 변경 후 삭제하세요.
 
 Host-Only IP 자동 감지가 맞지 않으면 주소만 지정해 다시 실행할 수 있습니다. 기존 DB와 설정은 삭제하거나 덮어쓰지 않습니다.
 
