@@ -1,19 +1,26 @@
+name: b2bgearvia-local
+
 services:
   mysql:
     image: mysql:8.4
     ports:
       - "3306:3306"
     environment:
-      MYSQL_DATABASE: ${MYSQL_DATABASE:-teamProject}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-b2bgearvia}
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-test}
       TZ: Asia/Seoul
     volumes:
-      - team-auth-mysql:/var/lib/mysql
+      - b2bgearvia-mysql:/var/lib/mysql
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-p${MYSQL_ROOT_PASSWORD:-test}"]
       interval: 5s
       timeout: 3s
       retries: 20
 
+networks:
+  default:
+    name: b2bgearvia-local-net
+
 volumes:
-  team-auth-mysql:
+  b2bgearvia-mysql:
+    name: b2bgearvia-mysql

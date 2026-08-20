@@ -194,7 +194,7 @@ class AiWeeklyReportDocumentCodeLabelTest {
                 new SnapshotWorkflowView(0, 0, 1, 0, 0, 2),
                 List.of(completed, todo, unique), List.of(), List.of(), List.of());
 
-        String html = service.generate(view, "Gearvia 팀", "Asia/Seoul", "KO").html();
+        String html = service.generate(view, "B2BGearVia 팀", "Asia/Seoul", "KO").html();
 
         // 마감일 안의 하이픈 뒤에는 word joiner가 들어간다(줄바꿈 방지). 눈에 보이는 글자만 본다.
         assertThat(visibleText(html))
@@ -240,7 +240,7 @@ class AiWeeklyReportDocumentCodeLabelTest {
                 new SnapshotComparisonView("NO_BASELINE", null, null, null, null, null, null),
                 new SnapshotWorkflowView(0, 0, titles.size(), 0, 0, 0),
                 tasks, List.of(), List.of(), List.of());
-        return service.generate(view, "Gearvia 팀", "Asia/Seoul", language).html();
+        return service.generate(view, "B2BGearVia 팀", "Asia/Seoul", language).html();
     }
 
     /** 위험 제목이 비어 오면 카드가 제목 없이 나가지 않도록 기존 값으로 돌아간다. */
@@ -266,7 +266,7 @@ class AiWeeklyReportDocumentCodeLabelTest {
                 new SnapshotComparisonView("NO_BASELINE", null, null, null, null, null, null),
                 new SnapshotWorkflowView(0, 0, 1, 0, 0, 0),
                 List.of(task), List.of(), List.of(), List.of());
-        return service.generate(view, "Gearvia 팀", "Asia/Seoul", "KO").html();
+        return service.generate(view, "B2BGearVia 팀", "Asia/Seoul", "KO").html();
     }
 
     /**
@@ -310,7 +310,7 @@ class AiWeeklyReportDocumentCodeLabelTest {
                 new SnapshotComparisonView("NO_BASELINE", null, null, null, null, null, null),
                 new SnapshotWorkflowView(0, 0, 0, 0, 0, 0),
                 tasks, List.of(), List.of(), List.of());
-        return service.generate(view, "Gearvia 팀", "Asia/Seoul", language).html();
+        return service.generate(view, "B2BGearVia 팀", "Asia/Seoul", language).html();
     }
 
     /** 역할 enum도 같은 자리에 찍힌다. 계약 밖 값이 와도 코드를 노출하지 않는다. */
@@ -429,7 +429,7 @@ class AiWeeklyReportDocumentCodeLabelTest {
                 new SnapshotComparisonView("NO_BASELINE", null, null, null, null, null, null),
                 new SnapshotWorkflowView(0, 0, 1, 0, 0, 0),
                 List.of(task), List.of(), List.of(), List.of());
-        return service.generate(view, "Gearvia 팀", "Asia/Seoul", "KO").html();
+        return service.generate(view, "B2BGearVia 팀", "Asia/Seoul", "KO").html();
     }
 
     /**
@@ -492,7 +492,7 @@ class AiWeeklyReportDocumentCodeLabelTest {
                 new SnapshotWorkflowView(0, 0, 0, 0, 0, 3),
                 List.of(onTime1, onTime2, late), List.of(), List.of(), List.of());
 
-        String html = service.generate(view, "Gearvia 팀", "Asia/Seoul", "KO").html();
+        String html = service.generate(view, "B2BGearVia 팀", "Asia/Seoul", "KO").html();
 
         assertThat(html)
                 .contains("완료 업무 중 1건이 마감 후 완료되어 기한 준수율이 67%입니다.")
@@ -515,7 +515,7 @@ class AiWeeklyReportDocumentCodeLabelTest {
                 new SnapshotMetricsView(periodTaskCount, completionRatePercent, 63, 0, null),
                 new SnapshotComparisonView("NO_BASELINE", null, null, null, null, null, null),
                 workflow, List.of(), List.of(), List.of(), List.of());
-        return service.generate(view, "Gearvia 팀", "Asia/Seoul", language).html();
+        return service.generate(view, "B2BGearVia 팀", "Asia/Seoul", language).html();
     }
 
     private CalendarConstraintView event(String ref, String title, String startAtUtc) {
@@ -524,7 +524,7 @@ class AiWeeklyReportDocumentCodeLabelTest {
     }
 
     private Set<String> leakedCodes(String html) {
-        // 문서 골격의 영문 장식 문구(GEARVIA · ACTION REVIEW 등)는 밑줄이 없어 걸리지 않는다.
+        // 문서 골격의 영문 장식 문구(B2BGEARVIA · ACTION REVIEW 등)는 밑줄이 없어 걸리지 않는다.
         Matcher matcher = SCREAMING_CASE.matcher(html);
         return matcher.results().map(java.util.regex.MatchResult::group).collect(Collectors.toSet());
     }
@@ -542,7 +542,7 @@ class AiWeeklyReportDocumentCodeLabelTest {
                 new SnapshotComparisonView("NO_BASELINE", null, null, null, null, null, null),
                 new SnapshotWorkflowView(0, 0, 0, 1, 0, 0),
                 List.of(), List.of(), events, List.of());
-        return service.generate(view, "Gearvia 팀", "Asia/Seoul", language).html();
+        return service.generate(view, "B2BGearVia 팀", "Asia/Seoul", language).html();
     }
 
     private String render(List<String> evidenceCodes, List<String> completionCodes,
@@ -563,7 +563,7 @@ class AiWeeklyReportDocumentCodeLabelTest {
                 new SnapshotWorkflowView(0, 0, 0, 1, 0, 0),
                 List.of(), List.of(), List.of(), List.of());
 
-        return service.generate(view, "Gearvia 팀", "Asia/Seoul", language).html();
+        return service.generate(view, "B2BGearVia 팀", "Asia/Seoul", language).html();
     }
 
 
@@ -575,21 +575,21 @@ class AiWeeklyReportDocumentCodeLabelTest {
     @DisplayName("문서 문구와 파일명이 실제 기간 종류를 따른다")
     void namesTheDocumentAfterTheActualPeriod() {
         var week = document(LocalDate.of(2026, 7, 20), LocalDate.of(2026, 7, 27));
-        assertThat(week.filename()).contains("gearvia-ai-weekly-");
+        assertThat(week.filename()).contains("b2bgearvia-ai-weekly-");
         assertThat(week.html()).contains("주간 업무 리포트").contains("이번 주 핵심");
 
         var month = document(LocalDate.of(2026, 6, 1), LocalDate.of(2026, 7, 1));
-        assertThat(month.filename()).contains("gearvia-ai-monthly-");
+        assertThat(month.filename()).contains("b2bgearvia-ai-monthly-");
         assertThat(month.html()).contains("월간 업무 리포트").contains("이번 달 핵심")
                 .doesNotContain("주간 업무 리포트");
 
         var year = document(LocalDate.of(2025, 1, 1), LocalDate.of(2026, 1, 1));
-        assertThat(year.filename()).contains("gearvia-ai-yearly-");
+        assertThat(year.filename()).contains("b2bgearvia-ai-yearly-");
         assertThat(year.html()).contains("연간 업무 리포트").contains("올해 핵심");
 
         // 달 기준 5주차처럼 어느 단위에도 안 맞는 기간은 중립적으로 쓴다.
         var partial = document(LocalDate.of(2026, 7, 29), LocalDate.of(2026, 8, 1));
-        assertThat(partial.filename()).contains("gearvia-ai-period-");
+        assertThat(partial.filename()).contains("b2bgearvia-ai-period-");
         assertThat(partial.html()).contains("기간 업무 리포트").contains("이번 기간 핵심");
     }
 
@@ -602,7 +602,7 @@ class AiWeeklyReportDocumentCodeLabelTest {
                 new SnapshotComparisonView("NO_BASELINE", null, null, null, null, null, null),
                 new SnapshotWorkflowView(0, 0, 0, 1, 0, 0),
                 List.of(), List.of(), List.of(), List.of());
-        return service.generate(view, "Gearvia 팀", "Asia/Seoul", "KO");
+        return service.generate(view, "B2BGearVia 팀", "Asia/Seoul", "KO");
     }
 
     /**
@@ -666,7 +666,7 @@ class AiWeeklyReportDocumentCodeLabelTest {
                 new SnapshotComparisonView("NO_BASELINE", null, null, null, null, null, null),
                 new SnapshotWorkflowView(0, 0, 0, 1, 0, 0),
                 List.of(task), List.of(), List.of(), List.of());
-        return service.generate(view, "Gearvia 팀", "Asia/Seoul", "KO").html();
+        return service.generate(view, "B2BGearVia 팀", "Asia/Seoul", "KO").html();
     }
 
     /**
@@ -694,7 +694,7 @@ class AiWeeklyReportDocumentCodeLabelTest {
                 new SnapshotComparisonView("NO_BASELINE", null, null, null, null, null, null),
                 new SnapshotWorkflowView(0, 0, 0, 1, 0, 0),
                 tasks, List.of(), List.of(), List.of());
-        return service.generate(view, "Gearvia 팀", "Asia/Seoul", language).html();
+        return service.generate(view, "B2BGearVia 팀", "Asia/Seoul", language).html();
     }
 
     /**
@@ -732,6 +732,6 @@ class AiWeeklyReportDocumentCodeLabelTest {
                 new SnapshotComparisonView("NO_BASELINE", null, null, null, null, null, null),
                 new SnapshotWorkflowView(0, 0, 0, 0, 0, 4),
                 List.of(), List.of(), List.of(), checks);
-        return service.generate(view, "Gearvia 팀", "Asia/Seoul", language).html();
+        return service.generate(view, "B2BGearVia 팀", "Asia/Seoul", language).html();
     }
 }

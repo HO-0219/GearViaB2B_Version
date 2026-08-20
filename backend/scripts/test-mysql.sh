@@ -19,7 +19,7 @@ if [[ -z "$db_url" || -z "$db_user" ]]; then
   exit 1
 fi
 
-test_database="teamProject_test"
+test_database="b2bgearvia_test"
 test_url="$(printf '%s\n' "$db_url" | sed -E "s#(jdbc:mysql://[^/]+/)[^?]+#\\1${test_database}#")"
 
 if [[ "$test_url" == "$db_url" || "$test_url" != *"/${test_database}"* ]]; then

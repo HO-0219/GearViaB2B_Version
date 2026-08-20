@@ -13,7 +13,7 @@ export function PageMeta() {
     const description = language === 'ko'
       ? '요청, 승인, 담당자, 업무 진행과 캘린더를 한곳에서 관리하는 팀 협업 도구'
       : 'A team workspace for requests, approvals, ownership, progress, and calendars.';
-    document.title = `${title} | ${language === 'ko' ? 'Gearvia' : 'Gearvia'}`;
+    document.title = `${title} | ${language === 'ko' ? 'B2BGearVia' : 'B2BGearVia'}`;
     setMeta('description', description);
     setMeta('robots', allowIndexing && publicPaths.has(pathname) ? 'index,follow' : 'noindex,nofollow');
     const base = String(import.meta.env.VITE_PUBLIC_SITE_URL ?? window.location.origin).replace(/\/$/, '');

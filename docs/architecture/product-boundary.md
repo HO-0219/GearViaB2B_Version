@@ -2,7 +2,7 @@
 
 ## Purpose
 
-B2BGearVia starts from a copied GearVia source snapshot, but it is now a separate product line with a different deployment model, operating environment, and feature boundary. The goal of this repository is to deliver a single-company on-premise collaboration product for Ubuntu servers, not to continue the original SaaS service.
+B2BGearVia starts from a copied source snapshot, but it is now a separate product line with a different deployment model, operating environment, and feature boundary. The goal of this repository is to deliver a single-company on-premise collaboration product for Ubuntu servers, not to continue the original SaaS service.
 
 ## Deployment boundary
 
@@ -26,7 +26,7 @@ The transition plan removes or replaces SaaS-specific product edges:
 - public sign-up and public pricing surfaces
 - social sign-in and demo access
 - self-serve subscriptions, billing, trials, and payment integrations
-- deployment assumptions tied to public EC2 hosting and the original GearVia domain
+- deployment assumptions tied to public EC2 hosting and the original public domain
 
 ## Operational boundary
 
@@ -37,6 +37,6 @@ The transition plan removes or replaces SaaS-specific product edges:
 
 ## Source-control boundary
 
-- This repository must not point at the original GearVia remotes.
-- Historical workflow files may be preserved for reference, but only outside `.github/workflows`.
+- This repository must not point at the original product remotes.
+- Historical workflow files must not preserve original public-domain or EC2 deployment automation.
 - Baseline documentation should explain the supported environment and unsupported deployment paths before further product changes begin.

@@ -1,6 +1,6 @@
 package com.teamproject.authentication;
 
-import com.teamproject.TeamProjectApplication;
+import com.teamproject.B2BGearViaApplication;
 import com.teamproject.authentication.application.RecoveryService;
 import com.teamproject.authentication.application.SignupService;
 import com.teamproject.authentication.application.dto.SignupDtos.SignupRequest;
@@ -28,7 +28,7 @@ import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
-@SpringBootTest(classes = TeamProjectApplication.class, properties = "app.mail.enabled=true")
+@SpringBootTest(classes = B2BGearViaApplication.class, properties = "app.mail.enabled=true")
 class MailFailureIsolationTest {
     @MockBean JavaMailSender sender;
     @Autowired SignupService signup;

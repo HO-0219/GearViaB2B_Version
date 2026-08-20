@@ -54,7 +54,7 @@ export function AppNavigation({ unreadCount }: { unreadCount?: number }) {
     navigate('/login', { replace: true });
   }
   return <nav className="app-navigation" aria-label={language === 'ko' ? '주요 메뉴' : 'Main navigation'}>
-    <Link className="app-navigation-brand" to="/app" aria-label={language === 'ko' ? 'Gearvia 앱 홈' : 'Gearvia app home'}><span><BrandMark /></span><strong>{language === 'ko' ? 'Gearvia' : 'Gearvia'}</strong></Link>
+    <Link className="app-navigation-brand" to="/app" aria-label={language === 'ko' ? 'B2BGearVia 앱 홈' : 'B2BGearVia app home'}><span><BrandMark /></span><strong>{language === 'ko' ? 'B2BGearVia' : 'B2BGearVia'}</strong></Link>
     {demo && <div className="demo-session-notice"><span>{language === 'ko' ? '읽기 전용 데모' : 'Read-only demo'}</span><button type="button" onClick={exitDemo}>{language === 'ko' ? '데모 종료·로그인' : 'Exit demo & log in'}</button></div>}
     {groups.length > 0 && <label className="group-switcher"><span>{language === 'ko' ? '공간 이동' : 'Switch workspace'}</span><select aria-label={language === 'ko' ? '이동할 공간 선택' : 'Choose a workspace'} value={selectedGroupId} onChange={(event) => {
       const group = groups.find((value) => value.id === Number(event.target.value));

@@ -75,7 +75,7 @@ function seoFilesPlugin(siteUrl: string, verification: string, allowIndexing: bo
     '',
   ].join('\n');
   return {
-    name: 'totaskflow-seo-files',
+    name: 'b2bgearvia-seo-files',
     transformIndexHtml(html) {
       const transformed = allowIndexing
         ? html.replace('<meta name="robots" content="noindex,nofollow" />', '<meta name="robots" content="index,follow" />')

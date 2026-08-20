@@ -8,8 +8,8 @@ import org.springframework.scheduling.annotation.EnableAsync;
 @SpringBootApplication
 @EnableScheduling
 @EnableAsync
-public class TeamProjectApplication {
+public class B2BGearViaApplication {
     public static void main(String[] args) {
-        SpringApplication.run(TeamProjectApplication.class, args);
+        SpringApplication.run(B2BGearViaApplication.class, args);
     }
 }

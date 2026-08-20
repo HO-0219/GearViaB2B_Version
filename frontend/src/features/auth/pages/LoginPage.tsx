@@ -46,7 +46,7 @@ export function LoginPage() {
     finally { setPending(false); }
   }
 
-  return <AuthLayout title={t('로그인', 'Log in')} description={t('Gearvia에 다시 오신 것을 환영합니다.', 'Welcome back to Gearvia.')}>
+  return <AuthLayout title={t('로그인', 'Log in')} description={t('B2BGearVia에 다시 오신 것을 환영합니다.', 'Welcome back to B2BGearVia.')}>
     <form onSubmit={submit} className="form"><Field label={t('아이디', 'Username')} value={username} onChange={e => setUsername(e.target.value)} autoComplete="username" required /><Field label={t('비밀번호', 'Password')} type="password" value={password} onChange={e => setPassword(e.target.value)} autoComplete="current-password" required />
       {showMfa && <Field label={t('관리자 MFA 코드', 'Admin MFA code')} value={mfaCode} onChange={e => setMfaCode(e.target.value)} autoComplete="one-time-code" required />}
       {(error || params.get('socialError')) && <p className="error">{error || t('소셜 로그인에 실패했습니다.', 'Social login failed.')}</p>}<SubmitButton pending={pending}>{t('로그인', 'Log in')}</SubmitButton>

@@ -1,7 +1,7 @@
 package com.teamproject.report;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.teamproject.TeamProjectApplication;
+import com.teamproject.B2BGearViaApplication;
 import com.teamproject.group.domain.Group;
 import com.teamproject.group.domain.GroupMember;
 import com.teamproject.group.domain.GroupMemberRepository;
@@ -43,7 +43,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@SpringBootTest(classes = TeamProjectApplication.class)
+@SpringBootTest(classes = B2BGearViaApplication.class)
 @AutoConfigureMockMvc
 @Transactional
 class AiWeeklyReportApiTest {

@@ -43,7 +43,7 @@ public class TossPaymentsClient {
 
     public ApiResult testCharge(String billingKey, String customerKey, long amount, String orderId,
             String idempotencyKey) {
-        return charge(billingKey, customerKey, amount, orderId, "Gearvia 연동 테스트", idempotencyKey);
+        return charge(billingKey, customerKey, amount, orderId, "B2BGearVia 연동 테스트", idempotencyKey);
     }
 
     public ApiResult charge(String billingKey, String customerKey, long amount, String orderId,

@@ -116,7 +116,7 @@ function RouteAnnouncer() {
 
 function pageLabel(pathname: string, language: 'ko' | 'en') {
   if (language === 'en') {
-    if (pathname === '/') return 'Gearvia'; if (pathname === '/app') return 'Dashboard'; if (pathname === '/chat') return 'Chat'; if (pathname === '/calendar') return 'Calendar'; if (pathname === '/notifications') return 'Alerts'; if (pathname === '/assistant') return 'AI assistant';
+    if (pathname === '/') return 'B2BGearVia'; if (pathname === '/app') return 'Dashboard'; if (pathname === '/chat') return 'Chat'; if (pathname === '/calendar') return 'Calendar'; if (pathname === '/notifications') return 'Alerts'; if (pathname === '/assistant') return 'AI assistant';
     if (pathname === '/demo') return 'Product demo';
     if (pathname === '/groups') return 'Groups'; if (pathname === '/profile') return 'Profile'; if (pathname === '/account') return 'Account settings';
     if (pathname === '/payments') return 'Payments'; if (pathname === '/admin') return 'Admin';
@@ -127,7 +127,7 @@ function pageLabel(pathname: string, language: 'ko' | 'en') {
     if (pathname === '/find-username') return 'Find username'; if (pathname === '/forgot-password' || pathname === '/reset-password') return 'Reset password';
     if (pathname === '/oauth/consent') return 'Google sign-up consent';
   }
-  if (pathname === '/') return 'Gearvia';
+  if (pathname === '/') return 'B2BGearVia';
   if (pathname === '/demo') return '제품 데모';
   if (pathname === '/app') return '내 대시보드';
   if (pathname === '/chat') return '채팅';
@@ -152,5 +152,5 @@ function pageLabel(pathname: string, language: 'ko' | 'en') {
   if (pathname === '/signup') return '회원가입';
   if (pathname === '/login') return '로그인';
   if (pathname === '/oauth/consent') return 'Google 가입 동의';
-  return 'Gearvia';
+  return 'B2BGearVia';
 }

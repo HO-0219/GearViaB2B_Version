@@ -1,6 +1,6 @@
 package com.teamproject.assistant;
 
-import com.teamproject.TeamProjectApplication;
+import com.teamproject.B2BGearViaApplication;
 import com.teamproject.assistant.application.AiAssistantActionService;
 import com.teamproject.assistant.application.AiAssistantMessageStore;
 import com.teamproject.assistant.domain.AiAssistantAction;
@@ -29,7 +29,7 @@ import org.springframework.transaction.annotation.Transactional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-@SpringBootTest(classes = TeamProjectApplication.class)
+@SpringBootTest(classes = B2BGearViaApplication.class)
 @Transactional
 class AiAssistantActionServiceTest {
     @Autowired AiAssistantActionService service;

@@ -95,7 +95,7 @@ public class AiWeeklyReportDocumentService {
         String html = render(doc);
         return new ReportDocumentService.ReportDocument(
                 html.getBytes(StandardCharsets.UTF_8),
-                "gearvia-ai-" + doc.kind().slug() + "-" + report.groupId() + "-" + report.from()
+                "b2bgearvia-ai-" + doc.kind().slug() + "-" + report.groupId() + "-" + report.from()
                         + "-r" + report.revision() + "-" + (ko ? "ko" : "en") + ".html",
                 subject(doc),
                 html);
@@ -103,8 +103,8 @@ public class AiWeeklyReportDocumentService {
 
     private String subject(Doc doc) {
         return doc.ko
-                ? "[Gearvia] " + doc.groupName + " AI " + doc.kind().noun(true) + " 리포트 (" + period(doc.report) + ")"
-                : "[Gearvia] " + doc.groupName + " AI " + doc.kind().noun(false) + " Report (" + period(doc.report) + ")";
+                ? "[B2BGearVia] " + doc.groupName + " AI " + doc.kind().noun(true) + " 리포트 (" + period(doc.report) + ")"
+                : "[B2BGearVia] " + doc.groupName + " AI " + doc.kind().noun(false) + " Report (" + period(doc.report) + ")";
     }
 
     private String render(Doc doc) {
@@ -125,7 +125,7 @@ public class AiWeeklyReportDocumentService {
                 doc.ko ? "ko" : "en",
                 escape(subject(doc)),
                 styles(),
-                doc.ko ? "GEARVIA · 기어비아" : "GEARVIA",
+                doc.ko ? "B2BGEARVIA" : "B2BGEARVIA",
                 escape(doc.groupName + (doc.ko ? " " + doc.kind().noun(true) + " 업무 리포트"
                         : " " + doc.kind().noun(false) + " Work Report")),
                 doc.ko ? "보고 기간" : "Reporting period",
@@ -207,7 +207,7 @@ public class AiWeeklyReportDocumentService {
                     <div class="section-heading"><h2>%s</h2><p>%s</p></div>
                     <div class="table-wrap"><table><thead><tr><th>%s</th><th>%s</th><th>%s</th><th>%s</th></tr></thead><tbody>%s</tbody></table></div>
                   </section>
-                  <div class="report-footer"><span>%s</span><strong>GEARVIA · CONNECT WORK, MOVE AS ONE</strong></div>
+                  <div class="report-footer"><span>%s</span><strong>B2BGEARVIA · CONNECT WORK, MOVE AS ONE</strong></div>
                 </section>
                 """.formatted(
                 doc.ko ? "기간 업무" : "Period tasks", total,
@@ -397,7 +397,7 @@ public class AiWeeklyReportDocumentService {
                     <div class="section-heading"><h2>%s</h2><p>%s</p></div>
                     %s
                   </section>
-                  <div class="report-footer"><span>%s</span><strong>GEARVIA · MEETING BRIEF</strong></div>
+                  <div class="report-footer"><span>%s</span><strong>B2BGEARVIA · MEETING BRIEF</strong></div>
                 </section>
                 """.formatted(
                 doc.ko ? doc.kind().thisPeriod(true) + " 핵심" : doc.kind().thisPeriod(false) + " at the top",
@@ -606,7 +606,7 @@ public class AiWeeklyReportDocumentService {
                   <h2 class="page-title">%s</h2>
                   <p class="page-desc">%s</p>
                   <section class="section"><div class="issue-list">%s</div></section>
-                  <div class="report-footer"><span>%s</span><strong>GEARVIA · ACTION REVIEW</strong></div>
+                  <div class="report-footer"><span>%s</span><strong>B2BGEARVIA · ACTION REVIEW</strong></div>
                 </section>
                 """.formatted(
                 doc.ko ? "조치가 필요한 업무" : "Tasks requiring action",
@@ -692,7 +692,7 @@ public class AiWeeklyReportDocumentService {
                     <div class="ref-box"><strong>%s %s</strong><br>%s<br>%s%s</div>
                     <div class="trust-box"><strong>%s</strong><br>%s<div class="limit">%s</div></div>
                   </div>
-                  <div class="report-footer"><span>%s</span><strong>GEARVIA · CONNECT WORK, MOVE AS ONE</strong></div>
+                  <div class="report-footer"><span>%s</span><strong>B2BGEARVIA · CONNECT WORK, MOVE AS ONE</strong></div>
                 </section>
                 """.formatted(
                 doc.ko ? "결정과 실행" : "Decisions and actions",
@@ -713,8 +713,8 @@ public class AiWeeklyReportDocumentService {
                                 + missing.stream().map(this::escape)
                                         .collect(java.util.stream.Collectors.joining("<br>· ", "<br>· ", "")),
                 doc.ko ? "회의 종료 조건" : "Meeting exit criteria",
-                doc.ko ? "결정 항목의 상태, 담당자, 기한, 완료 조건이 Gearvia에 기록됨"
-                        : "Status, owner, due date, and completion criteria recorded in Gearvia",
+                doc.ko ? "결정 항목의 상태, 담당자, 기한, 완료 조건이 B2BGearVia에 기록됨"
+                        : "Status, owner, due date, and completion criteria recorded in B2BGearVia",
                 doc.ko ? "수치는 확정 업무 데이터입니다. AI는 해석과 권고만 제공하며 최종 결정은 팀장이 수행합니다. "
                         + "댓글 원문·첨부파일 내용·기록되지 않은 협의는 반영하지 않았습니다."
                         : "Figures come from confirmed task data. AI provides interpretation and advice only; "

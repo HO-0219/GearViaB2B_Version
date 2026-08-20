@@ -1,7 +1,7 @@
 package com.teamproject.chat;
 
 import com.fasterxml.jackson.databind.*;
-import com.teamproject.TeamProjectApplication;
+import com.teamproject.B2BGearViaApplication;
 import com.teamproject.authentication.application.*;
 import com.teamproject.authentication.application.dto.SessionDtos.LoginRequest;
 import com.teamproject.authentication.application.dto.SignupDtos.SignupRequest;
@@ -26,7 +26,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@SpringBootTest(classes = TeamProjectApplication.class, webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@SpringBootTest(classes = B2BGearViaApplication.class, webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @AutoConfigureMockMvc
 class ChatWebSocketIntegrationTest {
     @LocalServerPort int port;

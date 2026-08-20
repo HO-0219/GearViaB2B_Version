@@ -118,7 +118,7 @@ export function AiAssistantPage() {
 
     {!assistantEnabled && selectedGroup && <section className="assistant-subscription-lock"><span aria-hidden="true">✦</span><div><h2>{t('AI 비서는 유료 팀 멤버십 기능입니다.', 'AI assistant is included with paid team membership.')}</h2><p>{t('그룹 결제가 승인되면 팀원 모두에게 즉시 활성화됩니다.', 'It activates for all team members immediately after payment approval.')}</p></div>{selectedGroup.role === 'LEADER' ? <Link className="primary" to={`/groups/${selectedGroup.id}?tab=plan`}>{t('멤버십 결제', 'Open membership')}</Link> : <small>{t('팀장에게 멤버십 활성화를 요청해 주세요.', 'Ask your team leader to activate the membership.')}</small>}</section>}
     {assistantEnabled && <div className="assistant-workspace-layout"><section className="assistant-chat" aria-label={t('AI 비서 대화', 'AI assistant chat')}>
-      <header className="assistant-chat-heading"><div><span>✦</span><div><strong>{t('Gearvia AI', 'Gearvia AI')}</strong><small>{t(`${selectedGroup?.name ?? ''}의 업무를 바탕으로 답변합니다.`, `Answers from work in ${selectedGroup?.name ?? ''}.`)}</small></div></div><b>{t('온라인', 'Online')}</b></header>
+      <header className="assistant-chat-heading"><div><span>✦</span><div><strong>{t('B2BGearVia AI', 'B2BGearVia AI')}</strong><small>{t(`${selectedGroup?.name ?? ''}의 업무를 바탕으로 답변합니다.`, `Answers from work in ${selectedGroup?.name ?? ''}.`)}</small></div></div><b>{t('온라인', 'Online')}</b></header>
       <div className="assistant-messages" aria-live="polite">{items.map((item) =>
         <article className={`assistant-message ${item.role}`} key={item.id}>
           <span>{item.role === 'assistant' ? 'AI' : t('나', 'Me')}</span><p>{item.content}</p>

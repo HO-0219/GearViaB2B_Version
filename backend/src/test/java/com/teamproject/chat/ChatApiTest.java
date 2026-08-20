@@ -1,6 +1,6 @@
 package com.teamproject.chat;
 
-import com.teamproject.TeamProjectApplication;
+import com.teamproject.B2BGearViaApplication;
 import com.teamproject.authentication.application.*;
 import com.teamproject.authentication.application.dto.SessionDtos.LoginRequest;
 import com.teamproject.authentication.application.dto.SignupDtos.SignupRequest;
@@ -25,7 +25,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@SpringBootTest(classes = TeamProjectApplication.class)
+@SpringBootTest(classes = B2BGearViaApplication.class)
 @AutoConfigureMockMvc
 @Transactional
 class ChatApiTest {

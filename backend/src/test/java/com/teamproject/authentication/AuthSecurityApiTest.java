@@ -1,6 +1,6 @@
 package com.teamproject.authentication;
 
-import com.teamproject.TeamProjectApplication;
+import com.teamproject.B2BGearViaApplication;
 import com.teamproject.authentication.application.SignupService;
 import com.teamproject.authentication.application.dto.SignupDtos.SignupRequest;
 import com.teamproject.authentication.application.token.OneTimeTokenService;
@@ -35,7 +35,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.oauth2Login;
 
-@SpringBootTest(classes = TeamProjectApplication.class)
+@SpringBootTest(classes = B2BGearViaApplication.class)
 @AutoConfigureMockMvc
 @Transactional
 class AuthSecurityApiTest {

@@ -39,14 +39,14 @@ class ProductionConfigurationValidatorTest {
     private MockEnvironment productionEnvironment() {
         return new MockEnvironment()
                 .withProperty("app.environment", "production")
-                .withProperty("app.frontend-url", "https://totaskflow.com")
+                .withProperty("app.frontend-url", "https://b2bgearvia.com")
                 .withProperty("app.jwt.secret", "production-secret-with-more-than-thirty-two-characters")
                 .withProperty("app.jwt.secure-cookie", "true")
                 .withProperty("spring.jpa.hibernate.ddl-auto", "validate")
                 .withProperty("spring.datasource.url",
-                        "jdbc:mysql://mysql:3306/totaskflow?sslMode=DISABLED")
+                        "jdbc:mysql://mysql:3306/b2bgearvia?sslMode=DISABLED")
                 .withProperty("app.storage.provider", "local")
-                .withProperty("app.storage.local-root", "/var/lib/totaskflow/uploads")
+                .withProperty("app.storage.local-root", "/opt/b2bgearvia/uploads")
                 .withProperty("app.demo.enabled", "false")
                 .withProperty("spring.security.oauth2.client.registration.google.client-id", "google-client-id")
                 .withProperty("spring.security.oauth2.client.registration.google.client-secret", "google-client-secret")
@@ -60,6 +60,6 @@ class ProductionConfigurationValidatorTest {
                 .withProperty("spring.mail.host", "smtp.example.com")
                 .withProperty("spring.mail.username", "mailer")
                 .withProperty("spring.mail.password", "mail-secret")
-                .withProperty("app.mail.from", "no-reply@totaskflow.com");
+                .withProperty("app.mail.from", "no-reply@b2bgearvia.com");
     }
 }

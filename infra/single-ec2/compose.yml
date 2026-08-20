@@ -1,3 +1,5 @@
+name: b2bgearvia-single-ec2
+
 x-logging: &default-logging
   driver: json-file
   options:
@@ -10,15 +12,15 @@ services:
     restart: "no"
     command: ["sh", "-c", "chown -R 10001:10001 /uploads"]
     volumes:
-      - uploads:/uploads
+      - b2bgearvia-uploads:/uploads
     logging: *default-logging
 
   mysql:
     image: mysql:8.4
     restart: unless-stopped
     environment:
-      MYSQL_DATABASE: totaskflow
-      MYSQL_USER: totaskflow
+      MYSQL_DATABASE: b2bgearvia
+      MYSQL_USER: b2bgearvia
       MYSQL_PASSWORD: ${MYSQL_APP_PASSWORD:?MYSQL_APP_PASSWORD is required}
       MYSQL_ROOT_PASSWORD_FILE: /run/secrets/mysql_root_password
       TZ: Asia/Seoul
@@ -29,7 +31,7 @@ services:
       - --max-connections=50
       - --skip-name-resolve
     volumes:
-      - mysql-data:/var/lib/mysql
+      - b2bgearvia-mysql-data:/var/lib/mysql
     secrets:
       - mysql_root_password
     networks:
@@ -53,7 +55,7 @@ services:
     expose:
       - "8081"
     volumes:
-      - uploads:/var/lib/totaskflow/uploads
+      - b2bgearvia-uploads:/opt/b2bgearvia/uploads
     networks:
       - app
     depends_on:
@@ -83,8 +85,8 @@ services:
     volumes:
       - ./nginx-active.conf.template:/etc/nginx/templates/default.conf.template:ro
       - ./nginx-app-locations.conf:/etc/nginx/snippets/app-locations.conf:ro
-      - letsencrypt:/etc/letsencrypt:ro
-      - certbot-web:/var/www/certbot:ro
+      - b2bgearvia-letsencrypt:/etc/letsencrypt:ro
+      - b2bgearvia-certbot-web:/var/www/certbot:ro
     networks:
       - app
     depends_on:
@@ -104,18 +106,23 @@ services:
     image: certbot/certbot:v3.2.0
     profiles: ["tools"]
     volumes:
-      - letsencrypt:/etc/letsencrypt
-      - certbot-web:/var/www/certbot
+      - b2bgearvia-letsencrypt:/etc/letsencrypt
+      - b2bgearvia-certbot-web:/var/www/certbot
     logging: *default-logging
 
 networks:
   app:
+    name: b2bgearvia-app
 
 volumes:
-  mysql-data:
-  uploads:
-  letsencrypt:
-  certbot-web:
+  b2bgearvia-mysql-data:
+    name: b2bgearvia-mysql-data
+  b2bgearvia-uploads:
+    name: b2bgearvia-uploads
+  b2bgearvia-letsencrypt:
+    name: b2bgearvia-letsencrypt
+  b2bgearvia-certbot-web:
+    name: b2bgearvia-certbot-web
 
 secrets:
   mysql_root_password:

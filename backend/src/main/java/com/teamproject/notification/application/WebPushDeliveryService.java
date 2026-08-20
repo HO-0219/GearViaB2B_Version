@@ -43,7 +43,7 @@ public class WebPushDeliveryService {
     public WebPushDeliveryService(PushSubscriptionRepository subscriptions, ObjectMapper objectMapper,
             @Value("${app.notification.push.public-key:}") String publicKey,
             @Value("${app.notification.push.private-key:}") String privateKey,
-            @Value("${app.notification.push.subject:mailto:no-reply@gearvia.local}") String subject) {
+            @Value("${app.notification.push.subject:mailto:no-reply@b2bgearvia.local}") String subject) {
         this.subscriptions = subscriptions;
         this.objectMapper = objectMapper;
         this.publicKey = publicKey.trim();

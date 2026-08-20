@@ -7,7 +7,7 @@ let refreshInFlight: Promise<TokenResponse> | undefined;
 let currentAccessToken: string | null = null;
 let currentAccessExpiresAt = 0;
 const SESSION_HINT = 'hasRefreshSession';
-const REFRESH_LOCK = 'totaskflowRefreshLock';
+const REFRESH_LOCK = 'b2bgearviaRefreshLock';
 const REQUEST_TIMEOUT_MS = 30_000;
 const DOWNLOAD_TIMEOUT_MS = 90_000;
 
@@ -187,7 +187,7 @@ function deviceId() {
 
 async function withRefreshLock<T>(work: () => Promise<T>): Promise<T> {
   if (navigator.locks) {
-    return navigator.locks.request('totaskflow-refresh-token', { mode: 'exclusive' }, work);
+    return navigator.locks.request('b2bgearvia-refresh-token', { mode: 'exclusive' }, work);
   }
   const owner = typeof crypto.randomUUID === 'function' ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`;
   const started = Date.now();

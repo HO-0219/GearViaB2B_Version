@@ -1,6 +1,6 @@
 package com.teamproject.migration;
 
-import com.teamproject.TeamProjectApplication;
+import com.teamproject.B2BGearViaApplication;
 import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.WebApplicationType;
@@ -22,9 +22,9 @@ class MySqlFlywayMigrationTest {
     @Container
     static final MySQLContainer<?> MYSQL =
             new MySQLContainer<>("mysql:8.4")
-                    .withDatabaseName("worktaskflow_migration")
-                    .withUsername("worktaskflow")
-                    .withPassword("worktaskflow");
+                    .withDatabaseName("b2bgearvia_migration")
+                    .withUsername("b2bgearvia")
+                    .withPassword("b2bgearvia");
 
     @Test
     void migratesFreshMySqlSchemaFromV1ThroughV45() throws Exception {
@@ -117,7 +117,7 @@ class MySqlFlywayMigrationTest {
 
         // Flyway SQL이 성공하는 것만으로는 운영의 Hibernate validate 타입 불일치를 잡지 못한다.
         // 실제 운영과 같은 MySQL 스키마 위에서 애플리케이션 컨텍스트까지 시작해 매핑을 검증한다.
-        try (ConfigurableApplicationContext ignored = new SpringApplicationBuilder(TeamProjectApplication.class)
+        try (ConfigurableApplicationContext ignored = new SpringApplicationBuilder(B2BGearViaApplication.class)
                 .web(WebApplicationType.SERVLET)
                 .run(
                         "--server.port=0",

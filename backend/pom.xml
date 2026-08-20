@@ -9,10 +9,11 @@
         <version>3.3.5</version>
         <relativePath/>
     </parent>
+    <!-- Java packages intentionally remain com.teamproject during the transition for source compatibility. -->
     <groupId>com.teamproject</groupId>
-    <artifactId>auth-api</artifactId>
+    <artifactId>b2bgearvia-api</artifactId>
     <version>0.0.1-SNAPSHOT</version>
-    <name>ai-work-management-service-api</name>
+    <name>B2BGearVia API</name>
     <properties>
         <java.version>21</java.version>
         <jjwt.version>0.12.6</jjwt.version>

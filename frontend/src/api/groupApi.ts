@@ -104,7 +104,7 @@ export const groupApi = {
       to: string;
       language: 'ko' | 'en';
     },
-  ) => requestBlob(`/groups/${groupId}/reports/basic.pdf`, `gearvia-report-${input.language}.pdf`, {
+  ) => requestBlob(`/groups/${groupId}/reports/basic.pdf`, `b2bgearvia-report-${input.language}.pdf`, {
     method: 'POST',
     body: JSON.stringify(input),
   }),

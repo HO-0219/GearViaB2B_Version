@@ -1,6 +1,6 @@
 package com.teamproject.task;
 
-import com.teamproject.TeamProjectApplication;
+import com.teamproject.B2BGearViaApplication;
 import com.teamproject.group.domain.Group;
 import com.teamproject.group.domain.GroupMember;
 import com.teamproject.group.domain.GroupMemberRepository;
@@ -27,7 +27,7 @@ import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-@SpringBootTest(classes = TeamProjectApplication.class)
+@SpringBootTest(classes = B2BGearViaApplication.class)
 class TaskOptimisticLockIntegrationTest {
     @Autowired TransactionTemplate transaction;
     @Autowired UserRepository users;

@@ -61,7 +61,7 @@ export function PwaStatus() {
       ? t('오프라인입니다. 저장된 화면만 볼 수 있으며 조회·변경은 연결 후 가능합니다.', 'You are offline. Reconnect to view or update current data.')
       : updateAvailable ? t('새 버전이 준비되었습니다.', 'A new version is ready.')
         : installable ? t('이 기기에 앱으로 설치할 수 있습니다.', 'You can install this app on this device.')
-          : push.state === 'denied' ? t('기기 설정에서 Gearvia 앱의 알림 권한을 허용하면 푸시 알림을 받을 수 있습니다.', 'Allow notifications for the Gearvia app in device settings to receive push alerts.')
+          : push.state === 'denied' ? t('기기 설정에서 B2BGearVia 앱의 알림 권한을 허용하면 푸시 알림을 받을 수 있습니다.', 'Allow notifications for the B2BGearVia app in device settings to receive push alerts.')
             : push.state === 'error' ? t('푸시 알림을 설정하지 못했습니다. 잠시 후 다시 시도해 주세요.', 'Push notifications could not be set up. Please try again shortly.')
               : push.consentAgreed
                 ? t('이전에 동의한 업무 알림을 이 기기에서도 푸시로 받아보세요.', 'Receive your previously accepted work alerts as push notifications on this device.')

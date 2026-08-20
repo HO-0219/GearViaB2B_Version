@@ -1,6 +1,6 @@
 package com.teamproject.project;
 
-import com.teamproject.TeamProjectApplication;
+import com.teamproject.B2BGearViaApplication;
 import com.teamproject.authentication.application.*;
 import com.teamproject.authentication.application.dto.SessionDtos.LoginRequest;
 import com.teamproject.authentication.application.dto.SignupDtos.SignupRequest;
@@ -17,7 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@SpringBootTest(classes = TeamProjectApplication.class, properties = {
+@SpringBootTest(classes = B2BGearViaApplication.class, properties = {
         "app.features.storage.free-bytes=12",
         "app.features.storage.paid-bytes=1000"
 })

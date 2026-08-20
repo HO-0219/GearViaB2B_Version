@@ -1,6 +1,6 @@
 package com.teamproject.authentication;
 
-import com.teamproject.TeamProjectApplication;
+import com.teamproject.B2BGearViaApplication;
 import com.teamproject.authentication.application.IssuedTokens;
 import com.teamproject.authentication.application.RecoveryService;
 import com.teamproject.authentication.application.SessionService;
@@ -20,7 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-@SpringBootTest(classes = TeamProjectApplication.class)
+@SpringBootTest(classes = B2BGearViaApplication.class)
 @Transactional
 class AuthFlowTest {
     @Autowired SignupService signupService;

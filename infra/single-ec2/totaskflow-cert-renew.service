@@ -1,8 +1,0 @@
-[Unit]
-Description=Renew ToTaskFlow TLS certificate
-Requires=docker.service
-After=docker.service network-online.target
-
-[Service]
-Type=oneshot
-ExecStart=/opt/totaskflow/renew-certificates.sh

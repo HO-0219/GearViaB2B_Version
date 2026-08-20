@@ -1,8 +1,10 @@
+name: b2bgearvia-production-local
+
 services:
   mysql:
     image: mysql:8.4
     environment:
-      MYSQL_DATABASE: totaskflow
+      MYSQL_DATABASE: b2bgearvia
       MYSQL_ROOT_PASSWORD: local-production-test
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-plocal-production-test"]
@@ -16,7 +18,7 @@ services:
       dockerfile: backend/Dockerfile
     environment:
       SERVER_PORT: 8081
-      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/totaskflow?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Seoul
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/b2bgearvia?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Seoul
       SPRING_DATASOURCE_USERNAME: root
       SPRING_DATASOURCE_PASSWORD: local-production-test
       SPRING_JPA_HIBERNATE_DDL_AUTO: validate
@@ -58,3 +60,7 @@ services:
       BACKEND_ADMIN: backend:19092
     depends_on:
       - backend
+
+networks:
+  default:
+    name: b2bgearvia-production-local-net

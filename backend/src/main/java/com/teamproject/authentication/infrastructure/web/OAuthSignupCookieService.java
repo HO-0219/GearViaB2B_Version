@@ -8,7 +8,7 @@ import org.springframework.stereotype.Component;
 
 @Component
 public class OAuthSignupCookieService {
-    public static final String NAME = "totaskflow_oauth_signup";
+    public static final String NAME = "b2bgearvia_oauth_signup";
     private static final long MAX_AGE_SECONDS = 600;
     private final boolean secure;
 

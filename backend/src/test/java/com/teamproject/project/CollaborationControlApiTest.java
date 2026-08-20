@@ -1,7 +1,7 @@
 package com.teamproject.project;
 
 import com.jayway.jsonpath.JsonPath;
-import com.teamproject.TeamProjectApplication;
+import com.teamproject.B2BGearViaApplication;
 import com.teamproject.authentication.application.SessionService;
 import com.teamproject.authentication.application.SignupService;
 import com.teamproject.authentication.application.dto.SessionDtos.LoginRequest;
@@ -23,7 +23,7 @@ import java.util.Base64;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@SpringBootTest(classes=TeamProjectApplication.class) @AutoConfigureMockMvc @Transactional
+@SpringBootTest(classes=B2BGearViaApplication.class) @AutoConfigureMockMvc @Transactional
 class CollaborationControlApiTest {
     @Autowired MockMvc mvc; @Autowired SignupService signup; @Autowired SessionService sessions;
     @Autowired OneTimeTokenService codes; @Autowired UserRepository users; @Autowired GroupRepository groups;

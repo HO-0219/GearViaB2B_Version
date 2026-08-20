@@ -17,7 +17,7 @@ public class ReportDocumentService {
         String html = render(report, language);
         String suffix = language == Language.KO ? "ko" : "en";
         return new ReportDocument(html.getBytes(StandardCharsets.UTF_8),
-                "gearvia-" + groupId + "-" + from + "-" + to.minusDays(1) + "-" + suffix + ".html",
+                "b2bgearvia-" + groupId + "-" + from + "-" + to.minusDays(1) + "-" + suffix + ".html",
                 subject(report.groupName(), from, to, language), html);
     }
     private String render(GroupDashboardResponse value, Language language) {
@@ -56,7 +56,7 @@ public class ReportDocumentService {
                 footer{display:flex;justify-content:space-between;gap:18px;margin-top:26px;padding-top:18px;border-top:1px solid #ece8ee;color:#8a8490;font-size:10px}footer strong{color:#655c73;white-space:nowrap}
                 @media print{body{background:#fff}.report{width:100%%;margin:0;border:0;border-radius:0;box-shadow:none}header{padding:24px 26px}main{padding:24px 26px}.section,.table-wrap,tr{break-inside:avoid}thead{display:table-header-group}}
                 @media(max-width:700px){.report{width:100%%;margin:0;border:0;border-radius:0}.metrics{grid-template-columns:repeat(2,1fr)}.progress-grid{grid-template-columns:1fr}header,main{padding:24px 20px}h1{font-size:25px}.table-wrap{overflow-x:auto}table{min-width:620px}footer{flex-direction:column}}
-                </style></head><body><article class="report"><header><div class="brand"><span class="brand-mark">✓</span> GEARVIA · 기어비아</div><p class="eyebrow">%s</p><h1>%s</h1><div class="meta"><span>%s</span><span>%s ~ %s</span></div></header><main>
+                </style></head><body><article class="report"><header><div class="brand"><span class="brand-mark">✓</span> B2BGEARVIA</div><p class="eyebrow">%s</p><h1>%s</h1><div class="meta"><span>%s</span><span>%s ~ %s</span></div></header><main>
                 <section class="metrics">
                 <div class="metric"><small>%s</small><strong>%d</strong></div>
                 <div class="metric"><small>%s</small><strong>%s</strong></div>
@@ -65,7 +65,7 @@ public class ReportDocumentService {
                 </section><section class="progress-grid"><div class="progress-card"><div class="progress-head"><span>%s</span><strong>%s</strong></div><div class="bar"><span style="width:%s"></span></div></div><div class="progress-card"><div class="progress-head"><span>%s</span><strong>%s</strong></div><div class="bar"><span style="width:%s"></span></div></div></section>
                 <section class="section"><div class="section-heading"><h2>%s</h2><p>%s</p></div><div class="summary"><ol>%s</ol></div></section>
                 <section class="section"><div class="section-heading"><h2>%s</h2><p>%s</p></div><div class="table-wrap"><table><thead><tr><th>%s</th><th>%s</th><th>%s</th><th>%s</th></tr></thead><tbody>%s</tbody></table></div></section>
-                <footer><span>%s</span><strong>GEARVIA · CONNECT WORK, MOVE AS ONE</strong></footer></main></article></body></html>
+                <footer><span>%s</span><strong>B2BGEARVIA · CONNECT WORK, MOVE AS ONE</strong></footer></main></article></body></html>
                 """.formatted(ko ? "ko" : "en", escape(subject(value.groupName(), value.periodFrom(), value.periodTo(), language)),
                 ko ? "BASIC WORK REPORT" : "BASIC WORK REPORT",
                 escape(value.groupName() + (ko ? " 업무 리포트" : " Work Report")),
@@ -82,8 +82,8 @@ public class ReportDocumentService {
                 ko ? value.periodTasks().size() + "건" : value.periodTasks().size() + " tasks",
                 ko ? "업무" : "Task", ko ? "상태" : "Status",
                 ko ? "담당자" : "Assignee", ko ? "마감" : "Due", rows,
-                ko ? "이 기본 리포트는 Gearvia에 저장된 확정 업무 데이터로 생성되며 AI 추론을 사용하지 않습니다."
-                        : "This core report uses confirmed task data stored in Gearvia and does not use AI inference.");
+                ko ? "이 기본 리포트는 B2BGearVia에 저장된 확정 업무 데이터로 생성되며 AI 추론을 사용하지 않습니다."
+                        : "This core report uses confirmed task data stored in B2BGearVia and does not use AI inference.");
     }
     private List<String> insights(GroupDashboardResponse value, boolean ko) {
         java.util.ArrayList<String> result = new java.util.ArrayList<>();
@@ -101,8 +101,8 @@ public class ReportDocumentService {
     }
     private String subject(String groupName, LocalDate from, LocalDate to, Language language) {
         return language == Language.KO
-                ? "[Gearvia] " + groupName + " 업무 리포트 (" + from + " ~ " + to.minusDays(1) + ")"
-                : "[Gearvia] " + groupName + " Work Report (" + from + " – " + to.minusDays(1) + ")";
+                ? "[B2BGearVia] " + groupName + " 업무 리포트 (" + from + " ~ " + to.minusDays(1) + ")"
+                : "[B2BGearVia] " + groupName + " Work Report (" + from + " – " + to.minusDays(1) + ")";
     }
     private String label(String status, boolean ko) {
         if (!ko) return status.replace('_', ' ');

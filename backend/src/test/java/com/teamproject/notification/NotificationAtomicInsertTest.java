@@ -1,6 +1,6 @@
 package com.teamproject.notification;
 
-import com.teamproject.TeamProjectApplication;
+import com.teamproject.B2BGearViaApplication;
 import com.teamproject.notification.domain.Notification;
 import com.teamproject.notification.domain.NotificationRepository;
 import com.teamproject.user.domain.User;
@@ -19,7 +19,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-@SpringBootTest(classes = TeamProjectApplication.class)
+@SpringBootTest(classes = B2BGearViaApplication.class)
 class NotificationAtomicInsertTest {
     @Autowired NotificationRepository notifications;
     @Autowired UserRepository users;

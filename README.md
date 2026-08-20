@@ -1,11 +1,11 @@
 # B2BGearVia
 
-B2BGearVia is the isolated on-premise follow-on to the GearVia snapshot in this repository. This repository is intentionally kept separate from the original GearVia Git history, remotes, and deployment automation while the product is converted into a single-company Ubuntu installation package.
+B2BGearVia is the isolated on-premise product maintained from the imported source snapshot in this repository. This repository is intentionally kept separate from the original product Git history, remotes, and deployment automation while the product is converted into a single-company Ubuntu installation package.
 
 ## Current repository status
 
 - Local-only Git repository with no configured remote.
-- Baseline source snapshot copied from GearVia commit `8647e981bd7b57930fd485965c33e718ff4462b6`.
+- Baseline source snapshot copied from commit `8647e981bd7b57930fd485965c33e718ff4462b6`.
 - Historical GitHub Actions workflows moved out of `.github/workflows` so this baseline cannot trigger the original CI/CD or EC2 deployment path.
 
 ## Supported baseline environment
@@ -28,7 +28,7 @@ B2BGearVia is the isolated on-premise follow-on to the GearVia snapshot in this 
 - Shared multi-tenant hosting
 - Non-Ubuntu production targets
 - Docker alternatives or manually unmanaged runtime layouts
-- Reusing GearVia GitHub remotes, secrets, or deployment workflows
+- Reusing original product GitHub remotes, secrets, or deployment workflows
 
 ## Repository guidance
 

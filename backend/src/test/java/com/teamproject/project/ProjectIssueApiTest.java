@@ -1,6 +1,6 @@
 package com.teamproject.project;
 
-import com.teamproject.TeamProjectApplication;
+import com.teamproject.B2BGearViaApplication;
 import com.teamproject.authentication.application.SessionService;
 import com.teamproject.authentication.application.SignupService;
 import com.teamproject.authentication.application.dto.SessionDtos.LoginRequest;
@@ -23,7 +23,7 @@ import java.util.Base64;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@SpringBootTest(classes = TeamProjectApplication.class)
+@SpringBootTest(classes = B2BGearViaApplication.class)
 @AutoConfigureMockMvc
 @Transactional
 class ProjectIssueApiTest {

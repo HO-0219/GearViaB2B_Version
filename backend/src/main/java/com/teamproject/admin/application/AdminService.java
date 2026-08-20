@@ -150,8 +150,8 @@ public class AdminService {
             subscription.announce(now, deadline);
             String eventKey = "SUBSCRIPTION_ROLLOUT:" + group.getId() + ":" + deadline.toLocalDate();
             notifications.subscriptionRollout(leader.getUser(), group, eventKey, deadline);
-            mail.sendBestEffort(leader.getUser().getEmail(), "[Gearvia] 구독 정책 변경 사전 안내",
-                    "Gearvia 유료 구독 전환 예정 안내입니다.\n결정 기한: " + deadline
+            mail.sendBestEffort(leader.getUser().getEmail(), "[B2BGearVia] 구독 정책 변경 사전 안내",
+                    "B2BGearVia 유료 구독 전환 예정 안내입니다.\n결정 기한: " + deadline
                             + "\n기한까지 무료 유지 또는 유료 구독 전환을 선택할 수 있습니다. 선택하지 않으면 무료 상태를 유지하며 그룹 데이터는 삭제되지 않습니다.");
             count++;
         }

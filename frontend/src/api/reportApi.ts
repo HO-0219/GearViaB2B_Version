@@ -39,7 +39,7 @@ export const reportApi = {
   }, true),
   download: async (groupId: number, from: string, to: string, language: 'KO' | 'EN') => {
     const result = await requestBlob(`/groups/${groupId}/reports/download?from=${from}&to=${to}&language=${language}`,
-      `gearvia-report-${language.toLowerCase()}.html`);
+      `b2bgearvia-report-${language.toLowerCase()}.html`);
     saveBlob(result.blob, result.filename);
   },
   // OpenAI 왕복이 기본 30초를 넘긴다(업무 15건 기준 31.8초 관측). 넉넉히 잡지 않으면
@@ -54,7 +54,7 @@ export const reportApi = {
     const result = await requestBlob(`/groups/${groupId}/reports/ai-weekly/${reportId}/download`,
       // 실제 파일명은 서버가 Content-Disposition으로 준다(기간 종류에 따라 weekly/monthly/yearly).
       // 이 값은 헤더를 못 읽었을 때만 쓰는 대비책이다.
-      `gearvia-ai-report-${groupId}-${from}-r${revision}.html`);
+      `b2bgearvia-ai-report-${groupId}-${from}-r${revision}.html`);
     saveBlob(result.blob, result.filename);
   },
 };

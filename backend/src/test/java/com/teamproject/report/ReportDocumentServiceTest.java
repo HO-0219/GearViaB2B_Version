@@ -24,11 +24,11 @@ class ReportDocumentServiceTest {
         LocalDate from = LocalDate.of(2026, 7, 1);
         LocalDate to = LocalDate.of(2026, 8, 1);
         DashboardTaskResponse task = new DashboardTaskResponse(
-                1L, 7L, "Gearvia 팀", "발표 자료 <최종>", "IN_PROGRESS", "HIGH",
+                1L, 7L, "B2BGearVia 팀", "발표 자료 <최종>", "IN_PROGRESS", "HIGH",
                 LocalDateTime.of(2026, 7, 31, 18, 0), false,
                 LocalDateTime.of(2026, 7, 2, 9, 0), null, null, 3L, "홍길동");
         GroupDashboardResponse dashboard = new GroupDashboardResponse(
-                Instant.parse("2026-07-30T00:00:00Z"), 7L, "Gearvia 팀", "Asia/Seoul", "MEMBERS",
+                Instant.parse("2026-07-30T00:00:00Z"), 7L, "B2BGearVia 팀", "Asia/Seoul", "MEMBERS",
                 from, to, 4, new StatusCounts(0, 1, 2, 0, 1, 0, 0, 0), 50,
                 4, 1, 25, 1, 1, 100, 12L,
                 List.of(), List.of(), List.of(task), List.of(task), List.of());
@@ -38,12 +38,12 @@ class ReportDocumentServiceTest {
         String html = document.html();
 
         assertThat(html)
-                .contains("GEARVIA · 기어비아")
+                .contains("B2BGEARVIA")
                 .contains("BASIC WORK REPORT")
                 .contains("이번 기간 한눈에 보기")
                 .contains("status-in-progress")
                 .contains("발표 자료 &lt;최종&gt;")
                 .doesNotContain("발표 자료 <최종>");
-        assertThat(document.filename()).isEqualTo("gearvia-7-2026-07-01-2026-07-31-ko.html");
+        assertThat(document.filename()).isEqualTo("b2bgearvia-7-2026-07-01-2026-07-31-ko.html");
     }
 }
