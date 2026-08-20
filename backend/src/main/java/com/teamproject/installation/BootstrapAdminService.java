@@ -5,6 +5,8 @@ import com.teamproject.user.domain.UserRepository;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -39,7 +41,13 @@ public class BootstrapAdminService {
         User admin = new User(required(values, "username"), required(values, "email"), passwordEncoder.encode(password), required(values, "name"), true);
         admin.promoteToAdmin();
         User saved = users.save(admin);
-        try { Files.deleteIfExists(secretFile); } catch (IOException e) { throw new IllegalStateException("Bootstrap succeeded but secret file could not be removed.", e); }
+        if (!TransactionSynchronizationManager.isSynchronizationActive()) {
+            try { Files.deleteIfExists(secretFile); } catch (IOException ignored) { }
+        } else TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override public void afterCommit() {
+                try { Files.deleteIfExists(secretFile); } catch (IOException ignored) { /* never expose secret contents */ }
+            }
+        });
         return saved;
     }
 
