@@ -140,7 +140,7 @@ public class SessionService {
         User user = users.findById(id).orElseThrow(() ->
                 new ApplicationException("USER_NOT_FOUND", HttpStatus.NOT_FOUND, "사용자를 찾을 수 없습니다."));
         return new MeResponse(user.getId(), user.getUsername(), user.getEmail(), user.getName(),
-                user.getSystemRole().name());
+                user.getSystemRole().name(), user.isForcePasswordChange());
     }
 
     private ApplicationException credentials() {

@@ -26,6 +26,7 @@ public class SecurityConfig {
             DemoReadOnlyFilter demoReadOnlyFilter,
             SameOriginMutationFilter sameOriginFilter, AdminAccessFilter adminAccessFilter,
             AdminMfaAuthorizationFilter adminMfaFilter, AdminAuditFilter adminAuditFilter,
+            ForcedPasswordChangeFilter forcedPasswordChangeFilter,
             @Value("${app.frontend-url}") String frontendUrl,
             @Value("${app.admin.frontend-url:}") String adminFrontendUrl) throws Exception {
         return http
@@ -54,6 +55,7 @@ public class SecurityConfig {
                 .addFilterBefore(adminAccessFilter, UsernamePasswordAuthenticationFilter.class)
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
                 .addFilterAfter(adminMfaFilter, JwtAuthenticationFilter.class)
+                .addFilterAfter(forcedPasswordChangeFilter, JwtAuthenticationFilter.class)
                 .addFilterAfter(adminAuditFilter, AdminMfaAuthorizationFilter.class)
                 .addFilterAfter(demoReadOnlyFilter, JwtAuthenticationFilter.class)
                 .addFilterAfter(auditFilter, UsernamePasswordAuthenticationFilter.class)

@@ -1,7 +1,7 @@
 import { request, sessionClientHeaders } from './client';
 
 export type TokenResponse = { accessToken: string; tokenType: string; expiresIn: number };
-export type MeResponse = { userId: number; username: string; email: string; name: string; role: string };
+export type MeResponse = { userId: number; username: string; email: string; name: string; role: string; passwordChangeRequired?: boolean };
 export type DeviceSessionResponse = {
   sessionId: string; deviceName: string; clientMode: 'WEB' | 'PWA'; ipAddress: string;
   createdAt: string; lastUsedAt: string; expiresAt: string; current: boolean;
