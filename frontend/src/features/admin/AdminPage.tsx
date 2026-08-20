@@ -5,7 +5,6 @@ import { adminApi, AdminAudit, AdminGroup, AdminMfaSetup, AdminMfaStatus, AdminO
 import { accessToken, errorMessage } from '../../api/client';
 import { useLanguage } from '../../app/LanguageContext';
 
-const expectedPort = String(import.meta.env.VITE_ADMIN_PORT ?? '19091');
 export function AdminPage() {
   const { t } = useLanguage();
   const [overview, setOverview] = useState<AdminOverview>();
@@ -21,7 +20,6 @@ export function AdminPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
-  const allowedPort = window.location.port === expectedPort;
   const load = () => {
     setLoading(true);
     return Promise.all([adminApi.overview(), adminApi.users(), adminApi.groups(), adminApi.reportDownloads(), adminApi.reportDeliveries(), adminApi.auditLogs()])
@@ -32,14 +30,13 @@ export function AdminPage() {
     }).finally(() => setLoading(false));
   };
   useEffect(() => {
-    if (!allowedPort || !accessToken.get()) return;
+    if (!accessToken.get()) return;
     adminApi.mfaStatus().then((status) => {
       setMfaStatus(status);
       if (status.enabled && status.sessionVerified) return load();
       setLoading(false);
     }).catch((value) => { setError(errorMessage(value)); setLoading(false); });
-  }, [allowedPort]);
-  if (!allowedPort) return <main className="center-page"><h1>404</h1><p>{t('요청한 페이지를 찾을 수 없습니다.', 'Page not found.')}</p></main>;
+  }, []);
   if (!accessToken.get()) return <Navigate to="/login?next=/admin" replace />;
   if (!mfaStatus) return <main className="admin-page admin-loading-page"><header><div><span className="page-eyebrow">RESTRICTED OPERATIONS</span><h1>B2BGearVia Admin</h1></div></header>{loading ? <p className="admin-loading">{t('관리자 보안 상태를 확인하는 중...', 'Checking admin security...')}</p> : error && <p className="error">{error}</p>}</main>;
   if (mfaStatus?.enabled && !mfaStatus.sessionVerified && recoveryCodes.length === 0) {
@@ -71,7 +68,7 @@ export function AdminPage() {
     {recoveryCodes.length > 0 && <section className="admin-panel"><h2>{t('일회용 복구 코드', 'One-time recovery codes')}</h2><p>{t('이 화면을 닫으면 다시 표시하지 않습니다.', 'These codes will not be shown again.')}</p><div className="recovery-codes">{recoveryCodes.map((code) => <code key={code}>{code}</code>)}</div><button className="primary" type="button" onClick={loginAgain}>{t('저장 완료 · 다시 로그인', 'Saved · log in again')}</button></section>}
   </main>;
   if (loading && !overview) return <main className="admin-page admin-loading-page"><header><div><span className="page-eyebrow">RESTRICTED OPERATIONS</span><h1>B2BGearVia Admin</h1></div></header><p className="admin-loading">{t('운영 데이터를 불러오는 중...', 'Loading operations data...')}</p></main>;
-  return <main className="admin-page"><header><div><span className="page-eyebrow">RESTRICTED OPERATIONS</span><h1>B2BGearVia Admin</h1><p>{t('별도 포트·서버 허용 IP·ADMIN 권한·MFA를 모두 통과한 운영 화면입니다.', 'This console requires the dedicated port, 서버 allowlist, ADMIN role, and MFA.')}</p></div><a href="/app">{t('서비스로 돌아가기', 'Back to app')}</a></header>
+  return <main className="admin-page"><header><div><span className="page-eyebrow">RESTRICTED OPERATIONS</span><h1>B2BGearVia Admin</h1><p>{t('서버 허용 IP·ADMIN 권한·MFA를 모두 통과한 운영 화면입니다.', 'This console requires the server allowlist, ADMIN role, and MFA.')}</p></div><a href="/app">{t('서비스로 돌아가기', 'Back to app')}</a></header>
     {error && <p className="error">{error}</p>}{message && <p className="success-message">{message}</p>}
     {overview && <section className="admin-stats" aria-label={t('운영 현황 요약', 'Operations overview')}>
       {[

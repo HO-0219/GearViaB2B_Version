@@ -1,0 +1,15 @@
+[Unit]
+Description=GearVia B2B application stack
+Requires=docker.service
+After=docker.service
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/b2bgearvia
+ExecStart=/usr/bin/docker compose --env-file /opt/b2bgearvia/infra/b2b/runtime.env -f /opt/b2bgearvia/infra/b2b/compose.yml up -d
+ExecStop=/usr/bin/docker compose --env-file /opt/b2bgearvia/infra/b2b/runtime.env -f /opt/b2bgearvia/infra/b2b/compose.yml down
+RemainAfterExit=yes
+TimeoutStartSec=0
+
+[Install]
+WantedBy=multi-user.target

@@ -13,14 +13,12 @@ import java.util.List;
 @Component
 public class AdminAccessFilter extends OncePerRequestFilter {
     private final boolean enabled;
-    private final int port;
     private final List<String> allowed;
     private final List<String> trustedProxies;
     public AdminAccessFilter(@Value("${app.admin.enabled:false}") boolean enabled,
-            @Value("${app.admin.port:19092}") int port,
             @Value("${app.admin.allowed-ips:127.0.0.1,::1}") String allowedIps,
             @Value("${app.admin.trusted-proxies:127.0.0.1,::1}") String trustedProxyIps) {
-        this.enabled = enabled; this.port = port;
+        this.enabled = enabled;
         this.allowed = rules(allowedIps);
         this.trustedProxies = rules(trustedProxyIps);
     }
@@ -30,7 +28,7 @@ public class AdminAccessFilter extends OncePerRequestFilter {
     @Override protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
             throws ServletException, IOException {
         String clientAddress = clientAddress(request);
-        if (!enabled || request.getLocalPort() != port
+        if (!enabled
                 || allowed.stream().noneMatch(rule -> matches(clientAddress, rule))) {
             response.setStatus(HttpServletResponse.SC_NOT_FOUND);
             response.setContentType("application/json;charset=UTF-8");

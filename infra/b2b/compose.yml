@@ -1,0 +1,102 @@
+name: b2bgearvia
+
+x-logging: &logging
+  driver: json-file
+  options: {max-size: "10m", max-file: "5"}
+
+services:
+  init-data:
+    image: ${INIT_DATA_IMAGE:?set INIT_DATA_IMAGE}
+    user: "0:0"
+    command: ["sh", "-c", "mkdir -p /opt/b2bgearvia/data/uploads && chown -R 10001:10001 /opt/b2bgearvia/data/uploads"]
+    volumes: [uploads:/opt/b2bgearvia/data/uploads]
+    restart: "no"
+    logging: *logging
+
+  mysql:
+    image: ${MYSQL_IMAGE:?set MYSQL_IMAGE}
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: b2bgearvia
+      MYSQL_USER: b2bgearvia
+      MYSQL_PASSWORD: ${MYSQL_APP_PASSWORD:?set MYSQL_APP_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?set MYSQL_ROOT_PASSWORD}
+      TZ: Asia/Seoul
+    volumes: [mysql-data:/var/lib/mysql]
+    networks: [internal]
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -ub2bgearvia -p$$MYSQL_PASSWORD --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
+    stop_grace_period: 30s
+    logging: *logging
+
+  backend:
+    image: ${BACKEND_IMAGE:?set BACKEND_IMAGE}
+    restart: unless-stopped
+    env_file:
+      - path: /opt/b2bgearvia/config/ai.env
+        required: false
+    environment:
+      APP_ENVIRONMENT: ${APP_ENVIRONMENT:?set APP_ENVIRONMENT}
+      JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET}
+      AUTH_SECURE_COOKIE: ${AUTH_SECURE_COOKIE:-true}
+      SPRING_JPA_HIBERNATE_DDL_AUTO: ${SPRING_JPA_HIBERNATE_DDL_AUTO:-validate}
+      DEMO_ENABLED: ${DEMO_ENABLED:-false}
+      ADMIN_ENABLED: ${ADMIN_ENABLED:-true}
+      ADMIN_MFA_ENCRYPTION_KEY_BASE64: ${ADMIN_MFA_ENCRYPTION_KEY_BASE64:?set ADMIN_MFA_ENCRYPTION_KEY_BASE64}
+      ADMIN_ALLOWED_IPS: ${ADMIN_ALLOWED_IPS:?set ADMIN_ALLOWED_IPS}
+      ADMIN_TRUSTED_PROXIES: ${ADMIN_TRUSTED_PROXIES:-172.16.0.0/12}
+      FRONTEND_URL: ${FRONTEND_URL:?set FRONTEND_URL}
+      ADMIN_FRONTEND_URL: ${ADMIN_FRONTEND_URL:?set ADMIN_FRONTEND_URL}
+      SERVER_PORT: 8081
+      SPRING_DATASOURCE_PASSWORD: ${MYSQL_APP_PASSWORD:?set MYSQL_APP_PASSWORD}
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/b2bgearvia?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Seoul
+      SPRING_DATASOURCE_USERNAME: b2bgearvia
+      UPLOAD_LOCAL_ROOT: /opt/b2bgearvia/data/uploads
+    expose: ["8081"]
+    read_only: true
+    tmpfs: [/tmp]
+    volumes: [uploads:/opt/b2bgearvia/data/uploads]
+    networks: [internal]
+    depends_on:
+      init-data: {condition: service_completed_successfully}
+      mysql: {condition: service_healthy}
+    healthcheck:
+      test: ["CMD-SHELL", "curl --fail --silent http://127.0.0.1:8081/api/v1/health/ready"]
+      interval: 15s
+      timeout: 5s
+      retries: 20
+      start_period: 60s
+    stop_grace_period: 30s
+    logging: *logging
+
+  web:
+    image: ${WEB_IMAGE:?set WEB_IMAGE}
+    restart: unless-stopped
+    environment:
+      BACKEND_NORMAL: backend:8081
+      DOMAIN_NAME: ${DOMAIN_NAME:-_}
+    ports: ["443:443"]
+    read_only: true
+    tmpfs: [/var/cache/nginx, /var/run]
+    volumes:
+      - ${TLS_CERT_FILE:-./tls/fullchain.pem}:/etc/nginx/tls/fullchain.pem:ro
+      - ${TLS_KEY_FILE:-./tls/privkey.pem}:/etc/nginx/tls/privkey.pem:ro
+    networks: [internal]
+    depends_on: {backend: {condition: service_healthy}}
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- --no-check-certificate https://127.0.0.1/healthz >/dev/null"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+    stop_grace_period: 10s
+    logging: *logging
+
+networks:
+  internal: {name: b2bgearvia-internal}
+volumes:
+  mysql-data: {name: b2bgearvia-mysql-data}
+  uploads: {name: b2bgearvia-uploads}
