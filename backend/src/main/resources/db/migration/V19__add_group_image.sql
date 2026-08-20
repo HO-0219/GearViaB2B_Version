@@ -1,1 +1,0 @@
-ALTER TABLE work_groups ADD COLUMN image_url VARCHAR(500) NULL;

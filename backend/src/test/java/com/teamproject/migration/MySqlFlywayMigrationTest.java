@@ -28,15 +28,19 @@ class MySqlFlywayMigrationTest {
                     .withPassword("b2bgearvia");
 
     @Test
-    void migratesFreshMySqlSchemaFromV1ThroughV45() throws Exception {
+    void migratesFreshMySqlSchemaAndIsIdempotent() throws Exception {
         Flyway flyway = Flyway.configure()
                 .dataSource(MYSQL.getJdbcUrl(), MYSQL.getUsername(), MYSQL.getPassword())
                 .locations("classpath:db/migration")
                 .load();
 
         flyway.migrate();
+        long tablesAfterFirstMigration = countSchemaObjects("information_schema.tables", "table_name", List.of("users", "work_groups", "tasks", "push_subscriptions"));
+        flyway.migrate();
+        assertThat(flyway.info().current().getVersion().getVersion()).isEqualTo("1");
+        assertThat(countSchemaObjects("information_schema.tables", "table_name", List.of("users", "work_groups", "tasks", "push_subscriptions"))).isEqualTo(tablesAfterFirstMigration);
 
-        assertThat(flyway.info().current().getVersion().getVersion()).isEqualTo("45");
+        assertThat(flyway.info().current().getVersion().getVersion()).isEqualTo("1");
         assertThat(countSchemaObjects(
                 "information_schema.tables",
                 "table_name",
