@@ -82,6 +82,23 @@ OpenAI API 키는 설치 필수값이 아닙니다. `disabled (no key file)`은 
 
 설치 작업을 실행하지 않고 계획만 확인하려면 `B2B_DRY_RUN=true ./installer/install-virtualbox.sh`를 사용하세요. 수동 설치와 운영 점검 절차는 PDF 관리자 매뉴얼을 참고하세요.
 
+VirtualBox 테스트 DB는 `b2bgearvia`로 자동 생성되며 MySQL 관리자 계정은 `root`, 비밀번호는 `gearvia`입니다. 애플리케이션은 보안을 위해 자동 생성된 별도 `b2bgearvia` 계정을 사용합니다. MySQL 포트는 호스트에 공개되지 않습니다.
+
+### VirtualBox 완전 삭제 후 재설치
+
+다음 명령은 컨테이너, 애플리케이션 이미지, MySQL DB, 업로드 파일과 `/opt/b2bgearvia`를 모두 삭제합니다. Docker Engine과 홈 디렉터리의 Git 클론은 유지됩니다.
+
+```bash
+sudo ./installer/uninstall-virtualbox.sh
+sudo ./installer/install-virtualbox.sh
+```
+
+삭제 전에 `DELETE`를 직접 입력해야 합니다. 삭제 대상만 미리 확인하려면 다음 명령을 사용하세요.
+
+```bash
+./installer/uninstall-virtualbox.sh --dry-run
+```
+
 ## 로컬 빌드와 테스트
 
 ### Backend

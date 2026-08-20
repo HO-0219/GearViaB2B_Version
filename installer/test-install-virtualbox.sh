@@ -9,6 +9,9 @@ trap 'rm -rf "$TEST_ROOT"' EXIT
 test -x "$INSTALLER"
 bash -n "$INSTALLER"
 rg -q 'command -v curl' "$INSTALLER"
+rg -q '^MYSQL_ROOT_PASSWORD=gearvia$' "$INSTALLER"
+rg -Fq 'if ! "${COMPOSE[@]}" up -d' "$INSTALLER"
+rg -q 'logs --tail=100' "$INSTALLER"
 
 output="$({
   B2B_DRY_RUN=true \

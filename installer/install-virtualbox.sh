@@ -114,7 +114,6 @@ if [[ ! -f "$INSTALL_ROOT/runtime.env" ]]; then
   jwt_secret="$(openssl rand -base64 48 | tr -d '\n')"
   mfa_secret="$(openssl rand -base64 32 | tr -d '\n')"
   mysql_password="$(openssl rand -hex 24)"
-  mysql_root_password="$(openssl rand -hex 24)"
   cat > "$INSTALL_ROOT/runtime.env" <<EOF
 APP_ENVIRONMENT=b2b-production
 DOMAIN_NAME=$VM_IP
@@ -129,7 +128,7 @@ ADMIN_TRUSTED_PROXIES=172.16.0.0/12
 FRONTEND_URL=https://$VM_IP
 ADMIN_FRONTEND_URL=https://$VM_IP
 MYSQL_APP_PASSWORD=$mysql_password
-MYSQL_ROOT_PASSWORD=$mysql_root_password
+MYSQL_ROOT_PASSWORD=gearvia
 MYSQL_IMAGE=mysql:8.4
 INIT_DATA_IMAGE=busybox:1.37
 BACKEND_IMAGE=b2bgearvia-backend:virtualbox
@@ -188,7 +187,12 @@ docker build -f "$REPOSITORY_ROOT/frontend/Dockerfile" \
 
 log "Start B2BGearVia"
 cd "$INSTALL_ROOT"
-"${COMPOSE[@]}" up -d
+if ! "${COMPOSE[@]}" up -d; then
+  log "Container startup failed. Collecting dependency diagnostics."
+  "${COMPOSE[@]}" ps --all >&2 || true
+  "${COMPOSE[@]}" logs --tail=100 init-data mysql backend web >&2 || true
+  die "A required container failed. Review the service logs above."
+fi
 
 log "Wait for application readiness"
 ready=false
