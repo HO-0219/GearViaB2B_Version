@@ -36,7 +36,8 @@ export function LoginPage() {
       const tokens = await authApi.login(username, password, mfaCode);
       accessToken.set(tokens.accessToken, tokens.expiresIn);
       sessionMode.clear();
-      navigate(loginDestination(next), { replace: true });
+      const me = await authApi.me();
+      navigate(me.passwordChangeRequired ? '/account' : loginDestination(next), { replace: true });
     } catch (caught) {
       if ((caught as ApiError)?.code === 'ADMIN_MFA_REQUIRED') setShowMfa(true);
       setError(errorMessage(caught));
