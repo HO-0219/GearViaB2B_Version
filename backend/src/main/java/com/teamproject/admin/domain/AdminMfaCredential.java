@@ -27,9 +27,6 @@ public class AdminMfaCredential {
     public void enable(String hashes) {
         recoveryCodeHashes = hashes; enabledAt = LocalDateTime.now(); updatedAt = enabledAt;
     }
-    public void consumeRecoveryCodes(String hashes) {
-        recoveryCodeHashes = hashes; updatedAt = LocalDateTime.now();
-    }
     public boolean isEnabled() { return enabledAt != null; }
     public String getEncryptedSecret() { return encryptedSecret; }
     public String getRecoveryCodeHashes() { return recoveryCodeHashes; }

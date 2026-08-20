@@ -3,9 +3,9 @@ package com.teamproject.admin.presentation;
 import com.teamproject.admin.application.AdminMfaService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
-import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1/admin/mfa")
@@ -23,9 +23,9 @@ public class AdminMfaController {
         return mfa.setup((Long) authentication.getPrincipal());
     }
     @PostMapping("/confirm")
-    AdminMfaService.RecoveryCodes confirm(Authentication authentication,
-            @Valid @RequestBody ConfirmRequest request) {
-        return mfa.confirm((Long) authentication.getPrincipal(), request.code());
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    void confirm(Authentication authentication, @Valid @RequestBody ConfirmRequest request) {
+        mfa.confirm((Long) authentication.getPrincipal(), request.code());
     }
     public record ConfirmRequest(@NotBlank String code) {}
 }

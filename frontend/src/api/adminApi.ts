@@ -21,7 +21,7 @@ export const adminApi = {
   reportDeliveries: () => request<Page<AdminReportDelivery>>('/admin/report-deliveries?size=50', {}, true),
   mfaStatus: () => request<AdminMfaStatus>('/admin/mfa/status', {}, true),
   mfaSetup: () => request<AdminMfaSetup>('/admin/mfa/setup', { method: 'POST' }, true),
-  mfaConfirm: (code: string) => request<{ recoveryCodes: string[] }>('/admin/mfa/confirm', {
+  mfaConfirm: (code: string) => request<void>('/admin/mfa/confirm', {
     method: 'POST', body: JSON.stringify({ code }),
   }, true),
   auditLogs: () => request<Page<AdminAudit>>('/admin/audit-logs?size=50', {}, true),

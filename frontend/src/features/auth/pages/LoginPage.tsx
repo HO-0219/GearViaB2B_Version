@@ -1,5 +1,5 @@
 import { FormEvent, useEffect, useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { authApi } from '../../../api/authApi';
 import { accessToken, ApiError, errorMessage, sessionMode } from '../../../api/client';
 import { AuthLayout, Field, SubmitButton } from '../components/AuthComponents';
@@ -50,6 +50,7 @@ export function LoginPage() {
       {showMfa && <Field label={t('관리자 MFA 코드', 'Admin MFA code')} value={mfaCode} onChange={e => setMfaCode(e.target.value)} autoComplete="one-time-code" required />}
       {error && <p className="error">{error}</p>}<SubmitButton pending={pending}>{t('로그인', 'Log in')}</SubmitButton>
     </form>
+    <Link className="auth-admin-link" to="/admin">{t('관리자 페이지', 'Admin console')}</Link>
   </AuthLayout>;
 }
 

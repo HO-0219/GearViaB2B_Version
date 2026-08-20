@@ -10,8 +10,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.nio.charset.StandardCharsets;
-import java.security.*;
-import java.util.*;
 
 @Service
 public class AdminMfaService {
@@ -20,7 +18,6 @@ public class AdminMfaService {
     private final RefreshTokenRepository refreshTokens;
     private final AdminMfaCipher cipher;
     private final TotpService totp;
-    private final SecureRandom random = new SecureRandom();
     public AdminMfaService(AdminMfaCredentialRepository credentials, UserRepository users,
             RefreshTokenRepository refreshTokens, AdminMfaCipher cipher, TotpService totp) {
         this.credentials = credentials; this.users = users; this.refreshTokens = refreshTokens;
@@ -51,17 +48,15 @@ public class AdminMfaService {
         return new Setup(secret, uri);
     }
     @Transactional
-    public RecoveryCodes confirm(Long userId, String code) {
+    public void confirm(Long userId, String code) {
         User user = admin(userId);
         AdminMfaCredential value = credentials.findByUserId(userId).orElseThrow(() ->
                 new ApplicationException("ADMIN_MFA_SETUP_REQUIRED", HttpStatus.CONFLICT, "관리자 MFA 설정을 먼저 시작해 주세요."));
         if (value.isEnabled()) throw new ApplicationException("ADMIN_MFA_ALREADY_ENABLED", HttpStatus.CONFLICT, "관리자 MFA가 이미 활성화되어 있습니다.");
         if (!totp.verify(cipher.decrypt(value.getEncryptedSecret()), code)) throw invalid();
-        List<String> rawCodes = recoveryCodes();
-        value.enable(rawCodes.stream().map(this::hash).collect(java.util.stream.Collectors.joining(",")));
+        value.enable(null);
         refreshTokens.findAllByUserId(userId).forEach(RefreshToken::revoke);
         user.invalidateSessions();
-        return new RecoveryCodes(rawCodes);
     }
     @Transactional
     public boolean verifyForLogin(User user, String code) {
@@ -69,32 +64,8 @@ public class AdminMfaService {
         AdminMfaCredential value = credentials.findByUserId(user.getId()).orElse(null);
         if (value == null || !value.isEnabled()) return false;
         if (totp.verify(cipher.decrypt(value.getEncryptedSecret()), code)) return true;
-        if (consumeRecoveryCode(value, code)) return true;
         throw new ApplicationException("ADMIN_MFA_REQUIRED", HttpStatus.UNAUTHORIZED,
-                "관리자 인증 앱 코드 또는 복구 코드를 입력해 주세요.");
-    }
-    private boolean consumeRecoveryCode(AdminMfaCredential credential, String raw) {
-        if (raw == null || credential.getRecoveryCodeHashes() == null) return false;
-        String candidate = hash(raw.trim().toUpperCase(Locale.ROOT));
-        List<String> hashes = new ArrayList<>(Arrays.asList(credential.getRecoveryCodeHashes().split(",")));
-        boolean removed = hashes.removeIf(value -> MessageDigest.isEqual(
-                value.getBytes(StandardCharsets.US_ASCII), candidate.getBytes(StandardCharsets.US_ASCII)));
-        if (removed) credential.consumeRecoveryCodes(String.join(",", hashes));
-        return removed;
-    }
-    private List<String> recoveryCodes() {
-        List<String> result = new ArrayList<>();
-        for (int index = 0; index < 8; index++) {
-            byte[] bytes = new byte[6]; random.nextBytes(bytes);
-            String value = Base64.getUrlEncoder().withoutPadding().encodeToString(bytes).toUpperCase(Locale.ROOT);
-            result.add(value.substring(0, 4) + "-" + value.substring(4, 8));
-        }
-        return result;
-    }
-    private String hash(String value) {
-        try { return java.util.HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256")
-                .digest(value.replace("-", "").getBytes(StandardCharsets.UTF_8))); }
-        catch (NoSuchAlgorithmException exception) { throw new IllegalStateException(exception); }
+                "관리자 인증 앱 코드 6자리를 입력해 주세요.");
     }
     private User admin(Long id) {
         return users.findById(id).filter(value -> value.getSystemRole() == User.SystemRole.ADMIN)
@@ -111,5 +82,4 @@ public class AdminMfaService {
     public record Status(boolean enabled, boolean sessionVerified, boolean encryptionConfigured,
             java.time.LocalDateTime enabledAt) {}
     public record Setup(String secret, String otpauthUri) {}
-    public record RecoveryCodes(List<String> recoveryCodes) {}
 }
