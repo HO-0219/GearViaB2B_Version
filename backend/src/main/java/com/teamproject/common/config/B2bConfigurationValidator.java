@@ -1,0 +1,99 @@
+package com.teamproject.common.config;
+
+import jakarta.annotation.PostConstruct;
+import org.springframework.core.env.Environment;
+import org.springframework.stereotype.Component;
+
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Base64;
+import java.util.List;
+import java.util.Locale;
+import java.util.function.Predicate;
+
+@Component
+public class B2bConfigurationValidator {
+    private static final String B2B_PRODUCTION = "b2b-production";
+    private static final String UPLOAD_ROOT = "/opt/b2bgearvia/data/uploads";
+
+    private final Environment environment;
+
+    public B2bConfigurationValidator(Environment environment) {
+        this.environment = environment;
+    }
+
+    @PostConstruct
+    void validate() {
+        String stage = value("app.environment").toLowerCase(Locale.ROOT);
+        if (stage.equals("local") || stage.equals("test")) return;
+        if (!stage.equals(B2B_PRODUCTION)) {
+            throw new IllegalStateException(
+                    "Unsupported APP_ENVIRONMENT: use b2b-production for deployments and local/test for development");
+        }
+
+        List<String> failures = new ArrayList<>();
+        require("app.frontend-url", value -> value.startsWith("https://"), failures,
+                "FRONTEND_URL must use HTTPS");
+        require("spring.datasource.url", this::usesInternalB2bDatabase, failures,
+                "SPRING_DATASOURCE_URL must use jdbc:mysql://mysql:3306/b2bgearvia");
+        require("spring.datasource.password", value -> isNonDefaultSecret(value, 16), failures,
+                "SPRING_DATASOURCE_PASSWORD must be a non-default secret of at least 16 characters");
+        require("app.jwt.secret", value -> isNonDefaultSecret(value, 32), failures,
+                "JWT_SECRET must be a non-default secret of at least 32 characters");
+        require("app.admin.mfa-encryption-key-base64", this::isNonDefaultBase64Key, failures,
+                "ADMIN_MFA_ENCRYPTION_KEY_BASE64 must decode to a non-default key of at least 32 bytes");
+        require("app.jwt.secure-cookie", Boolean::parseBoolean, failures,
+                "AUTH_SECURE_COOKIE must be true");
+        require("spring.jpa.hibernate.ddl-auto", value -> value.equalsIgnoreCase("validate"), failures,
+                "SPRING_JPA_HIBERNATE_DDL_AUTO must be validate");
+        require("app.storage.provider", value -> value.equalsIgnoreCase("local"), failures,
+                "STORAGE_PROVIDER must be local");
+        require("app.storage.local-root", value -> value.equals(UPLOAD_ROOT), failures,
+                "UPLOAD_LOCAL_ROOT must be /opt/b2bgearvia/data/uploads");
+        require("app.demo.enabled", value -> !Boolean.parseBoolean(value), failures,
+                "DEMO_ENABLED must be false");
+
+        if (!failures.isEmpty()) {
+            throw new IllegalStateException("Unsafe b2b-production configuration: " + String.join("; ", failures));
+        }
+    }
+
+    private void require(String property, Predicate<String> predicate, List<String> failures, String message) {
+        if (!predicate.test(value(property))) failures.add(message);
+    }
+
+    private String value(String property) {
+        return environment.getProperty(property, "").trim();
+    }
+
+    private boolean usesInternalB2bDatabase(String value) {
+        return value.matches("^jdbc:mysql://mysql:3306/b2bgearvia(?:[?;].*)?$");
+    }
+
+    private boolean isNonDefaultSecret(String value, int minLength) {
+        return value.length() >= minLength && !looksLikeDefault(value);
+    }
+
+    private boolean isNonDefaultBase64Key(String value) {
+        try {
+            byte[] decoded = Base64.getDecoder().decode(value);
+            return decoded.length >= 32
+                    && !looksLikeDefault(value)
+                    && !looksLikeDefault(new String(decoded, StandardCharsets.UTF_8));
+        } catch (IllegalArgumentException exception) {
+            return false;
+        }
+    }
+
+    private boolean looksLikeDefault(String value) {
+        String normalized = value.toLowerCase(Locale.ROOT);
+        return normalized.isBlank()
+                || normalized.equals("test")
+                || normalized.contains("change-me")
+                || normalized.contains("changeme")
+                || normalized.contains("default")
+                || normalized.contains("placeholder")
+                || normalized.contains("replace-with")
+                || normalized.contains("local-production-test");
+    }
+}

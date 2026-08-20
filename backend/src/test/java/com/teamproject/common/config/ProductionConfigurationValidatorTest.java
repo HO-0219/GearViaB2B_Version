@@ -9,67 +9,37 @@ import static org.assertj.core.api.Assertions.assertThatCode;
 class ProductionConfigurationValidatorTest {
 
     @Test
-    void acceptsCompleteProductionConfiguration() {
-        MockEnvironment environment = productionEnvironment();
+    void delegatesCompatibilityValidationToB2bRules() {
+        MockEnvironment environment = secureB2bProductionEnvironment();
 
         assertThatCode(() -> new ProductionConfigurationValidator(environment).validate())
                 .doesNotThrowAnyException();
     }
 
     @Test
-    void rejectsProductionWithoutOperationalMail() {
-        MockEnvironment environment = productionEnvironment()
-                .withProperty("app.mail.enabled", "false");
+    void compatibilityWrapperRejectsLegacySaasProductionConfiguration() {
+        MockEnvironment environment = secureB2bProductionEnvironment()
+                .withProperty("app.environment", "production");
 
         assertThatThrownBy(() -> new ProductionConfigurationValidator(environment).validate())
                 .isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("MAIL_ENABLED must be true");
+                .hasMessageContaining("Unsupported APP_ENVIRONMENT: use b2b-production for deployments");
     }
 
-    @Test
-    void rejectsProductionWithoutCanonicalPersistentUploadRoot() {
-        MockEnvironment environment = productionEnvironment()
-                .withProperty("app.storage.local-root", "/opt/b2bgearvia/uploads");
-
-        assertThatThrownBy(() -> new ProductionConfigurationValidator(environment).validate())
-                .isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("UPLOAD_LOCAL_ROOT must be /opt/b2bgearvia/data/uploads");
-    }
-
-    @Test
-    void rejectsUnsupportedDeploymentEnvironmentInsteadOfSkippingSafetyChecks() {
-        MockEnvironment environment = new MockEnvironment()
-                .withProperty("app.environment", "staging");
-
-        assertThatThrownBy(() -> new ProductionConfigurationValidator(environment).validate())
-                .isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("Unsupported APP_ENVIRONMENT");
-    }
-
-    private MockEnvironment productionEnvironment() {
+    private MockEnvironment secureB2bProductionEnvironment() {
         return new MockEnvironment()
-                .withProperty("app.environment", "production")
-                .withProperty("app.frontend-url", "https://b2bgearvia.com")
-                .withProperty("app.jwt.secret", "production-secret-with-more-than-thirty-two-characters")
+                .withProperty("app.environment", "b2b-production")
+                .withProperty("app.frontend-url", "https://b2bgearvia.internal")
+                .withProperty("spring.datasource.url",
+                        "jdbc:mysql://mysql:3306/b2bgearvia?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Seoul")
+                .withProperty("spring.datasource.password", "generated-db-password-32-characters")
+                .withProperty("app.jwt.secret", "generated-jwt-secret-with-more-than-thirty-two-characters")
                 .withProperty("app.jwt.secure-cookie", "true")
                 .withProperty("spring.jpa.hibernate.ddl-auto", "validate")
-                .withProperty("spring.datasource.url",
-                        "jdbc:mysql://mysql:3306/b2bgearvia?sslMode=DISABLED")
                 .withProperty("app.storage.provider", "local")
                 .withProperty("app.storage.local-root", "/opt/b2bgearvia/data/uploads")
                 .withProperty("app.demo.enabled", "false")
-                .withProperty("spring.security.oauth2.client.registration.google.client-id", "google-client-id")
-                .withProperty("spring.security.oauth2.client.registration.google.client-secret", "google-client-secret")
-                .withProperty("app.toss.test-mode", "true")
-                .withProperty("app.subscription.live-billing-enabled", "false")
-                .withProperty("app.toss.client-key", "test_ck_example")
-                .withProperty("app.toss.secret-key", "test_sk_example")
-                .withProperty("app.toss.encryption-key-base64",
-                        "MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=")
-                .withProperty("app.mail.enabled", "true")
-                .withProperty("spring.mail.host", "smtp.example.com")
-                .withProperty("spring.mail.username", "mailer")
-                .withProperty("spring.mail.password", "mail-secret")
-                .withProperty("app.mail.from", "no-reply@b2bgearvia.com");
+                .withProperty("app.admin.mfa-encryption-key-base64",
+                        "MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=");
     }
 }

@@ -1,0 +1,120 @@
+package com.teamproject.common.config;
+
+import org.junit.jupiter.api.Test;
+import org.springframework.mock.env.MockEnvironment;
+
+import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
+class B2bConfigurationValidatorTest {
+
+    @Test
+    void acceptsB2bProductionWithoutOauthTossPublicMailOrOpenAiKey() {
+        MockEnvironment environment = secureB2bProductionEnvironment()
+                .withProperty("spring.security.oauth2.client.registration.google.client-id", "")
+                .withProperty("spring.security.oauth2.client.registration.google.client-secret", "")
+                .withProperty("app.toss.client-key", "")
+                .withProperty("app.toss.secret-key", "")
+                .withProperty("app.toss.encryption-key-base64", "")
+                .withProperty("app.mail.enabled", "false")
+                .withProperty("spring.mail.host", "")
+                .withProperty("spring.mail.username", "")
+                .withProperty("spring.mail.password", "")
+                .withProperty("app.mail.from", "no-reply@b2bgearvia.local")
+                .withProperty("app.openai.api-key", "")
+                .withProperty("app.ai-report.enabled", "false")
+                .withProperty("app.ai-assistant.enabled", "false");
+
+        assertThatCode(() -> new B2bConfigurationValidator(environment).validate())
+                .doesNotThrowAnyException();
+    }
+
+    @Test
+    void rejectsDefaultPasswordMissingJwtAndHostMySqlPort() {
+        MockEnvironment environment = secureB2bProductionEnvironment()
+                .withProperty("spring.datasource.url",
+                        "jdbc:mysql://localhost:3306/b2bgearvia?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Seoul")
+                .withProperty("spring.datasource.password", "test")
+                .withProperty("app.jwt.secret", "");
+
+        assertThatThrownBy(() -> new B2bConfigurationValidator(environment).validate())
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("SPRING_DATASOURCE_URL must use jdbc:mysql://mysql:3306/b2bgearvia")
+                .hasMessageContaining("SPRING_DATASOURCE_PASSWORD must be a non-default secret of at least 16 characters")
+                .hasMessageContaining("JWT_SECRET must be a non-default secret of at least 32 characters");
+    }
+
+    @Test
+    void rejectsUnsafeB2bRuntimeFlags() {
+        MockEnvironment environment = secureB2bProductionEnvironment()
+                .withProperty("app.demo.enabled", "true")
+                .withProperty("app.jwt.secure-cookie", "false")
+                .withProperty("spring.jpa.hibernate.ddl-auto", "update")
+                .withProperty("app.storage.provider", "s3")
+                .withProperty("app.storage.local-root", "/opt/b2bgearvia/uploads");
+
+        assertThatThrownBy(() -> new B2bConfigurationValidator(environment).validate())
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("DEMO_ENABLED must be false")
+                .hasMessageContaining("AUTH_SECURE_COOKIE must be true")
+                .hasMessageContaining("SPRING_JPA_HIBERNATE_DDL_AUTO must be validate")
+                .hasMessageContaining("STORAGE_PROVIDER must be local")
+                .hasMessageContaining("UPLOAD_LOCAL_ROOT must be /opt/b2bgearvia/data/uploads");
+    }
+
+    @Test
+    void rejectsMissingOrDefaultAdminMfaSecret() {
+        MockEnvironment environment = secureB2bProductionEnvironment()
+                .withProperty("app.admin.mfa-encryption-key-base64",
+                        "Y2hhbmdlLW1lLWNoYW5nZS1tZS1jaGFuZ2UtbWUtY2hhbmdlLW1l");
+
+        assertThatThrownBy(() -> new B2bConfigurationValidator(environment).validate())
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining(
+                        "ADMIN_MFA_ENCRYPTION_KEY_BASE64 must decode to a non-default key of at least 32 bytes");
+    }
+
+    @Test
+    void rejectsLegacyProductionEnvironmentName() {
+        MockEnvironment environment = secureB2bProductionEnvironment()
+                .withProperty("app.environment", "production");
+
+        assertThatThrownBy(() -> new B2bConfigurationValidator(environment).validate())
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("Unsupported APP_ENVIRONMENT: use b2b-production for deployments");
+    }
+
+    @Test
+    void doesNotExposeSecretValuesInFailureMessages() {
+        String dbPassword = "default-password-that-must-not-leak";
+        String jwtSecret = "change-me-secret-that-must-not-leak-1234567890";
+        String mfaSecret = "Y2hhbmdlLW1lLXNlY3JldC10aGF0LW11c3Qtbm90LWxlYWstMTIz";
+        MockEnvironment environment = secureB2bProductionEnvironment()
+                .withProperty("spring.datasource.password", dbPassword)
+                .withProperty("app.jwt.secret", jwtSecret)
+                .withProperty("app.admin.mfa-encryption-key-base64", mfaSecret);
+
+        assertThatThrownBy(() -> new B2bConfigurationValidator(environment).validate())
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageNotContaining(dbPassword)
+                .hasMessageNotContaining(jwtSecret)
+                .hasMessageNotContaining(mfaSecret);
+    }
+
+    private MockEnvironment secureB2bProductionEnvironment() {
+        return new MockEnvironment()
+                .withProperty("app.environment", "b2b-production")
+                .withProperty("app.frontend-url", "https://b2bgearvia.internal")
+                .withProperty("spring.datasource.url",
+                        "jdbc:mysql://mysql:3306/b2bgearvia?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Seoul")
+                .withProperty("spring.datasource.password", "generated-db-password-32-characters")
+                .withProperty("app.jwt.secret", "generated-jwt-secret-with-more-than-thirty-two-characters")
+                .withProperty("app.jwt.secure-cookie", "true")
+                .withProperty("spring.jpa.hibernate.ddl-auto", "validate")
+                .withProperty("app.storage.provider", "local")
+                .withProperty("app.storage.local-root", "/opt/b2bgearvia/data/uploads")
+                .withProperty("app.demo.enabled", "false")
+                .withProperty("app.admin.mfa-encryption-key-base64",
+                        "MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=");
+    }
+}
