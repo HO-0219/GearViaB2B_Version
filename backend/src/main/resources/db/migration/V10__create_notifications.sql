@@ -1,0 +1,23 @@
+CREATE TABLE notifications (
+    id BIGINT NOT NULL AUTO_INCREMENT,
+    recipient_user_id BIGINT NOT NULL,
+    actor_user_id BIGINT NULL,
+    group_id BIGINT NULL,
+    task_id BIGINT NULL,
+    comment_id BIGINT NULL,
+    type VARCHAR(40) NOT NULL,
+    event_key VARCHAR(160) NOT NULL,
+    title VARCHAR(160) NOT NULL,
+    message VARCHAR(500) NOT NULL,
+    read_at DATETIME(6) NULL,
+    created_at DATETIME(6) NOT NULL,
+    PRIMARY KEY (id),
+    UNIQUE KEY uk_notifications_recipient_event (recipient_user_id, event_key),
+    INDEX idx_notifications_recipient_created (recipient_user_id, id),
+    INDEX idx_notifications_recipient_unread (recipient_user_id, read_at, id),
+    CONSTRAINT fk_notifications_recipient FOREIGN KEY (recipient_user_id) REFERENCES users (id),
+    CONSTRAINT fk_notifications_actor FOREIGN KEY (actor_user_id) REFERENCES users (id),
+    CONSTRAINT fk_notifications_group FOREIGN KEY (group_id) REFERENCES work_groups (id),
+    CONSTRAINT fk_notifications_task FOREIGN KEY (task_id) REFERENCES tasks (id),
+    CONSTRAINT fk_notifications_comment FOREIGN KEY (comment_id) REFERENCES task_comments (id)
+) ENGINE = InnoDB;

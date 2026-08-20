@@ -1,0 +1,40 @@
+CREATE TABLE tasks (
+    id BIGINT NOT NULL AUTO_INCREMENT,
+    group_id BIGINT NOT NULL,
+    requester_member_id BIGINT NOT NULL,
+    approver_member_id BIGINT NULL,
+    assignee_member_id BIGINT NULL,
+    title VARCHAR(120) NOT NULL,
+    description TEXT NULL,
+    priority ENUM('LOW', 'NORMAL', 'HIGH', 'URGENT') NOT NULL DEFAULT 'NORMAL',
+    status ENUM('REQUESTED', 'TODO', 'IN_PROGRESS', 'ON_HOLD', 'COMPLETED', 'REJECTED', 'CANCELLED') NOT NULL,
+    start_at DATETIME(6) NULL,
+    due_at DATETIME(6) NULL,
+    completed_at DATETIME(6) NULL,
+    hold_reason VARCHAR(500) NULL,
+    stop_reason VARCHAR(500) NULL,
+    created_at DATETIME(6) NOT NULL,
+    updated_at DATETIME(6) NOT NULL,
+    version BIGINT NOT NULL DEFAULT 0,
+    PRIMARY KEY (id),
+    INDEX idx_tasks_group_status_due (group_id, status, due_at),
+    INDEX idx_tasks_assignee_status_due (assignee_member_id, status, due_at),
+    CONSTRAINT fk_tasks_group FOREIGN KEY (group_id) REFERENCES work_groups (id),
+    CONSTRAINT fk_tasks_requester FOREIGN KEY (requester_member_id) REFERENCES group_members (id),
+    CONSTRAINT fk_tasks_approver FOREIGN KEY (approver_member_id) REFERENCES group_members (id),
+    CONSTRAINT fk_tasks_assignee FOREIGN KEY (assignee_member_id) REFERENCES group_members (id)
+) ENGINE = InnoDB;
+
+CREATE TABLE task_status_histories (
+    id BIGINT NOT NULL AUTO_INCREMENT,
+    task_id BIGINT NOT NULL,
+    from_status ENUM('REQUESTED', 'TODO', 'IN_PROGRESS', 'ON_HOLD', 'COMPLETED', 'REJECTED', 'CANCELLED') NULL,
+    to_status ENUM('REQUESTED', 'TODO', 'IN_PROGRESS', 'ON_HOLD', 'COMPLETED', 'REJECTED', 'CANCELLED') NOT NULL,
+    changed_by_member_id BIGINT NOT NULL,
+    reason VARCHAR(500) NULL,
+    created_at DATETIME(6) NOT NULL,
+    PRIMARY KEY (id),
+    INDEX idx_task_status_histories_task_created (task_id, created_at),
+    CONSTRAINT fk_task_histories_task FOREIGN KEY (task_id) REFERENCES tasks (id),
+    CONSTRAINT fk_task_histories_member FOREIGN KEY (changed_by_member_id) REFERENCES group_members (id)
+) ENGINE = InnoDB;

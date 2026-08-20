@@ -1,0 +1,324 @@
+package com.teamproject.report;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.networknt.schema.*;
+import com.teamproject.report.application.AiWeeklyReportAnalysisValidator;
+import com.teamproject.report.application.AiWeeklyReportAnalysisValidator.ValidationResult;
+import com.teamproject.report.application.AiWeeklyReportFallbackFactory;
+import com.teamproject.report.application.AiWeeklyReportPolicyEngine;
+import com.teamproject.report.application.dto.AiWeeklyReportAnalysisDtos.*;
+import com.teamproject.report.application.dto.AiWeeklyReportDtos.*;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.UncheckedIOException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
+
+import static org.assertj.core.api.Assertions.assertThat;
+
+class AiWeeklyReportFallbackFactoryTest {
+
+    private static final String SENTENCE_BREAK = "(?<=[.]) +";
+    private static final String POLITE_ENDING = ".*(니다|입니까|십시오)[.]";
+
+    private static final String ANALYSIS_SCHEMA = "/ai/ai-weekly-report-analysis-v1.schema.json";
+    private static final String SNAPSHOT_EXAMPLE = "/ai/ai-weekly-report-snapshot-v1.example.json";
+
+    private final ObjectMapper json = new ObjectMapper();
+    private final AiWeeklyReportPolicyEngine policyEngine = new AiWeeklyReportPolicyEngine();
+    private final AiWeeklyReportFallbackFactory fallbackFactory = new AiWeeklyReportFallbackFactory();
+    private final AiWeeklyReportAnalysisValidator validator = new AiWeeklyReportAnalysisValidator();
+
+    private AiWeeklyReportSnapshotV1 snapshot;
+
+    @BeforeEach
+    void setUp() throws IOException {
+        InputStream stream = getClass().getResourceAsStream(SNAPSHOT_EXAMPLE);
+        AiWeeklyReportSnapshotV1 raw = json.readValue(stream, AiWeeklyReportSnapshotV1.class);
+        snapshot = policyEngine.evaluate(raw);
+    }
+
+    @Test
+    @DisplayName("생성된 Fallback 분석이 JSON Schema와 Business Validator를 모두 통과한다")
+    void createsValidFallbackSatisfyingSchemaAndValidator() {
+        AiWeeklyReportAnalysisV1 fallback = fallbackFactory.create(snapshot);
+
+        // 1. Validator test
+        ValidationResult validationResult = validator.validate(snapshot, fallback);
+        assertThat(validationResult.valid()).isTrue();
+
+        // 2. Schema test
+        JsonNode jsonNode = json.valueToTree(fallback);
+        Set<ValidationMessage> schemaErrors = validateSchema(ANALYSIS_SCHEMA, jsonNode);
+        assertThat(schemaErrors).isEmpty();
+    }
+
+    @Test
+    @DisplayName("위험 후보가 없으면 NO_ACTION_REQUIRED 상태와 빈 이슈 목록을 반환한다")
+    void noActionRequiredWhenNoCandidates() {
+        AiWeeklyReportSnapshotV1 emptyRiskSnapshot = new AiWeeklyReportSnapshotV1(
+                snapshot.schemaVersion(),
+                snapshot.reportContext(),
+                snapshot.metrics(),
+                snapshot.comparison(),
+                snapshot.workflow(),
+                snapshot.members(),
+                List.of(),
+                snapshot.calendarConstraints(),
+                List.of()
+        );
+
+        AiWeeklyReportAnalysisV1 fallback = fallbackFactory.create(emptyRiskSnapshot);
+
+        assertThat(fallback.analysisStatus()).isEqualTo(AnalysisStatus.NO_ACTION_REQUIRED);
+        assertThat(fallback.issues()).isEmpty();
+
+        ValidationResult validationResult = validator.validate(emptyRiskSnapshot, fallback);
+        assertThat(validationResult.valid()).isTrue();
+    }
+
+    @Test
+    @DisplayName("완료 업무가 없는 경우 achievement status는 NONE이며 빈 필드를 가진다")
+    void achievementStatusNoneWhenNoCompletedTask() {
+        List<SnapshotTask> nonCompletedTasks = snapshot.tasks().stream()
+                .filter(t -> t.status() != TaskStatus.COMPLETED)
+                .toList();
+
+        AiWeeklyReportSnapshotV1 noCompletedSnapshot = new AiWeeklyReportSnapshotV1(
+                snapshot.schemaVersion(),
+                snapshot.reportContext(),
+                snapshot.metrics(),
+                snapshot.comparison(),
+                snapshot.workflow(),
+                snapshot.members(),
+                nonCompletedTasks,
+                snapshot.calendarConstraints(),
+                snapshot.riskCandidates()
+        );
+
+        AiWeeklyReportAnalysisV1 fallback = fallbackFactory.create(noCompletedSnapshot);
+
+        assertThat(fallback.achievement().status()).isEqualTo(AchievementStatus.NONE);
+        assertThat(fallback.achievement().headline()).isEmpty();
+        assertThat(fallback.achievement().summary()).isEmpty();
+        assertThat(fallback.achievement().evidenceTaskRefs()).isEmpty();
+
+        ValidationResult validationResult = validator.validate(noCompletedSnapshot, fallback);
+        assertThat(validationResult.valid()).isTrue();
+    }
+
+    /**
+     * 유료 서비스 화면에 나가는 문장이다. 위험 후보가 없다는 이유로 일반 문구 두 줄만
+     * 남으면 그 주에 무슨 일이 있었는지 화면에서 전혀 읽을 수 없다.
+     */
+    @Test
+    @DisplayName("위험 후보가 없어도 Snapshot의 KPI와 workflow 수치를 문장으로 전달한다")
+    void reportsKpiAndWorkflowEvenWithoutRiskCandidates() {
+        AiWeeklyReportSnapshotV1 noRisk = withRiskCandidates(List.of());
+
+        AiWeeklyReportAnalysisV1 fallback = fallbackFactory.create(noRisk);
+        String headline = fallback.executiveJudgment().headline();
+        String interpretation = fallback.executiveJudgment().interpretation();
+        SnapshotWorkflow workflow = noRisk.workflow();
+        SnapshotMetrics metrics = noRisk.metrics();
+
+        assertThat(headline)
+                .contains(String.valueOf(metrics.periodTaskCount()))
+                .contains(String.valueOf(workflow.completed()))
+                .contains(String.valueOf(workflow.inProgress()))
+                .contains(String.valueOf(workflow.onHold()));
+        assertThat(interpretation).contains(String.valueOf(metrics.completionRatePercent()));
+        assertThat(interpretation).contains("위험 후보는 선정되지 않았습니다");
+        assertThat(headline.length()).isLessThanOrEqualTo(160);
+        assertThat(interpretation.length()).isLessThanOrEqualTo(360);
+
+        assertThat(validator.validate(noRisk, fallback).valid()).isTrue();
+        assertThat(validateSchema(ANALYSIS_SCHEMA, json.valueToTree(fallback))).isEmpty();
+    }
+
+    @Test
+    @DisplayName("지연·승인 대기 업무 건수를 우선 확인 대상으로 적는다")
+    void namesDelayedAndPendingApprovalCounts() {
+        AiWeeklyReportAnalysisV1 fallback = fallbackFactory.create(snapshot);
+        String interpretation = fallback.executiveJudgment().interpretation();
+
+        if (snapshot.metrics().delayedCount() > 0) {
+            assertThat(interpretation)
+                    .contains("지연 업무 " + snapshot.metrics().delayedCount() + "건");
+        }
+        if (snapshot.workflow().requested() > 0) {
+            assertThat(interpretation)
+                    .contains("승인 대기 업무 " + snapshot.workflow().requested() + "건");
+        }
+        assertThat(interpretation).contains("우선 확인해야 합니다");
+    }
+
+    @Test
+    @DisplayName("업무가 하나도 없을 때만 데이터 없음 문구를 쓴다")
+    void usesTheEmptyPeriodWordingOnlyWithoutTasks() {
+        AiWeeklyReportSnapshotV1 empty = new AiWeeklyReportSnapshotV1(
+                snapshot.schemaVersion(), snapshot.reportContext(),
+                new SnapshotMetrics(0, null, null, 0, null),
+                SnapshotComparison.noBaseline(),
+                new SnapshotWorkflow(0, 0, 0, 0, 0, 0),
+                List.of(), List.of(), List.of(), List.of());
+
+        AiWeeklyReportAnalysisV1 fallback = fallbackFactory.create(empty);
+
+        assertThat(fallback.executiveJudgment().headline())
+                .isEqualTo("이번 기간에 집계된 확정 업무가 없습니다.");
+        assertThat(fallback.achievement().status()).isEqualTo(AchievementStatus.NONE);
+        assertThat(validator.validate(empty, fallback).valid()).isTrue();
+        assertThat(validateSchema(ANALYSIS_SCHEMA, json.valueToTree(fallback))).isEmpty();
+    }
+
+    /**
+     * 계약은 성과 하나에 근거 업무 5건까지 허용한다. fallback이 findFirst로 1건만 실어
+     * 완료 5건인 기간도 1건만 완료된 것처럼 보였다. 계약을 덜 쓰고 있던 것이지 계약 제약이
+     * 아니었다. 위험 후보가 없는 기간에는 성과가 문서의 주된 내용이라 차이가 크다.
+     */
+    @Test
+    @DisplayName("완료 업무가 여럿이면 계약 상한까지 근거로 남긴다")
+    void keepsEveryCompletedTaskUpToTheContractLimit() {
+        AiWeeklyReportAnalysisV1 fallback = fallbackFactory.create(snapshot);
+
+        List<String> completedRefs = snapshot.tasks().stream()
+                .filter(task -> task.status() == TaskStatus.COMPLETED)
+                .map(SnapshotTask::taskRef)
+                .toList();
+        assertThat(completedRefs).isNotEmpty();
+
+        assertThat(fallback.achievement().status()).isEqualTo(AchievementStatus.AVAILABLE);
+        assertThat(fallback.achievement().evidenceTaskRefs())
+                .hasSize(Math.min(completedRefs.size(), 5))
+                .isSubsetOf(completedRefs);
+        assertThat(fallback.achievement().summary())
+                .contains(String.valueOf(completedRefs.size()));
+    }
+
+    /** 상한을 넘으면 몇 건 중 몇 건인지 밝힌다. 안 밝히면 5건만 완료된 것처럼 읽힌다. */
+    @Test
+    @DisplayName("완료 업무가 상한을 넘으면 전체 건수를 문장에 밝힌다")
+    void statesTheTotalWhenCompletedTasksExceedTheLimit() {
+        List<SnapshotTask> manyCompleted = new ArrayList<>();
+        for (int i = 1; i <= 7; i++) {
+            manyCompleted.add(completedTask("TASK-" + i));
+        }
+        AiWeeklyReportSnapshotV1 wide = new AiWeeklyReportSnapshotV1(
+                snapshot.schemaVersion(), snapshot.reportContext(), snapshot.metrics(),
+                snapshot.comparison(), new SnapshotWorkflow(0, 0, 0, 0, 0, 7),
+                snapshot.members(), manyCompleted, snapshot.calendarConstraints(), List.of());
+
+        AiWeeklyReportAnalysisV1 fallback = fallbackFactory.create(wide);
+
+        assertThat(fallback.achievement().evidenceTaskRefs()).hasSize(5);
+        assertThat(fallback.achievement().summary()).contains("7").contains("5");
+    }
+
+    private SnapshotTask completedTask(String ref) {
+        return new SnapshotTask(ref, "완료된 업무", TaskStatus.COMPLETED, "NORMAL", null,
+                "2026-07-20T00:00:00Z", null, "2026-07-21T00:00:00Z", null,
+                null, null, null, List.of(), List.of(), List.of(), List.of(), List.of());
+    }
+
+    /**
+     * EN 리포트인데 OpenAI가 실패하면 fallback 문장만 한국어로 남아 문서가 잡탕이 된다.
+     * Snapshot이 담고 있는 요청 언어를 그대로 따라야 한다.
+     */
+    @Test
+    @DisplayName("EN Snapshot이면 fallback 문장도 영어로 쓴다")
+    void writesEnglishSentencesForAnEnglishSnapshot() {
+        AiWeeklyReportAnalysisV1 fallback = fallbackFactory.create(withLanguage(Language.EN));
+
+        String headline = fallback.executiveJudgment().headline();
+        String interpretation = fallback.executiveJudgment().interpretation();
+
+        assertThat(headline).startsWith("Of ").contains("in progress").contains("on hold");
+        assertThat(interpretation).contains("Completion rate is");
+        assertThat(headline + interpretation).doesNotContain("업무").doesNotContain("완료율");
+        assertThat(fallback.achievement().headline()).isEqualTo("Tasks completed in this period");
+        assertThat(fallback.achievement().summary()).contains("completed in this period");
+        assertThat(headline.length()).isLessThanOrEqualTo(160);
+        assertThat(interpretation.length()).isLessThanOrEqualTo(360);
+    }
+
+    @Test
+    @DisplayName("KO Snapshot이면 fallback 문장을 한국어로 쓴다")
+    void writesKoreanSentencesForAKoreanSnapshot() {
+        AiWeeklyReportAnalysisV1 fallback = fallbackFactory.create(withLanguage(Language.KO));
+
+        assertThat(fallback.executiveJudgment().headline()).contains("이번 기간").contains("보류 상태");
+        assertThat(fallback.executiveJudgment().interpretation()).contains("완료율은");
+        assertThat(fallback.achievement().headline()).isEqualTo("기간 내 업무 완료");
+    }
+
+    private AiWeeklyReportSnapshotV1 withLanguage(Language language) {
+        ReportContext context = snapshot.reportContext();
+        return new AiWeeklyReportSnapshotV1(
+                snapshot.schemaVersion(),
+                new ReportContext(context.groupRef(), context.period(), context.generatedAt(),
+                        language, context.promptVersion()),
+                snapshot.metrics(), snapshot.comparison(), snapshot.workflow(), snapshot.members(),
+                snapshot.tasks(), snapshot.calendarConstraints(), snapshot.riskCandidates());
+    }
+
+    private AiWeeklyReportSnapshotV1 withRiskCandidates(List<RiskCandidate> candidates) {
+        return new AiWeeklyReportSnapshotV1(
+                snapshot.schemaVersion(), snapshot.reportContext(), snapshot.metrics(),
+                snapshot.comparison(), snapshot.workflow(), snapshot.members(),
+                snapshot.tasks(), snapshot.calendarConstraints(), candidates);
+    }
+
+    private Set<ValidationMessage> validateSchema(String schemaResource, JsonNode document) {
+        SchemaValidatorsConfig config = SchemaValidatorsConfig.builder()
+                .formatAssertionsEnabled(true)
+                .build();
+        JsonSchemaFactory factory = JsonSchemaFactory.getInstance(SpecVersion.VersionFlag.V202012);
+        try (InputStream schema = getClass().getResourceAsStream(schemaResource)) {
+            JsonSchema compiled = factory.getSchema(schema, config);
+            return compiled.validate(document);
+        } catch (IOException exception) {
+            throw new UncheckedIOException(exception);
+        }
+    }
+
+    /**
+     * 한 문서에 서버 문장과 AI 문장이 함께 실린다. 실제 리포트를 세어 보니 AI가 평서체 17문장,
+     * 서버가 존댓말 12문장이었고 그 이음매가 딱딱하게 읽혔다. AI 쪽은 프롬프트로 맞췄고,
+     * 서버가 쓰는 fallback 문장은 여기서 고정한다. fallback도 그대로 사용자에게 나간다.
+     */
+    @Test
+    @DisplayName("fallback이 쓰는 한국어 문장은 모두 존댓말이다")
+    void writesEveryKoreanSentenceInThePoliteRegister() {
+        AiWeeklyReportAnalysisV1 fallback = fallbackFactory.create(snapshot);
+
+        List<String> sentences = new ArrayList<>();
+        sentences.add(fallback.executiveJudgment().headline());
+        sentences.add(fallback.executiveJudgment().interpretation());
+        sentences.add(fallback.achievement().headline());
+        sentences.add(fallback.achievement().summary());
+        fallback.issues().forEach(issue -> {
+            sentences.add(issue.impact());
+            sentences.add(issue.integratedJudgment());
+            sentences.add(issue.decision().question());
+            sentences.add(issue.decision().recommendation());
+        });
+
+        for (String text : sentences) {
+            if (text == null || text.isBlank()) continue;
+            for (String sentence : text.split(SENTENCE_BREAK)) {
+                String trimmed = sentence.trim();
+                if (!trimmed.endsWith(".")) continue;
+                assertThat(trimmed)
+                        .as("존댓말이어야 한다: %s", trimmed)
+                        .matches(POLITE_ENDING);
+            }
+        }
+    }
+}

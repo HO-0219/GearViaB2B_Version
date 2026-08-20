@@ -1,0 +1,10 @@
+ALTER TABLE users ADD COLUMN nickname VARCHAR(30) NOT NULL DEFAULT '사용자';
+ALTER TABLE users ADD COLUMN phone_number VARCHAR(20) NULL;
+ALTER TABLE users ADD COLUMN profile_image_url VARCHAR(500) NULL;
+ALTER TABLE users ADD COLUMN status ENUM('ACTIVE', 'SUSPENDED', 'WITHDRAWN') NOT NULL DEFAULT 'ACTIVE';
+ALTER TABLE users ADD COLUMN updated_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6);
+
+UPDATE users
+SET nickname = name,
+    updated_at = created_at
+WHERE nickname = '사용자';
