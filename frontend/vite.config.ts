@@ -42,7 +42,7 @@ export default defineConfig(({ mode }) => {
 });
 
 function seoFilesPlugin(siteUrl: string, verification: string, allowIndexing: boolean): Plugin {
-  const publicPaths = ['/', '/demo', '/product', '/b2b', '/pricing', '/contact', '/privacy', '/terms', '/paid-terms', '/refund-policy', '/site-map'];
+  const publicPaths = ['/', '/demo', '/product', '/b2b', '/pricing', '/contact', '/privacy', '/terms', '/site-map'];
   const robots = allowIndexing ? [
     'User-agent: *',
     'Allow: /',
@@ -55,7 +55,6 @@ function seoFilesPlugin(siteUrl: string, verification: string, allowIndexing: bo
     'Disallow: /notifications',
     'Disallow: /profile',
     'Disallow: /account',
-    'Disallow: /payments',
     'Disallow: /login',
     'Disallow: /signup',
     'Disallow: /oauth/',

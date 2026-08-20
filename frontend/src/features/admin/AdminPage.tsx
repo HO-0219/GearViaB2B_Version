@@ -110,7 +110,7 @@ function StatusBadge({ value }: { value: string }) {
     ? 'success'
     : ['FAILED', 'FAILURE', 'SUSPENDED', 'CANCELED', 'CANCELLED', 'ERROR', '실패', '정지'].includes(normalized)
       ? 'danger'
-      : ['PENDING', 'TRIALING', 'RETRYING', 'WAITING', '대기'].includes(normalized)
+      : ['PENDING', 'RETRYING', 'WAITING', '대기'].includes(normalized)
         ? 'warning'
         : 'neutral';
   return <span className={`admin-status admin-status--${tone}`}>{labels[normalized]?.[language === 'ko' ? 0 : 1] ?? (value || '-')}</span>;
