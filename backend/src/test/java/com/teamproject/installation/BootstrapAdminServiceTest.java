@@ -22,7 +22,7 @@ class BootstrapAdminServiceTest {
         UserRepository users = mock(UserRepository.class);
         when(users.count()).thenReturn(0L);
         when(users.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
-        BootstrapAdminService service = new BootstrapAdminService(users, new BCryptPasswordEncoder(), secret);
+        BootstrapAdminService service = new BootstrapAdminService(users, new BCryptPasswordEncoder(), secret.toString());
 
         User admin = service.bootstrap();
 

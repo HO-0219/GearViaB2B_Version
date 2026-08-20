@@ -23,13 +23,11 @@ public class BootstrapAdminService {
     private final PasswordEncoder passwordEncoder;
     private final Path secretFile;
 
+    @org.springframework.beans.factory.annotation.Autowired
     public BootstrapAdminService(UserRepository users, PasswordEncoder passwordEncoder,
                                  @org.springframework.beans.factory.annotation.Value("${app.bootstrap-admin.secret-file:}") String secretFile) {
-        this(users, passwordEncoder, secretFile == null || secretFile.isBlank() ? null : Path.of(secretFile));
-    }
-
-    BootstrapAdminService(UserRepository users, PasswordEncoder passwordEncoder, Path secretFile) {
-        this.users = users; this.passwordEncoder = passwordEncoder; this.secretFile = secretFile;
+        this.users = users; this.passwordEncoder = passwordEncoder;
+        this.secretFile = secretFile == null || secretFile.isBlank() ? null : Path.of(secretFile);
     }
 
     @Transactional

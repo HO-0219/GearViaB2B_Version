@@ -2,11 +2,8 @@ package com.teamproject.authentication;
 
 import com.teamproject.B2BGearViaApplication;
 import com.teamproject.authentication.application.SignupService;
-import com.teamproject.authentication.application.dto.SignupDtos.SignupRequest;
 import com.teamproject.authentication.application.token.OneTimeTokenService;
-import com.teamproject.authentication.domain.token.OneTimeToken;
-import com.teamproject.authentication.domain.token.OneTimeTokenRepository;
-import com.teamproject.authentication.infrastructure.crypto.HashService;
+import com.teamproject.authentication.application.dto.SignupDtos.SignupRequest;
 import com.teamproject.authentication.infrastructure.web.RefreshCookieService;
 import com.teamproject.jwt.JwtService;
 import com.teamproject.user.domain.User;
@@ -25,7 +22,6 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -33,7 +29,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.oauth2Login;
+import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping;
 
 @SpringBootTest(classes = B2BGearViaApplication.class)
 @AutoConfigureMockMvc
@@ -44,9 +40,7 @@ class AuthSecurityApiTest {
     @Autowired SignupService signupService;
     @Autowired OneTimeTokenService oneTimeTokens;
     @Autowired UserRepository users;
-    @Autowired UserConsentRepository consents;
-    @Autowired OneTimeTokenRepository tokenRepository;
-    @Autowired HashService hashService;
+    @Autowired RequestMappingHandlerMapping mappings;
     @Autowired ObjectMapper objectMapper;
 
     @Test
@@ -83,50 +77,10 @@ class AuthSecurityApiTest {
     }
 
     @Test
-    void oauthHandshakePrincipalCannotReplaceApiJwtAuthentication() throws Exception {
-        signup("oauth_session_user", "oauth-session@example.com");
-        String response = mvc.perform(post("/api/v1/auth/login")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"username\":\"oauth_session_user\",\"password\":\"password123!\"}"))
-                .andExpect(status().isOk())
-                .andReturn().getResponse().getContentAsString();
-        String accessToken = objectMapper.readTree(response).get("accessToken").asText();
-
-        mvc.perform(get("/api/v1/auth/me").with(oauth2Login()))
-                .andExpect(status().isUnauthorized())
-                .andExpect(jsonPath("$.code").value("AUTHENTICATION_REQUIRED"));
-
-        mvc.perform(get("/api/v1/auth/me")
-                        .with(oauth2Login())
-                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + accessToken))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.username").value("oauth_session_user"));
-    }
-
-    @Test
-    void splitControllersKeepSignupRecoveryAndProviderContracts() throws Exception {
-        String email = "contract@example.com";
-        String code = oneTimeTokens.issueCode(email);
-
-        mvc.perform(post("/api/v1/auth/email-verifications/confirm")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"email\":\"contract@example.com\",\"code\":\"" + code + "\"}"))
-                .andExpect(status().isNoContent());
-        mvc.perform(post("/api/v1/auth/signup")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"username\":\"contract_user\",\"email\":\"contract@example.com\",\"name\":\"계약 사용자\",\"password\":\"password123!\",\"verificationCode\":\"" + code + "\",\"termsAgreed\":true,\"privacyAgreed\":true,\"ageConfirmed\":true,\"notificationAgreed\":false,\"marketingAgreed\":false}"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.username").value("contract_user"));
-        User contractUser = users.findByUsernameIgnoreCase("contract_user").orElseThrow();
-        assertThat(consents.findAllByUserId(contractUser.getId())).hasSize(5);
-        mvc.perform(post("/api/v1/auth/username-reminders")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"email\":\"contract@example.com\"}"))
-                .andExpect(status().isNoContent());
-        mvc.perform(get("/api/v1/auth/providers"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.google").value(false))
-                .andExpect(jsonPath("$.kakao").value(false));
+    void publicSignupRecoveryAndOAuthMappingsAreAbsent() {
+        var paths = mappings.getHandlerMethods().keySet().stream().map(Object::toString).toList();
+        assertThat(paths).noneMatch(path -> path.contains("signup") || path.contains("password-resets")
+                || path.contains("username-reminders") || path.contains("oauth"));
     }
 
     @Test
@@ -150,47 +104,6 @@ class AuthSecurityApiTest {
                 .andExpect(jsonPath("$.code").value("DEMO_READ_ONLY"));
     }
 
-    @Test
-    void recoveryRequestsDoNotRevealWhetherAccountExists() throws Exception {
-        signup("recovery_user", "recovery@example.com");
-
-        for (String path : new String[]{"/api/v1/auth/username-reminders", "/api/v1/auth/password-resets"}) {
-            mvc.perform(post(path).contentType(MediaType.APPLICATION_JSON)
-                            .content("{\"email\":\"recovery@example.com\"}"))
-                    .andExpect(status().isNoContent())
-                    .andExpect(result -> assertThat(result.getResponse().getContentAsString()).isEmpty());
-            mvc.perform(post(path).contentType(MediaType.APPLICATION_JSON)
-                            .content("{\"email\":\"missing@example.com\"}"))
-                    .andExpect(status().isNoContent())
-                    .andExpect(result -> assertThat(result.getResponse().getContentAsString()).isEmpty());
-        }
-    }
-
-    @Test
-    void passwordResetTokenIsSingleUseAndExpiredTokenIsRejected() throws Exception {
-        signup("reset_user", "reset@example.com");
-        String resetToken = oneTimeTokens.issueResetToken("reset@example.com");
-        String request = "{\"email\":\"reset@example.com\",\"token\":\"" + resetToken
-                + "\",\"newPassword\":\"newPassword123!\"}";
-
-        mvc.perform(post("/api/v1/auth/password-resets/confirm")
-                        .contentType(MediaType.APPLICATION_JSON).content(request))
-                .andExpect(status().isNoContent());
-        mvc.perform(post("/api/v1/auth/password-resets/confirm")
-                        .contentType(MediaType.APPLICATION_JSON).content(request))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value("TOKEN_INVALID"));
-
-        signup("expired_user", "expired@example.com");
-        String expiredRaw = "expired-reset-token";
-        tokenRepository.save(new OneTimeToken("expired@example.com", OneTimeToken.Purpose.PASSWORD_RESET,
-                hashService.sha256(expiredRaw), LocalDateTime.now().minusSeconds(1)));
-        mvc.perform(post("/api/v1/auth/password-resets/confirm")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"email\":\"expired@example.com\",\"token\":\"expired-reset-token\",\"newPassword\":\"newPassword123!\"}"))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value("TOKEN_INVALID"));
-    }
 
     @Test
     void refreshCookieRotatesAndOldCookieCannotBeReused() throws Exception {
