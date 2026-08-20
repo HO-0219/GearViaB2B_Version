@@ -56,6 +56,7 @@ public class User {
     }
 
     public void changePassword(String passwordHash) { this.passwordHash = passwordHash; touch(); }
+    public void promoteToAdmin() { this.systemRole = SystemRole.ADMIN; touch(); }
     public void recordLogin() { this.lastLoginAt = LocalDateTime.now(); touch(); }
     public void updateProfile(String nickname, String phoneNumber, String profileImageUrl) {
         this.nickname = nickname;

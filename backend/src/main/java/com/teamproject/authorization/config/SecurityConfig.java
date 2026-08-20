@@ -1,6 +1,5 @@
 package com.teamproject.authorization.config;
 
-import com.teamproject.authentication.infrastructure.oauth.OAuth2SuccessHandler;
 import com.teamproject.jwt.JwtAuthenticationFilter;
 import com.teamproject.admin.config.AdminAccessFilter;
 import com.teamproject.admin.config.AdminMfaAuthorizationFilter;
@@ -24,7 +23,7 @@ import java.util.List;
 public class SecurityConfig {
     @Bean SecurityFilterChain securityFilterChain(HttpSecurity http, JwtAuthenticationFilter jwtFilter,
             SecurityAuditFilter auditFilter, SensitiveEndpointRateLimitFilter rateLimitFilter,
-            DemoReadOnlyFilter demoReadOnlyFilter, OAuth2SuccessHandler successHandler,
+            DemoReadOnlyFilter demoReadOnlyFilter,
             SameOriginMutationFilter sameOriginFilter, AdminAccessFilter adminAccessFilter,
             AdminMfaAuthorizationFilter adminMfaFilter, AdminAuditFilter adminAuditFilter,
             @Value("${app.frontend-url}") String frontendUrl,
@@ -40,25 +39,16 @@ public class SecurityConfig {
                     response.getWriter().write("{\"code\":\"AUTHENTICATION_REQUIRED\",\"message\":\"로그인이 필요합니다.\",\"fieldErrors\":null}");
                 }, new AntPathRequestMatcher("/api/**")))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers(HttpMethod.GET, "/api/v1/health", "/api/v1/health/**", "/api/v1/auth/providers",
-                                "/api/v1/auth/oauth-signup").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/health", "/api/v1/health/**").permitAll()
                         .requestMatchers(HttpMethod.POST,
-                                "/api/v1/auth/email-verifications/**",
-                                "/api/v1/auth/signup",
                                 "/api/v1/auth/login",
                                 "/api/v1/auth/demo-session",
                                 "/api/v1/auth/refresh",
                                 "/api/v1/auth/logout",
-                                "/api/v1/auth/oauth-signup/complete",
-                                "/api/v1/auth/username-reminders",
-                                "/api/v1/auth/password-resets/**").permitAll()
-                        .requestMatchers(HttpMethod.DELETE, "/api/v1/auth/oauth-signup").permitAll()
-                        .requestMatchers("/oauth2/**", "/login/oauth2/**").permitAll()
+                                "/api/v1/auth/logout").permitAll()
                         .requestMatchers(HttpMethod.GET, "/ws/chat").permitAll()
                         .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
                         .anyRequest().authenticated())
-                .oauth2Login(oauth -> oauth.successHandler(successHandler)
-                        .failureHandler((request, response, exception) -> response.sendRedirect(frontendUrl + "/login?socialError=SOCIAL_LOGIN_FAILED")))
                 .addFilterBefore(rateLimitFilter, UsernamePasswordAuthenticationFilter.class)
                 .addFilterBefore(sameOriginFilter, SensitiveEndpointRateLimitFilter.class)
                 .addFilterBefore(adminAccessFilter, UsernamePasswordAuthenticationFilter.class)

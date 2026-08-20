@@ -100,7 +100,7 @@ export function SiteMapPage() {
   const { t } = useLanguage();
   const sections = [
     { title: t('서비스 알아보기', 'Explore'), links: [['/', t('서비스 소개', 'Overview')], ['/demo', t('읽기 전용 데모', 'Read-only demo')], ['/product', t('제품', 'Product')], ['/b2b', t('B2B 솔루션', 'B2B solutions')], ['/pricing', t('가격', 'Pricing')], ['/contact', t('문의', 'Contact')]] },
-    { title: t('시작', 'Start'), links: [['/login', t('로그인', 'Log in')], ['/signup', t('회원가입', 'Sign up')]] },
+    { title: t('시작', 'Start'), links: [['/login', t('로그인', 'Log in')]] },
     { title: t('내 작업 공간', 'My workspace'), links: [['/app', t('내 대시보드', 'Dashboard')], ['/groups', t('그룹', 'Groups')], ['/calendar', t('캘린더', 'Calendar')], ['/notifications', t('알림', 'Alerts')]] },
     { title: t('계정', 'Account'), links: [['/profile', t('프로필', 'Profile')], ['/account', t('계정 및 보안', 'Account & security')]] },
     { title: t('정책과 안내', 'Policies'), links: [['/privacy', t('개인정보 처리방침', 'Privacy policy')], ['/terms', t('이용약관', 'Terms')], ['/site-map', t('사이트맵', 'Site map')]] },

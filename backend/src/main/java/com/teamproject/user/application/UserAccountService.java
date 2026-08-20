@@ -1,6 +1,5 @@
 package com.teamproject.user.application;
 
-import com.teamproject.authentication.domain.oauth.SocialAccountRepository;
 import com.teamproject.authentication.domain.token.OneTimeTokenRepository;
 import com.teamproject.authentication.domain.token.RefreshToken;
 import com.teamproject.authentication.domain.token.RefreshTokenRepository;
@@ -21,22 +20,19 @@ import java.util.UUID;
 
 @Service
 public class UserAccountService {
-    private static final Duration SOCIAL_REAUTH_WINDOW = Duration.ofMinutes(5);
     private final UserRepository users;
     private final PasswordEncoder passwordEncoder;
     private final RefreshTokenRepository refreshTokens;
     private final OneTimeTokenRepository oneTimeTokens;
-    private final SocialAccountRepository socialAccounts;
     private final PushSubscriptionService pushSubscriptions;
 
     public UserAccountService(UserRepository users, PasswordEncoder passwordEncoder,
             RefreshTokenRepository refreshTokens, OneTimeTokenRepository oneTimeTokens,
-            SocialAccountRepository socialAccounts, PushSubscriptionService pushSubscriptions) {
+            PushSubscriptionService pushSubscriptions) {
         this.users = users;
         this.passwordEncoder = passwordEncoder;
         this.refreshTokens = refreshTokens;
         this.oneTimeTokens = oneTimeTokens;
-        this.socialAccounts = socialAccounts;
         this.pushSubscriptions = pushSubscriptions;
     }
 
@@ -63,17 +59,12 @@ public class UserAccountService {
         User user = activeUser(userId);
         if (user.getPasswordHash() != null) {
             verifyPassword(user, request.currentPassword());
-        } else if (user.getLastLoginAt() == null ||
-                user.getLastLoginAt().isBefore(LocalDateTime.now().minus(SOCIAL_REAUTH_WINDOW))) {
-            throw new ApplicationException("SOCIAL_REAUTH_REQUIRED", HttpStatus.UNAUTHORIZED,
-                    "소셜 로그인으로 다시 인증한 뒤 탈퇴해 주세요.");
         }
 
         String originalEmail = user.getEmail();
         revokeAllRefreshTokens(userId);
         pushSubscriptions.unsubscribeAll(userId);
         oneTimeTokens.deleteAllByEmailIgnoreCase(originalEmail);
-        socialAccounts.deleteAllByUserId(userId);
         String suffix = userId + "_" + UUID.randomUUID().toString().replace("-", "").substring(0, 8);
         user.anonymizeAndWithdraw("withdrawn_" + suffix, "withdrawn_" + suffix + "@invalid.local");
     }

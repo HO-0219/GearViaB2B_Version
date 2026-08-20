@@ -38,7 +38,7 @@ public class RecoveryService {
     @Transactional(readOnly = true)
     public void remindUsername(String rawEmail) {
         users.findByEmailIgnoreCase(normalizeEmail(rawEmail)).ifPresent(user ->
-                mail.sendBestEffort(user.getEmail(), "[B2BGearVia] 아이디 안내",
+                mail.sendBestEffort(user.getEmail(), "[Gearvia] 아이디 안내",
                         "회원님의 아이디는 " + user.getUsername() + " 입니다."));
     }
 
@@ -46,7 +46,7 @@ public class RecoveryService {
     public void requestPasswordReset(String rawEmail) {
         users.findByEmailIgnoreCase(normalizeEmail(rawEmail)).ifPresent(user -> {
             String token = oneTimeTokens.issueResetToken(user.getEmail());
-            mail.sendBestEffort(user.getEmail(), "[B2BGearVia] 비밀번호 재설정",
+            mail.sendBestEffort(user.getEmail(), "[Gearvia] 비밀번호 재설정",
                     frontendUrl + "/reset-password?email=" + user.getEmail() + "&token=" + token);
         });
     }
