@@ -9,13 +9,10 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 class B2bConfigurationValidatorTest {
 
     @Test
-    void acceptsB2bProductionWithoutOauthTossPublicMailOrOpenAiKey() {
+    void acceptsB2bProductionWithoutOauthPublicMailOrOpenAiKey() {
         MockEnvironment environment = secureB2bProductionEnvironment()
                 .withProperty("spring.security.oauth2.client.registration.google.client-id", "")
                 .withProperty("spring.security.oauth2.client.registration.google.client-secret", "")
-                .withProperty("app.toss.client-key", "")
-                .withProperty("app.toss.secret-key", "")
-                .withProperty("app.toss.encryption-key-base64", "")
                 .withProperty("app.mail.enabled", "false")
                 .withProperty("spring.mail.host", "")
                 .withProperty("spring.mail.username", "")

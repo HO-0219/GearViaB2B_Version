@@ -74,7 +74,6 @@ export function AccountPage() {
   return <main className="center-page"><section className="auth-card profile-card">
     <Link to="/profile">← {t('프로필로', 'Back to profile')}</Link><h1>{t('계정 설정', 'Account settings')}</h1>
     <p className="muted">{t('비밀번호 변경 후에는 모든 기기에서 다시 로그인해야 합니다.', 'After changing your password, you must log in again on every device.')}</p>
-    <Link className="account-link" to="/payments">{t('결제수단 및 테스트 관리', 'Manage payment methods and tests')} →</Link>
     <section className="danger-zone">
       <h2>{t('로그인된 기기', 'Signed-in devices')}</h2>
       <p>{t('기기를 분실했거나 세션이 의심되면 모든 기기의 로그인 세션을 즉시 종료하세요.', 'If a device is lost or a session looks suspicious, end every signed-in session immediately.')}</p>

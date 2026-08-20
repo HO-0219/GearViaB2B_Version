@@ -2,10 +2,8 @@ package com.teamproject.admin.presentation;
 
 import com.teamproject.admin.application.AdminService;
 import com.teamproject.admin.application.dto.AdminDtos.*;
-import jakarta.validation.Valid;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
-import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -28,20 +26,12 @@ public class AdminController {
     @GetMapping("/groups")
     PageResponse<AdminGroupResponse> groups(@RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "50") int size) { return admin.groups(page, size); }
-    @GetMapping("/payments")
-    PageResponse<AdminPaymentResponse> payments(@RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "30") int size) { return admin.payments(page, size); }
-    @GetMapping("/subscriptions") List<AdminSubscriptionResponse> subscriptions() { return admin.subscriptions(); }
     @GetMapping("/report-downloads")
     PageResponse<AdminReportDownloadResponse> reportDownloads(@RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "50") int size) { return admin.reportDownloads(page, size); }
     @GetMapping("/report-deliveries")
     PageResponse<AdminReportDeliveryResponse> reportDeliveries(@RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "50") int size) { return admin.reportDeliveries(page, size); }
-    @PostMapping("/subscriptions/rollout-notice")
-    RolloutNoticeResponse announce(@Valid @RequestBody RolloutNoticeRequest request) {
-        return admin.announce(request.decisionDeadline());
-    }
     @GetMapping("/audit-logs")
     PageResponse<AdminAuditResponse> auditLogs(@RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "50") int size) {

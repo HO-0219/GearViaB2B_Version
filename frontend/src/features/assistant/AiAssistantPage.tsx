@@ -108,7 +108,7 @@ export function AiAssistantPage() {
       <h1>{t('업무 비서', 'Work assistant')}</h1>
       <p>{t('팀의 업무 맥락을 읽고, 지금 필요한 다음 행동을 안전하게 제안합니다.',
         'It reads your team context and safely proposes the next action that matters.')}</p>
-      {assistantEnabled && <span className="assistant-live-badge"><i />{t('멤버십 활성 · 실행 준비됨', 'Membership active · Ready')}</span>}</div>
+      {assistantEnabled && <span className="assistant-live-badge"><i />{t('AI 활성 · 실행 준비됨', 'AI enabled · Ready')}</span>}</div>
       <label><span>{t('작업할 그룹', 'Workspace')}</span><select value={groupId || ''} onChange={(event) => {
         setParams({ groupId: event.target.value });
         setItems((old) => [...old, assistantMessage(t('작업 그룹을 변경했습니다.', 'Workspace changed.'))]);
@@ -116,7 +116,7 @@ export function AiAssistantPage() {
         <option value={group.id} key={group.id}>{group.name}</option>)}</select></label>
     </header>
 
-    {!assistantEnabled && selectedGroup && <section className="assistant-subscription-lock"><span aria-hidden="true">✦</span><div><h2>{t('AI 비서는 유료 팀 멤버십 기능입니다.', 'AI assistant is included with paid team membership.')}</h2><p>{t('그룹 결제가 승인되면 팀원 모두에게 즉시 활성화됩니다.', 'It activates for all team members immediately after payment approval.')}</p></div>{selectedGroup.role === 'LEADER' ? <Link className="primary" to={`/groups/${selectedGroup.id}?tab=plan`}>{t('멤버십 결제', 'Open membership')}</Link> : <small>{t('팀장에게 멤버십 활성화를 요청해 주세요.', 'Ask your team leader to activate the membership.')}</small>}</section>}
+    {!assistantEnabled && selectedGroup && <section className="assistant-policy-lock"><span aria-hidden="true">✦</span><div><h2>{t('AI 비서는 관리자 정책에서 허용된 팀 기능입니다.', 'AI assistant is available for teams enabled by an admin.')}</h2><p>{t('관리자가 AI 기능을 활성화하면 팀원 모두가 사용할 수 있습니다.', 'It becomes available to the whole team when an admin enables it.')}</p></div>{selectedGroup.role === 'LEADER' ? <Link className="primary" to={`/groups/${selectedGroup.id}?tab=plan`}>{t('AI 설정', 'Open AI settings')}</Link> : <small>{t('팀장에게 AI 기능 활성화를 요청해 주세요.', 'Ask your team leader to enable AI for this team.')}</small>}</section>}
     {assistantEnabled && <div className="assistant-workspace-layout"><section className="assistant-chat" aria-label={t('AI 비서 대화', 'AI assistant chat')}>
       <header className="assistant-chat-heading"><div><span>✦</span><div><strong>{t('B2BGearVia AI', 'B2BGearVia AI')}</strong><small>{t(`${selectedGroup?.name ?? ''}의 업무를 바탕으로 답변합니다.`, `Answers from work in ${selectedGroup?.name ?? ''}.`)}</small></div></div><b>{t('온라인', 'Online')}</b></header>
       <div className="assistant-messages" aria-live="polite">{items.map((item) =>

@@ -6,7 +6,6 @@ import com.teamproject.authentication.application.dto.SessionDtos.MeResponse;
 import com.teamproject.authentication.application.dto.SessionDtos.TokenResponse;
 import com.teamproject.authentication.application.dto.SignupDtos.SignupRequest;
 import com.teamproject.authentication.application.dto.SignupDtos.SignupResponse;
-import com.teamproject.payment.application.dto.PaymentDtos.IssuePaymentMethodRequest;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -20,14 +19,12 @@ class SensitiveDtoLoggingTest {
         var login = new LoginRequest("private-user", "private-password");
         var reset = new PasswordResetConfirmRequest(
                 "private@example.com", "private-reset-token", "new-private-password");
-        var paymentMethod = new IssuePaymentMethodRequest("private-auth-key", "private-customer-key");
 
         assertThat(signup.toString())
                 .doesNotContain("private-user", "private@example.com", "Private Name", "private-password", "123456");
         assertThat(login.toString()).doesNotContain("private-user", "private-password");
         assertThat(reset.toString())
                 .doesNotContain("private@example.com", "private-reset-token", "new-private-password");
-        assertThat(paymentMethod.toString()).doesNotContain("private-auth-key", "private-customer-key");
     }
 
     @Test

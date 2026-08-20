@@ -149,15 +149,6 @@ public class NotificationService {
                 "의심스러운 세션 차단", deviceName + "의 이전 로그인 토큰이 재사용되어 해당 기기 세션을 차단했습니다.");
     }
 
-    @Transactional
-    public void subscriptionRollout(User user, com.teamproject.group.domain.Group group,
-            String eventKey, LocalDateTime deadline) {
-        insertAndPublish(new Notification(user, null, group, null, null,
-                Notification.Type.SUBSCRIPTION_ROLLOUT_NOTICE, eventKey,
-                "유료 구독 전환 사전 안내",
-                deadline.toLocalDate() + "까지 무료 유지 또는 유료 구독 전환 여부를 선택해 주세요."));
-    }
-
     @Transactional(readOnly = true)
     public NotificationPageResponse list(Long userId, Long cursor, int requestedSize) {
         int size = Math.min(Math.max(requestedSize, 1), 50);
@@ -255,8 +246,6 @@ public class NotificationService {
                 : notification.getTask() != null ? "/tasks/" + notification.getTask().getId()
                 : notification.getType() == Notification.Type.SECURITY_NEW_DEVICE
                         || notification.getType() == Notification.Type.SECURITY_SESSION_REUSED ? "/account"
-                : notification.getType() == Notification.Type.SUBSCRIPTION_ROLLOUT_NOTICE
-                        && notification.getGroup() != null ? "/groups/" + notification.getGroup().getId()
                 : notification.getType() == Notification.Type.CHAT_MESSAGE
                         && notification.getGroup() != null ? "/groups/" + notification.getGroup().getId()
                                 + "/chat?channel=" + notification.getEventKey().split(":")[1]

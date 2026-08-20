@@ -69,8 +69,7 @@ export function NotificationsPage() {
         : notification.type.startsWith('SECURITY_') ? '/account'
           : notification.type === 'CHAT_MESSAGE' && notification.groupId
             ? `/groups/${notification.groupId}/chat`
-          : notification.type === 'SUBSCRIPTION_ROLLOUT_NOTICE' && notification.groupId
-            ? `/groups/${notification.groupId}` : '/app'));
+          : '/app'));
     } catch (value) { setError(errorMessage(value)); }
   }
 
@@ -137,8 +136,7 @@ function localizedNotificationTitle(item: NotificationResponse, language: 'ko' |
     TASK_DUE_SOON: 'Important deadline approaching', COMMENT_CREATED: 'New comment',
     COMMENT_MENTIONED: 'You were mentioned', SECURITY_NEW_DEVICE: 'New device login',
     SECURITY_SESSION_REUSED: 'Suspicious session blocked',
-    CHAT_MESSAGE: 'New chat message', ASSISTANT_MESSAGE: 'New assistant message',
-    SUBSCRIPTION_ROLLOUT_NOTICE: 'Subscription rollout notice' } as Record<string, string>)[item.type] ?? item.title;
+    CHAT_MESSAGE: 'New chat message', ASSISTANT_MESSAGE: 'New assistant message' } as Record<string, string>)[item.type] ?? item.title;
 }
 
 function localizedNotificationMessage(item: NotificationResponse, language: 'ko' | 'en') {
@@ -150,6 +148,5 @@ function localizedNotificationMessage(item: NotificationResponse, language: 'ko'
     COMMENT_MENTIONED: `You were mentioned in a comment on '${title}'.`,
     SECURITY_NEW_DEVICE: 'A new sign-in was detected. Review your signed-in devices.',
     SECURITY_SESSION_REUSED: 'An old session token was reused and the device session was blocked.',
-    CHAT_MESSAGE: 'A new message arrived in your team chat.', ASSISTANT_MESSAGE: 'A new assistant message arrived.',
-    SUBSCRIPTION_ROLLOUT_NOTICE: 'The paid subscription rollout schedule and your keep-free or continue-paid options are ready.' } as Record<string, string>)[item.type] ?? item.message;
+    CHAT_MESSAGE: 'A new message arrived in your team chat.', ASSISTANT_MESSAGE: 'A new assistant message arrived.' } as Record<string, string>)[item.type] ?? item.message;
 }

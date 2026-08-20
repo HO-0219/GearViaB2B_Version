@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useLanguage } from './LanguageContext';
 
-const publicPaths = new Set(['/', '/demo', '/product', '/b2b', '/pricing', '/contact', '/privacy', '/terms', '/paid-terms', '/refund-policy', '/site-map']);
+const publicPaths = new Set(['/', '/demo', '/product', '/b2b', '/pricing', '/contact', '/privacy', '/terms', '/site-map']);
 const allowIndexing = String(import.meta.env.VITE_ALLOW_INDEXING ?? 'false') === 'true';
 
 export function PageMeta() {
@@ -47,8 +47,6 @@ function pageTitle(pathname: string, language: 'ko' | 'en') {
   if (pathname === '/demo') return language === 'ko' ? '읽기 전용 제품 데모' : 'Read-only product demo';
   if (pathname === '/privacy') return language === 'ko' ? '개인정보 처리방침' : 'Privacy policy';
   if (pathname === '/terms') return language === 'ko' ? '서비스 이용약관' : 'Terms of service';
-  if (pathname === '/paid-terms') return language === 'ko' ? '유료서비스 이용약관' : 'Paid service terms';
-  if (pathname === '/refund-policy') return language === 'ko' ? '환불 정책' : 'Refund policy';
   if (pathname === '/site-map') return language === 'ko' ? '사이트맵' : 'Site map';
   if (pathname === '/product') return language === 'ko' ? '제품' : 'Product';
   if (pathname === '/b2b') return language === 'ko' ? 'B2B 솔루션' : 'B2B solutions';

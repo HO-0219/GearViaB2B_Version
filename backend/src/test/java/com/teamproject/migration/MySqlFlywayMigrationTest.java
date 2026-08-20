@@ -80,19 +80,6 @@ class MySqlFlywayMigrationTest {
                         "deleted_at")))
                 .isEqualTo(6);
         assertThat(countColumns(
-                "payment_attempts",
-                List.of(
-                        "subscription_id",
-                        "business_key",
-                        "billing_period_start",
-                        "billing_kind",
-                        "provider_payment_key")))
-                .isEqualTo(5);
-        assertThat(countColumns(
-                "group_subscriptions",
-                List.of("billing_claim_key", "billing_claimed_at")))
-                .isEqualTo(2);
-        assertThat(countColumns(
                 "projects",
                 List.of(
                         "group_id",

@@ -44,7 +44,6 @@ public class SensitiveEndpointRateLimitFilter extends OncePerRequestFilter {
                 && !path.equals("/api/v1/auth/logout-all")
                 && !path.equals("/api/v1/auth/oauth-signup/complete")
                 && !path.equals("/api/v1/groups/join")
-                && !path.startsWith("/api/v1/payments")
                 && !path.startsWith("/api/v1/auth/password-resets")
                 && !path.startsWith("/api/v1/auth/email-verifications")
                 && !path.equals("/api/v1/assistant/messages")

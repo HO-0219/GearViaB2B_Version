@@ -53,7 +53,7 @@ export function PwaStatus() {
   const corePath = pathname === '/app' || pathname.startsWith('/groups')
     || pathname.startsWith('/tasks') || pathname === '/calendar'
     || pathname === '/notifications' || pathname === '/profile'
-    || pathname === '/account' || pathname === '/payments';
+    || pathname === '/account';
   const showPush = push.state === 'prompt' || push.state === 'denied' || push.state === 'error';
   if (!corePath || sessionMode.isDemo() || (online && !installable && !updateAvailable && !showPush)) return null;
   return <aside className={`pwa-status ${online ? '' : 'offline'}`} role="status" aria-live="polite">

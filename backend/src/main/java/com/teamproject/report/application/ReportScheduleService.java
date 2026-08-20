@@ -44,8 +44,8 @@ public class ReportScheduleService {
         GroupMember leader = requireTeamLeader(userId, groupId);
         if ((request.weeklyEnabled() || request.monthlyEnabled())
                 && leader.getGroup().getMembershipPlan() != Group.MembershipPlan.PAID) {
-            throw new ApplicationException("PAID_SUBSCRIPTION_REQUIRED", HttpStatus.PAYMENT_REQUIRED,
-                    "자동 리포트 메일은 무료 체험 또는 유료 구독 그룹에서 사용할 수 있습니다.");
+            throw new ApplicationException("REPORT_SCHEDULE_POLICY_REQUIRED", HttpStatus.FORBIDDEN,
+                    "자동 리포트 메일은 관리자 정책에서 허용된 팀 그룹에서 사용할 수 있습니다.");
         }
         boolean weeklyEligible = eligible(leader.getGroup(), WEEKLY_MINIMUM_DAYS);
         boolean monthlyEligible = eligible(leader.getGroup(), MONTHLY_MINIMUM_DAYS);

@@ -96,16 +96,6 @@ public class Group {
         this.updatedAt = now;
     }
 
-    public void applySubscription(MembershipPlan plan, LocalDateTime startedAt,
-            LocalDateTime paidUntil, LocalDateTime nextBillingAt) {
-        if (type != Type.TEAM) throw new IllegalStateException("Personal groups cannot use paid membership.");
-        this.membershipPlan = plan;
-        this.paidStartedAt = plan == MembershipPlan.PAID ? startedAt : null;
-        this.paidUntil = plan == MembershipPlan.PAID ? paidUntil : null;
-        this.nextBillingAt = plan == MembershipPlan.PAID ? nextBillingAt : null;
-        this.updatedAt = LocalDateTime.now();
-    }
-
     public void issueJoinCodeHash(String joinCodeHash) {
         if (type != Type.TEAM) throw new IllegalStateException("Personal groups cannot have a join code.");
         this.joinCodeHash = joinCodeHash;

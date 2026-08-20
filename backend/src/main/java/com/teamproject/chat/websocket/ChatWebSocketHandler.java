@@ -38,8 +38,8 @@ public class ChatWebSocketHandler extends TextWebSocketHandler implements SubPro
                 send(session, Map.of("type", "SUBSCRIBED", "channelId", channelId));
             } else if ("SEND".equals(action)) {
                 if (!sessionChannels.get(raw.getId()).contains(channelId)) throw new ApplicationException(
-                        "CHAT_SUBSCRIPTION_REQUIRED", org.springframework.http.HttpStatus.CONFLICT,
-                        "채팅방 구독이 완료된 후 메시지를 보내 주세요.");
+                        "CHAT_CHANNEL_JOIN_REQUIRED", org.springframework.http.HttpStatus.CONFLICT,
+                        "채팅방 참여가 완료된 후 메시지를 보내 주세요.");
                 chat.sendText(userId, channelId, value.path("content").asText());
             } else throw new IllegalArgumentException();
         } catch (ApplicationException exception) { sendError(session, exception.code(), exception.getMessage()); }

@@ -24,8 +24,8 @@ public class AiAssistantEntitlementService {
                 && group.getPaidUntil() != null
                 && group.getPaidUntil().isAfter(LocalDateTime.now());
         if (!activePaidPeriod) {
-            throw new ApplicationException("AI_ASSISTANT_SUBSCRIPTION_REQUIRED", HttpStatus.PAYMENT_REQUIRED,
-                    "AI 비서는 결제가 승인된 유료 팀 멤버십에서 사용할 수 있습니다.");
+            throw new ApplicationException("AI_ASSISTANT_POLICY_REQUIRED", HttpStatus.FORBIDDEN,
+                    "AI 비서는 관리자 정책에서 허용된 팀 그룹에서 사용할 수 있습니다.");
         }
     }
 }
