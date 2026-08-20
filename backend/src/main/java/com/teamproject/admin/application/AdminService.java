@@ -11,6 +11,8 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import java.security.SecureRandom;
 
 @Service
 public class AdminService {
@@ -21,12 +23,14 @@ public class AdminService {
     private final ReportDeliveryRepository reportDeliveries;
     private final ReportScheduleRepository reportSchedules;
     private final RefreshTokenRepository refreshTokens;
+    private final PasswordEncoder passwordEncoder;
     public AdminService(UserRepository users, GroupRepository groups, GroupMemberRepository members,
             GroupReportDownloadRepository reportDownloads, ReportDeliveryRepository reportDeliveries,
-            ReportScheduleRepository reportSchedules, RefreshTokenRepository refreshTokens) {
+            ReportScheduleRepository reportSchedules, RefreshTokenRepository refreshTokens, PasswordEncoder passwordEncoder) {
         this.users = users; this.groups = groups; this.members = members;
         this.reportDownloads = reportDownloads; this.reportDeliveries = reportDeliveries;
         this.reportSchedules = reportSchedules; this.refreshTokens = refreshTokens;
+        this.passwordEncoder = passwordEncoder;
     }
     @Transactional(readOnly = true)
     public OverviewResponse overview() {
@@ -41,22 +45,44 @@ public class AdminService {
         var result = users.findAllByOrderByCreatedAtDesc(PageRequest.of(safePage(page), safeSize(size)));
         return new PageResponse<>(result.map(user -> new AdminUserResponse(user.getId(), user.getUsername(),
                 mask(user.getEmail()), user.getNickname(), user.getSystemRole().name(), user.getStatus().name(),
-                user.getCreatedAt(), user.getLastLoginAt())).getContent(), result.getNumber(), result.getSize(),
+                user.getCreatedAt(), user.getLastLoginAt(), user.isForcePasswordChange())).getContent(), result.getNumber(), result.getSize(),
                 result.getTotalElements(), result.getTotalPages());
     }
     @Transactional
     public AdminUserResponse changeStatus(Long actorId, Long userId, String status) {
         if (actorId.equals(userId)) throw new ApplicationException("ADMIN_SELF_STATUS_FORBIDDEN", HttpStatus.CONFLICT, "본인 운영자 계정 상태는 변경할 수 없습니다.");
         User user = users.findById(userId).orElseThrow(() -> new ApplicationException("USER_NOT_FOUND", HttpStatus.NOT_FOUND, "사용자를 찾을 수 없습니다."));
-        if (user.getSystemRole() == User.SystemRole.ADMIN) throw new ApplicationException("ADMIN_STATUS_FORBIDDEN", HttpStatus.FORBIDDEN, "다른 운영자 계정 상태는 변경할 수 없습니다.");
+        if (user.getSystemRole() == User.SystemRole.ADMIN && "SUSPENDED".equalsIgnoreCase(status)
+                && users.countByStatusAndSystemRole(User.Status.ACTIVE, User.SystemRole.ADMIN) <= 1)
+            throw new ApplicationException("LAST_ADMIN_FORBIDDEN", HttpStatus.CONFLICT, "마지막 운영자 계정은 정지할 수 없습니다.");
         if ("SUSPENDED".equalsIgnoreCase(status)) {
             user.suspend(); user.invalidateSessions();
             refreshTokens.findAllByUserId(userId).forEach(RefreshToken::revoke);
         } else if ("ACTIVE".equalsIgnoreCase(status)) user.activate();
         else throw new ApplicationException("USER_STATUS_INVALID", HttpStatus.BAD_REQUEST, "계정 상태를 확인해 주세요.");
         return new AdminUserResponse(user.getId(), user.getUsername(), mask(user.getEmail()), user.getNickname(),
-                user.getSystemRole().name(), user.getStatus().name(), user.getCreatedAt(), user.getLastLoginAt());
+                user.getSystemRole().name(), user.getStatus().name(), user.getCreatedAt(), user.getLastLoginAt(), user.isForcePasswordChange());
     }
+    @Transactional
+    public TemporaryPasswordResponse createUser(CreateUserRequest request) {
+        if (users.existsByUsernameIgnoreCase(request.username()) || users.existsByEmailIgnoreCase(request.email()))
+            throw new ApplicationException("USER_ALREADY_EXISTS", HttpStatus.CONFLICT, "이미 사용 중인 계정입니다.");
+        String temp = temporaryPassword();
+        User user = new User(request.username().trim(), request.email().trim(), passwordEncoder.encode(temp), request.name().trim(), true);
+        if ("ADMIN".equalsIgnoreCase(request.role())) user.promoteToAdmin();
+        user.requirePasswordChange();
+        return new TemporaryPasswordResponse(toResponse(users.save(user)), temp);
+    }
+    @Transactional
+    public TemporaryPasswordResponse resetPassword(Long userId) {
+        User user = users.findById(userId).orElseThrow(() -> new ApplicationException("USER_NOT_FOUND", HttpStatus.NOT_FOUND, "사용자를 찾을 수 없습니다."));
+        String temp = temporaryPassword(); user.changePassword(passwordEncoder.encode(temp)); user.requirePasswordChange(); user.invalidateSessions();
+        refreshTokens.findAllByUserId(userId).forEach(RefreshToken::revoke);
+        return new TemporaryPasswordResponse(toResponse(user), temp);
+    }
+    @Transactional public void endSessions(Long userId) { User u = users.findById(userId).orElseThrow(() -> new ApplicationException("USER_NOT_FOUND", HttpStatus.NOT_FOUND, "사용자를 찾을 수 없습니다.")); u.invalidateSessions(); refreshTokens.findAllByUserId(userId).forEach(RefreshToken::revoke); }
+    private String temporaryPassword() { String s = ""; String chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789"; SecureRandom r = new SecureRandom(); for (int i=0;i<14;i++) s += chars.charAt(r.nextInt(chars.length())); return s; }
+    private AdminUserResponse toResponse(User u) { return new AdminUserResponse(u.getId(),u.getUsername(),mask(u.getEmail()),u.getNickname(),u.getSystemRole().name(),u.getStatus().name(),u.getCreatedAt(),u.getLastLoginAt(),u.isForcePasswordChange()); }
     @Transactional(readOnly = true)
     public PageResponse<AdminGroupResponse> groups(int page, int size) {
         var result = groups.findAllByOrderByCreatedAtDesc(PageRequest.of(safePage(page), safeSize(size)));

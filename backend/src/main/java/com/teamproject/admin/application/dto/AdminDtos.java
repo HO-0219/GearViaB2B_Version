@@ -9,7 +9,9 @@ public final class AdminDtos {
             long groups, long teamGroups, long reportDownloads, long reportDeliveries,
             long failedReportDeliveries) {}
     public record AdminUserResponse(Long id, String username, String maskedEmail, String nickname,
-            String role, String status, LocalDateTime createdAt, LocalDateTime lastLoginAt) {}
+            String role, String status, LocalDateTime createdAt, LocalDateTime lastLoginAt, boolean forcePasswordChange) {}
+    public record CreateUserRequest(String username, String email, String name, String role) {}
+    public record TemporaryPasswordResponse(AdminUserResponse user, String temporaryPassword) {}
     public record AdminGroupResponse(Long id, String name, String type,
             long activeMembers, boolean reportScheduleActive, LocalDateTime createdAt) {}
     public record AdminAuditResponse(Long id, Long actorUserId, String method, String path,

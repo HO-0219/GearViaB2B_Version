@@ -39,6 +39,8 @@ public class User {
     private LocalDateTime withdrawnAt;
     @Column(nullable = false)
     private long authVersion;
+    @Column(nullable = false)
+    private boolean forcePasswordChange;
 
     protected User() {}
 
@@ -56,6 +58,8 @@ public class User {
     }
 
     public void changePassword(String passwordHash) { this.passwordHash = passwordHash; touch(); }
+    public void requirePasswordChange() { this.forcePasswordChange = true; touch(); }
+    public void clearPasswordChangeRequirement() { this.forcePasswordChange = false; touch(); }
     public void promoteToAdmin() { this.systemRole = SystemRole.ADMIN; touch(); }
     public void recordLogin() { this.lastLoginAt = LocalDateTime.now(); touch(); }
     public void updateProfile(String nickname, String phoneNumber, String profileImageUrl) {
@@ -103,6 +107,7 @@ public class User {
     public LocalDateTime getLastLoginAt() { return lastLoginAt; }
     public LocalDateTime getWithdrawnAt() { return withdrawnAt; }
     public long getAuthVersion() { return authVersion; }
+    public boolean isForcePasswordChange() { return forcePasswordChange; }
 
     public enum SystemRole { USER, ADMIN }
     public enum Status { ACTIVE, SUSPENDED, WITHDRAWN }
