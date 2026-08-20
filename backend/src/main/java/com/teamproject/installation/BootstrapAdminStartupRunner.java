@@ -5,6 +5,9 @@ import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.stereotype.Component;
 
+import java.nio.file.Files;
+import java.nio.file.Path;
+
 /** Invokes installer bootstrap once, when an installer secret path is configured. */
 @Component
 public class BootstrapAdminStartupRunner implements ApplicationRunner {
@@ -18,6 +21,6 @@ public class BootstrapAdminStartupRunner implements ApplicationRunner {
     }
 
     @Override public void run(ApplicationArguments args) {
-        if (!secretFile.isBlank()) bootstrap.bootstrap();
+        if (!secretFile.isBlank() && Files.isRegularFile(Path.of(secretFile))) bootstrap.bootstrap();
     }
 }

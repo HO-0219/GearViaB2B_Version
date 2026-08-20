@@ -51,47 +51,36 @@ installer/     Optional integration configuration scripts
 ## VirtualBox 테스트 빠른 시작
 
 1. Ubuntu Server 24.04 VM을 만들고 네트워크 어댑터 1은 NAT, 어댑터 2는 Host-Only로 설정합니다.
-2. VM에 Docker Engine과 Docker Compose v2를 설치합니다.
-3. 저장소 루트에서 테스트 이미지를 빌드합니다.
+2. VM의 홈 디렉터리에서 저장소를 클론하고 자동 설치기를 실행합니다.
 
 ```bash
-sudo docker build -f backend/Dockerfile -t b2bgearvia-backend:virtualbox .
-sudo docker build -f frontend/Dockerfile -t b2bgearvia-web:virtualbox .
+git clone https://github.com/HO-0219/GearViaB2B_Version.git
+cd GearViaB2B_Version
+sudo ./installer/install-virtualbox.sh
 ```
 
-4. VirtualBox 환경설정 예제를 복사하고 VM IP와 네 개의 비밀값을 교체합니다.
+설치기는 다음 작업을 순서대로 자동 처리합니다.
+
+- Docker Engine과 Docker Compose v2 확인 및 설치
+- VirtualBox Host-Only IP 감지
+- 운영 파일을 `/opt/b2bgearvia`에 배치
+- JWT, MFA, MySQL 비밀값 생성
+- VirtualBox 테스트용 자체서명 TLS 인증서 생성
+- 최초 관리자 계정과 임시 비밀번호 생성
+- 백엔드와 프론트엔드 이미지 빌드
+- 서비스 실행 및 준비 상태 확인
+
+설치가 끝나면 화면에 접속 주소와 최초 관리자 정보 파일 위치가 표시됩니다. 기본 위치는 `/opt/b2bgearvia/config/initial-admin.txt`이며 첫 로그인 후 비밀번호를 변경하고 해당 파일을 삭제하세요.
+
+Host-Only IP 자동 감지가 맞지 않으면 주소만 지정해 다시 실행할 수 있습니다. 기존 DB와 설정은 삭제하거나 덮어쓰지 않습니다.
 
 ```bash
-cp infra/b2b/runtime.virtualbox.env.example infra/b2b/runtime.virtualbox.env
-openssl rand -base64 48
-openssl rand -base64 32
-openssl rand -hex 24
-openssl rand -hex 24
+sudo B2B_VM_IP=192.168.56.101 ./installer/install-virtualbox.sh
 ```
 
-5. `infra/b2b/tls/`에 VM IP가 SAN에 포함된 인증서와 개인키를 준비합니다.
-6. `infra/b2b/bootstrap/admin.env`에 최초 관리자 정보를 작성하고 소유자를 UID 10001로 설정합니다.
+OpenAI API 키는 설치 필수값이 아닙니다. `disabled (no key file)`은 AI 기능이 비활성 상태라는 뜻이며 일반 협업 기능은 그대로 실행됩니다. 자체서명 인증서는 VirtualBox 테스트에서만 사용하세요.
 
-```properties
-username=company_admin
-email=admin@example.internal
-name=시스템 관리자
-password=임시-비밀번호를-강한-값으로-교체
-```
-
-7. 기본 Compose 파일과 VirtualBox override를 함께 실행합니다.
-
-```bash
-docker compose \
-  --env-file infra/b2b/runtime.virtualbox.env \
-  -f infra/b2b/compose.yml \
-  -f infra/b2b/compose.virtualbox.yml \
-  up -d
-```
-
-8. `docker compose ... ps`에서 서비스를 확인하고 호스트 브라우저에서 `https://<VM-IP>`로 접속합니다. 자체서명 인증서는 테스트 환경에서만 사용하세요.
-
-상세 명령, 자체서명 인증서 생성, 최초 관리자 파일 권한, 정상 판정과 초기화 절차는 PDF 관리자 매뉴얼의 VirtualBox 구축 여정을 따르세요.
+설치 작업을 실행하지 않고 계획만 확인하려면 `B2B_DRY_RUN=true ./installer/install-virtualbox.sh`를 사용하세요. 수동 설치와 운영 점검 절차는 PDF 관리자 매뉴얼을 참고하세요.
 
 ## 로컬 빌드와 테스트
 
