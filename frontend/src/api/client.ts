@@ -1,3 +1,5 @@
+import { LEGACY_STORAGE_KEYS, STORAGE_KEYS, migrateLegacyStorageValue } from './storageKeys';
+
 const API_BASE = String(import.meta.env.VITE_API_BASE_URL ?? '/api/v1').replace(/\/$/, '');
 
 export type ApiError = { code?: string; message?: string; fieldErrors?: Record<string, string> };
@@ -6,10 +8,14 @@ type TokenResponse = { accessToken: string; tokenType: string; expiresIn: number
 let refreshInFlight: Promise<TokenResponse> | undefined;
 let currentAccessToken: string | null = null;
 let currentAccessExpiresAt = 0;
-const SESSION_HINT = 'hasRefreshSession';
-const REFRESH_LOCK = 'b2bgearviaRefreshLock';
+const SESSION_HINT = STORAGE_KEYS.refreshSession;
+const REFRESH_LOCK = STORAGE_KEYS.refreshLock;
 const REQUEST_TIMEOUT_MS = 30_000;
 const DOWNLOAD_TIMEOUT_MS = 90_000;
+
+// One-time cleanup for pre-B2BGearVia localStorage names; active storage uses b2bgearvia-* keys.
+migrateLegacyStorageValue(LEGACY_STORAGE_KEYS.refreshSession, SESSION_HINT, value => value === 'true');
+migrateLegacyStorageValue(LEGACY_STORAGE_KEYS.refreshLock, REFRESH_LOCK);
 
 if (localStorage.getItem('accessToken')) {
   localStorage.removeItem('accessToken');
@@ -176,18 +182,18 @@ export function sessionClientHeaders() {
 }
 
 function deviceId() {
-  const existing = localStorage.getItem('deviceId');
+  const existing = localStorage.getItem(STORAGE_KEYS.deviceId);
   if (existing) return existing;
   const value = typeof crypto.randomUUID === 'function'
     ? crypto.randomUUID()
     : Array.from(crypto.getRandomValues(new Uint8Array(16)), byte => byte.toString(16).padStart(2, '0')).join('');
-  localStorage.setItem('deviceId', value);
+  localStorage.setItem(STORAGE_KEYS.deviceId, value);
   return value;
 }
 
 async function withRefreshLock<T>(work: () => Promise<T>): Promise<T> {
   if (navigator.locks) {
-    return navigator.locks.request('b2bgearvia-refresh-token', { mode: 'exclusive' }, work);
+    return navigator.locks.request(STORAGE_KEYS.refreshLock, { mode: 'exclusive' }, work);
   }
   const owner = typeof crypto.randomUUID === 'function' ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`;
   const started = Date.now();
@@ -211,17 +217,17 @@ async function withRefreshLock<T>(work: () => Promise<T>): Promise<T> {
 }
 
 export const sessionMode = {
-  isDemo: () => localStorage.getItem('sessionMode') === 'demo',
-  setDemo: () => localStorage.setItem('sessionMode', 'demo'),
-  clear: () => localStorage.removeItem('sessionMode'),
+  isDemo: () => localStorage.getItem(STORAGE_KEYS.sessionMode) === 'demo',
+  setDemo: () => localStorage.setItem(STORAGE_KEYS.sessionMode, 'demo'),
+  clear: () => localStorage.removeItem(STORAGE_KEYS.sessionMode),
 };
 
 export function errorMessage(error: unknown) {
   const value = error as ApiError;
-  if (localStorage.getItem('language') === 'en' && value?.message && /[가-힣]/.test(value.message)) {
+  if (localStorage.getItem(STORAGE_KEYS.language) === 'en' && value?.message && /[가-힣]/.test(value.message)) {
     return 'The request could not be completed. Check your input or try again.';
   }
   return value?.message ?? localeText('요청을 처리하지 못했습니다. 잠시 후 다시 시도해 주세요.', 'The request could not be completed. Try again shortly.');
 }
 
-function localeText(ko: string, en: string) { return localStorage.getItem('language') === 'en' ? en : ko; }
+function localeText(ko: string, en: string) { return localStorage.getItem(STORAGE_KEYS.language) === 'en' ? en : ko; }

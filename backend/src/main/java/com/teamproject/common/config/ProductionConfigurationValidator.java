@@ -41,8 +41,8 @@ public class ProductionConfigurationValidator {
                 failures, "SPRING_DATASOURCE_URL must use the internal mysql service");
         require("app.storage.provider", value -> value.equalsIgnoreCase("local"), failures,
                 "STORAGE_PROVIDER must be local");
-        require("app.storage.local-root", value -> !value.isBlank(), failures,
-                "UPLOAD_LOCAL_ROOT is required");
+        require("app.storage.local-root", value -> value.equals("/opt/b2bgearvia/data/uploads"), failures,
+                "UPLOAD_LOCAL_ROOT must be /opt/b2bgearvia/data/uploads");
         require("app.demo.enabled", value -> !Boolean.parseBoolean(value), failures,
                 "DEMO_ENABLED must be false");
         require("spring.security.oauth2.client.registration.google.client-id",

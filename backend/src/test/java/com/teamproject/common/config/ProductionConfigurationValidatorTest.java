@@ -27,6 +27,16 @@ class ProductionConfigurationValidatorTest {
     }
 
     @Test
+    void rejectsProductionWithoutCanonicalPersistentUploadRoot() {
+        MockEnvironment environment = productionEnvironment()
+                .withProperty("app.storage.local-root", "/opt/b2bgearvia/uploads");
+
+        assertThatThrownBy(() -> new ProductionConfigurationValidator(environment).validate())
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("UPLOAD_LOCAL_ROOT must be /opt/b2bgearvia/data/uploads");
+    }
+
+    @Test
     void rejectsUnsupportedDeploymentEnvironmentInsteadOfSkippingSafetyChecks() {
         MockEnvironment environment = new MockEnvironment()
                 .withProperty("app.environment", "staging");
@@ -46,7 +56,7 @@ class ProductionConfigurationValidatorTest {
                 .withProperty("spring.datasource.url",
                         "jdbc:mysql://mysql:3306/b2bgearvia?sslMode=DISABLED")
                 .withProperty("app.storage.provider", "local")
-                .withProperty("app.storage.local-root", "/opt/b2bgearvia/uploads")
+                .withProperty("app.storage.local-root", "/opt/b2bgearvia/data/uploads")
                 .withProperty("app.demo.enabled", "false")
                 .withProperty("spring.security.oauth2.client.registration.google.client-id", "google-client-id")
                 .withProperty("spring.security.oauth2.client.registration.google.client-secret", "google-client-secret")

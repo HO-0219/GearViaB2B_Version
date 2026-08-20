@@ -19,6 +19,8 @@ if [[ -z "$db_url" || -z "$db_user" ]]; then
   exit 1
 fi
 
+# Test-only database: keep this separate from the live b2bgearvia schema so
+# local test runs cannot touch the user's opened/runtime database.
 test_database="b2bgearvia_test"
 test_url="$(printf '%s\n' "$db_url" | sed -E "s#(jdbc:mysql://[^/]+/)[^?]+#\\1${test_database}#")"
 

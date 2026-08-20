@@ -20,6 +20,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 @Testcontainers(disabledWithoutDocker = true)
 class MySqlFlywayMigrationTest {
     @Container
+    // Test-only schema: keep migration verification isolated from the live b2bgearvia database.
     static final MySQLContainer<?> MYSQL =
             new MySQLContainer<>("mysql:8.4")
                     .withDatabaseName("b2bgearvia_migration")

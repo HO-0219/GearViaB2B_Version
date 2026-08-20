@@ -1,4 +1,5 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react';
+import { STORAGE_KEYS } from '../api/storageKeys';
 
 export class AppErrorBoundary extends Component<{ children: ReactNode }, { failed: boolean }> {
   state = { failed: false };
@@ -13,7 +14,7 @@ export class AppErrorBoundary extends Component<{ children: ReactNode }, { faile
 
   render() {
     if (!this.state.failed) return this.props.children;
-    const english = localStorage.getItem('language') === 'en';
+    const english = localStorage.getItem(STORAGE_KEYS.language) === 'en';
     return <main className="center-page app-failure" role="alert">
       <div>
         <span aria-hidden="true">!</span>

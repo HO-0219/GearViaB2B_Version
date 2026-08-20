@@ -10,7 +10,7 @@
         <relativePath/>
     </parent>
     <!-- Java packages intentionally remain com.teamproject during the transition for source compatibility. -->
-    <groupId>com.teamproject</groupId>
+    <groupId>com.b2bgearvia</groupId>
     <artifactId>b2bgearvia-api</artifactId>
     <version>0.0.1-SNAPSHOT</version>
     <name>B2BGearVia API</name>

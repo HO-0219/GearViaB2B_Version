@@ -26,6 +26,7 @@ services:
       JWT_SECRET: local-production-test-secret-change-me-1234567890
       AUTH_SECURE_COOKIE: "false"
       STORAGE_PROVIDER: local
+      UPLOAD_LOCAL_ROOT: /opt/b2bgearvia/data/uploads
       ADMIN_ENABLED: "true"
       ADMIN_PORT: 19092
       ADMIN_ALLOWED_IPS: 127.0.0.1
@@ -42,6 +43,8 @@ services:
     depends_on:
       mysql:
         condition: service_healthy
+    volumes:
+      - b2bgearvia-production-local-uploads:/opt/b2bgearvia/data/uploads
 
   web:
     build:
@@ -64,3 +67,7 @@ services:
 networks:
   default:
     name: b2bgearvia-production-local-net
+
+volumes:
+  b2bgearvia-production-local-uploads:
+    name: b2bgearvia-production-local-uploads

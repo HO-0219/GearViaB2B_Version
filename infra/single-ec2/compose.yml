@@ -10,9 +10,9 @@ services:
   init-uploads:
     image: busybox:1.37
     restart: "no"
-    command: ["sh", "-c", "chown -R 10001:10001 /uploads"]
+    command: ["sh", "-c", "chown -R 10001:10001 /opt/b2bgearvia/data/uploads"]
     volumes:
-      - b2bgearvia-uploads:/uploads
+      - b2bgearvia-uploads:/opt/b2bgearvia/data/uploads
     logging: *default-logging
 
   mysql:
@@ -52,10 +52,11 @@ services:
       - ${RUNTIME_ENV_FILE:-runtime.env}
     environment:
       JAVA_TOOL_OPTIONS: -Xms128m -Xmx384m
+      UPLOAD_LOCAL_ROOT: /opt/b2bgearvia/data/uploads
     expose:
       - "8081"
     volumes:
-      - b2bgearvia-uploads:/opt/b2bgearvia/uploads
+      - b2bgearvia-uploads:/opt/b2bgearvia/data/uploads
     networks:
       - app
     depends_on:

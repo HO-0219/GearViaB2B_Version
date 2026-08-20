@@ -12,7 +12,7 @@ import java.nio.file.*;
 @ConditionalOnProperty(name = "app.storage.provider", havingValue = "local", matchIfMissing = true)
 public class LocalFileStorage implements FileStorage {
     private final Path root;
-    public LocalFileStorage(@Value("${app.storage.local-root:uploads}") String root) {
+    public LocalFileStorage(@Value("${app.storage.local-root:/opt/b2bgearvia/data/uploads}") String root) {
         this.root = Path.of(root).toAbsolutePath().normalize();
     }
     @Override public void put(String key, byte[] content, String contentType) {
