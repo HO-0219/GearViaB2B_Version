@@ -48,6 +48,51 @@ installer/     Optional integration configuration scripts
 
 설치 준비, 시스템 구성, 환경설정, 관리자 온보딩과 운영 점검은 [B2BGearVia 온프레미스 구축 및 관리자 가이드](./B2BGearVia_B2B_설치운영_매뉴얼.pdf)를 참고하세요.
 
+## VirtualBox 테스트 빠른 시작
+
+1. Ubuntu Server 24.04 VM을 만들고 네트워크 어댑터 1은 NAT, 어댑터 2는 Host-Only로 설정합니다.
+2. VM에 Docker Engine과 Docker Compose v2를 설치합니다.
+3. 저장소 루트에서 테스트 이미지를 빌드합니다.
+
+```bash
+sudo docker build -f backend/Dockerfile -t b2bgearvia-backend:virtualbox .
+sudo docker build -f frontend/Dockerfile -t b2bgearvia-web:virtualbox .
+```
+
+4. VirtualBox 환경설정 예제를 복사하고 VM IP와 네 개의 비밀값을 교체합니다.
+
+```bash
+cp infra/b2b/runtime.virtualbox.env.example infra/b2b/runtime.virtualbox.env
+openssl rand -base64 48
+openssl rand -base64 32
+openssl rand -hex 24
+openssl rand -hex 24
+```
+
+5. `infra/b2b/tls/`에 VM IP가 SAN에 포함된 인증서와 개인키를 준비합니다.
+6. `infra/b2b/bootstrap/admin.env`에 최초 관리자 정보를 작성하고 소유자를 UID 10001로 설정합니다.
+
+```properties
+username=company_admin
+email=admin@example.internal
+name=시스템 관리자
+password=임시-비밀번호를-강한-값으로-교체
+```
+
+7. 기본 Compose 파일과 VirtualBox override를 함께 실행합니다.
+
+```bash
+docker compose \
+  --env-file infra/b2b/runtime.virtualbox.env \
+  -f infra/b2b/compose.yml \
+  -f infra/b2b/compose.virtualbox.yml \
+  up -d
+```
+
+8. `docker compose ... ps`에서 서비스를 확인하고 호스트 브라우저에서 `https://<VM-IP>`로 접속합니다. 자체서명 인증서는 테스트 환경에서만 사용하세요.
+
+상세 명령, 자체서명 인증서 생성, 최초 관리자 파일 권한, 정상 판정과 초기화 절차는 PDF 관리자 매뉴얼의 VirtualBox 구축 여정을 따르세요.
+
 ## 로컬 빌드와 테스트
 
 ### Backend

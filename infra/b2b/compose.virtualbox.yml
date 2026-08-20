@@ -1,0 +1,12 @@
+services:
+  backend:
+    pull_policy: never
+    environment:
+      BOOTSTRAP_ADMIN_SECRET_FILE: /run/b2bgearvia-bootstrap/admin.env
+    volumes:
+      - type: bind
+        source: ./bootstrap
+        target: /run/b2bgearvia-bootstrap
+
+  web:
+    pull_policy: never

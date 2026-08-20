@@ -39,6 +39,7 @@ frontend/vite.config.d.ts
 **/*.secrets
 **/secrets/
 **/runtime.env
+**/runtime.virtualbox.env
 **/runtime.env.current
 **/runtime.env.previous
 **/deployment.env
@@ -54,6 +55,7 @@ frontend/vite.config.d.ts
 **/credentials.json
 **/service-account*.json
 **/mysql-root-password
+infra/b2b/bootstrap/
 
 # Editor, operating-system, logs, caches, and temporary files
 **/.DS_Store
