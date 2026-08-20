@@ -71,7 +71,51 @@ class B2bConfigurationValidatorTest {
         assertThatThrownBy(() -> new B2bConfigurationValidator(environment).validate())
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining(
-                        "ADMIN_MFA_ENCRYPTION_KEY_BASE64 must decode to a non-default key of at least 32 bytes");
+                        "ADMIN_MFA_ENCRYPTION_KEY_BASE64 must decode to exactly 32 non-default bytes");
+    }
+
+    @Test
+    void rejectsAdminMfaSecretThatDoesNotDecodeToExactly32Bytes() {
+        MockEnvironment environment = secureB2bProductionEnvironment()
+                .withProperty("app.admin.mfa-encryption-key-base64",
+                        "MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWZ4");
+
+        assertThatThrownBy(() -> new B2bConfigurationValidator(environment).validate())
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining(
+                        "ADMIN_MFA_ENCRYPTION_KEY_BASE64 must decode to exactly 32 non-default bytes");
+    }
+
+    @Test
+    void rejectsWeakCommonDatabasePassword() {
+        MockEnvironment environment = secureB2bProductionEnvironment()
+                .withProperty("spring.datasource.password", "passwordpassword");
+
+        assertThatThrownBy(() -> new B2bConfigurationValidator(environment).validate())
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("SPRING_DATASOURCE_PASSWORD must be a non-default secret of at least 16 characters");
+    }
+
+    @Test
+    void rejectsLowDiversityJwtSecret() {
+        MockEnvironment environment = secureB2bProductionEnvironment()
+                .withProperty("app.jwt.secret", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
+
+        assertThatThrownBy(() -> new B2bConfigurationValidator(environment).validate())
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("JWT_SECRET must be a non-default secret of at least 32 characters");
+    }
+
+    @Test
+    void rejectsLowDiversityAdminMfaSecret() {
+        MockEnvironment environment = secureB2bProductionEnvironment()
+                .withProperty("app.admin.mfa-encryption-key-base64",
+                        "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=");
+
+        assertThatThrownBy(() -> new B2bConfigurationValidator(environment).validate())
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining(
+                        "ADMIN_MFA_ENCRYPTION_KEY_BASE64 must decode to exactly 32 non-default bytes");
     }
 
     @Test
@@ -107,8 +151,8 @@ class B2bConfigurationValidatorTest {
                 .withProperty("app.frontend-url", "https://b2bgearvia.internal")
                 .withProperty("spring.datasource.url",
                         "jdbc:mysql://mysql:3306/b2bgearvia?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Seoul")
-                .withProperty("spring.datasource.password", "generated-db-password-32-characters")
-                .withProperty("app.jwt.secret", "generated-jwt-secret-with-more-than-thirty-two-characters")
+                .withProperty("spring.datasource.password", "B2gV8rN2pQ7sT4wX")
+                .withProperty("app.jwt.secret", "B2gV8rN2pQ7sT4wX9zK3mH6cL5fA0yR1")
                 .withProperty("app.jwt.secure-cookie", "true")
                 .withProperty("spring.jpa.hibernate.ddl-auto", "validate")
                 .withProperty("app.storage.provider", "local")

@@ -32,8 +32,8 @@ class ProductionConfigurationValidatorTest {
                 .withProperty("app.frontend-url", "https://b2bgearvia.internal")
                 .withProperty("spring.datasource.url",
                         "jdbc:mysql://mysql:3306/b2bgearvia?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Seoul")
-                .withProperty("spring.datasource.password", "generated-db-password-32-characters")
-                .withProperty("app.jwt.secret", "generated-jwt-secret-with-more-than-thirty-two-characters")
+                .withProperty("spring.datasource.password", "B2gV8rN2pQ7sT4wX")
+                .withProperty("app.jwt.secret", "B2gV8rN2pQ7sT4wX9zK3mH6cL5fA0yR1")
                 .withProperty("app.jwt.secure-cookie", "true")
                 .withProperty("spring.jpa.hibernate.ddl-auto", "validate")
                 .withProperty("app.storage.provider", "local")

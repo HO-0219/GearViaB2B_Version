@@ -41,7 +41,7 @@ public class B2bConfigurationValidator {
         require("app.jwt.secret", value -> isNonDefaultSecret(value, 32), failures,
                 "JWT_SECRET must be a non-default secret of at least 32 characters");
         require("app.admin.mfa-encryption-key-base64", this::isNonDefaultBase64Key, failures,
-                "ADMIN_MFA_ENCRYPTION_KEY_BASE64 must decode to a non-default key of at least 32 bytes");
+                "ADMIN_MFA_ENCRYPTION_KEY_BASE64 must decode to exactly 32 non-default bytes");
         require("app.jwt.secure-cookie", Boolean::parseBoolean, failures,
                 "AUTH_SECURE_COOKIE must be true");
         require("spring.jpa.hibernate.ddl-auto", value -> value.equalsIgnoreCase("validate"), failures,
@@ -71,15 +71,19 @@ public class B2bConfigurationValidator {
     }
 
     private boolean isNonDefaultSecret(String value, int minLength) {
-        return value.length() >= minLength && !looksLikeDefault(value);
+        return value.length() >= minLength
+                && !looksLikeDefault(value)
+                && !usesCommonRepeatedToken(value)
+                && hasEnoughCharacterDiversity(value);
     }
 
     private boolean isNonDefaultBase64Key(String value) {
         try {
             byte[] decoded = Base64.getDecoder().decode(value);
-            return decoded.length >= 32
+            return decoded.length == 32
                     && !looksLikeDefault(value)
-                    && !looksLikeDefault(new String(decoded, StandardCharsets.UTF_8));
+                    && !looksLikeDefault(new String(decoded, StandardCharsets.UTF_8))
+                    && hasEnoughByteDiversity(decoded);
         } catch (IllegalArgumentException exception) {
             return false;
         }
@@ -95,5 +99,33 @@ public class B2bConfigurationValidator {
                 || normalized.contains("placeholder")
                 || normalized.contains("replace-with")
                 || normalized.contains("local-production-test");
+    }
+
+    private boolean usesCommonRepeatedToken(String value) {
+        String normalized = value.toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9]", "");
+        return normalized.matches("(password|admin|root|letmein|qwerty|welcome){2,}")
+                || normalized.matches("(1234567890|0123456789){2,}");
+    }
+
+    private boolean hasEnoughCharacterDiversity(String value) {
+        long distinctCharacters = value.chars().distinct().count();
+        long mostCommonCharacterCount = value.chars()
+                .mapToLong(character -> value.chars().filter(candidate -> candidate == character).count())
+                .max()
+                .orElse(0);
+        return distinctCharacters >= 4 && mostCommonCharacterCount <= value.length() * 3L / 4L;
+    }
+
+    private boolean hasEnoughByteDiversity(byte[] value) {
+        int[] counts = new int[256];
+        int distinctBytes = 0;
+        int mostCommonByteCount = 0;
+        for (byte item : value) {
+            int index = item & 0xff;
+            if (counts[index] == 0) distinctBytes++;
+            counts[index]++;
+            mostCommonByteCount = Math.max(mostCommonByteCount, counts[index]);
+        }
+        return distinctBytes >= 4 && mostCommonByteCount <= value.length * 3 / 4;
     }
 }
