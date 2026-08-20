@@ -67,6 +67,15 @@ class MySqlFlywayMigrationTest {
                         "task_assignee_change_requests",
                         "emergency_issues")))
                 .isEqualTo(17);
+        assertThat(countSchemaObjects(
+                "information_schema.tables",
+                "table_name",
+                List.of("scheduled_job_locks")))
+                .isEqualTo(1);
+        assertThat(countColumns(
+                "report_deliveries",
+                List.of("retry_count", "last_attempt_at", "next_retry_at")))
+                .isEqualTo(3);
         assertThat(countColumns(
                 "reports",
                 List.of(

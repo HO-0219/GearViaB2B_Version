@@ -604,6 +604,14 @@ CREATE TABLE ai_weekly_report_revision (
 CREATE INDEX idx_ai_weekly_report_revision_source_fingerprint
     ON ai_weekly_report_revision (group_id, period_from, period_to_exclusive, source_fingerprint);
 
+CREATE TABLE scheduled_job_locks (
+    name VARCHAR(80) NOT NULL,
+    locked_until DATETIME(6) NOT NULL,
+    locked_at DATETIME(6) NULL,
+    locked_by VARCHAR(120) NULL,
+    PRIMARY KEY (name)
+) ENGINE = InnoDB;
+
 INSERT INTO scheduled_job_locks (name, locked_until)
 VALUES ('task-due-reminder', '1970-01-01 00:00:00');
 
@@ -908,6 +916,9 @@ CREATE TABLE report_deliveries (
     language ENUM('KO', 'EN') NOT NULL,
     event_key VARCHAR(160) NOT NULL,
     status ENUM('PENDING', 'SENT', 'FAILED') NOT NULL,
+    retry_count INT NOT NULL DEFAULT 0,
+    last_attempt_at DATETIME(6) NULL,
+    next_retry_at DATETIME(6) NULL,
     error_code VARCHAR(100) NULL,
     created_at DATETIME(6) NOT NULL,
     sent_at DATETIME(6) NULL,
