@@ -31,6 +31,9 @@ export function AdminShell() {
   if (!accessToken.get()) return <Navigate to="/login?next=/admin" replace />;
   if (!mfaStatus) return <main className="admin-page admin-loading-page"><header><div><span className="page-eyebrow">RESTRICTED OPERATIONS</span><h1>B2BGearVia Admin</h1></div></header>{loading ? <p className="admin-loading">{t('관리자 보안 상태를 확인하는 중...', 'Checking admin security...')}</p> : error && <p className="error">{error}</p>}</main>;
   if (mfaStatus.enabled && !mfaStatus.sessionVerified) {
+    // LoginPage bounces straight back to `next` whenever a token exists, so a
+    // stale token here would loop forever between /admin and /login.
+    accessToken.clear();
     return <Navigate to="/login?next=/admin&adminMfa=required" replace />;
   }
 

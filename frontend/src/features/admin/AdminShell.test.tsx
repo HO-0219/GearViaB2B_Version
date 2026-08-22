@@ -4,6 +4,8 @@ import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import { AdminShell } from './AdminShell';
+import { accessToken } from '../../api/client';
+import { adminApi } from '../../api/adminApi';
 
 vi.mock('../../api/client', () => ({
   accessToken: { get: () => 'access-token', clear: vi.fn() },
@@ -46,5 +48,17 @@ describe('AdminShell MFA setup', () => {
     fireEvent.click(screen.getByRole('button', { name: '확인하고 활성화' }));
 
     expect(await screen.findByText('관리자 재로그인')).toBeTruthy();
+  });
+
+  test('clears the stale token when the admin session needs re-verification, to avoid a redirect loop', async () => {
+    vi.mocked(adminApi.mfaStatus).mockResolvedValueOnce({ enabled: true, sessionVerified: false, encryptionConfigured: true });
+
+    render(<MemoryRouter initialEntries={['/admin']}><Routes>
+      <Route path="/admin" element={<AdminShell />} />
+      <Route path="/login" element={<p>관리자 재로그인</p>} />
+    </Routes></MemoryRouter>);
+
+    expect(await screen.findByText('관리자 재로그인')).toBeTruthy();
+    expect(accessToken.clear).toHaveBeenCalled();
   });
 });
