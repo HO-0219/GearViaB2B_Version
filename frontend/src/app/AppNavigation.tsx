@@ -23,12 +23,10 @@ export function AppNavigation({ unreadCount }: { unreadCount?: number }) {
   const { language, setLanguage } = useLanguage();
   const [liveUnreadCount, setLiveUnreadCount] = useState(unreadCount ?? 0);
   const [groups, setGroups] = useState<GroupResponse[]>([]);
-  const [isAdmin, setIsAdmin] = useState(false);
   useEffect(() => {
     if (!accessToken.get()) return;
     const refresh = () => notificationApi.list(1).then((page) => setLiveUnreadCount(page.unreadCount)).catch(() => undefined);
     const refreshGroups = () => groupApi.list().then(setGroups).catch(() => undefined);
-    authApi.me().then((me) => setIsAdmin(me.role === 'ADMIN')).catch(() => undefined);
     refresh();
     refreshGroups();
     const interval = window.setInterval(refresh, 60_000);
@@ -72,12 +70,7 @@ export function AppNavigation({ unreadCount }: { unreadCount?: number }) {
         <span>{labels[index]}</span>
         {item.to === '/notifications' && liveUnreadCount > 0 && <b>{liveUnreadCount > 99 ? '99+' : liveUnreadCount}</b>}
       </Link>;
-    })}
-    {isAdmin && <Link className={`app-navigation-admin-link ${pathname.startsWith('/admin') ? 'active' : ''}`} to="/admin" aria-current={pathname.startsWith('/admin') ? 'page' : undefined}>
-      <span className="app-navigation-icon" aria-hidden="true">⚙</span>
-      <span>{language === 'ko' ? '관리자' : 'Admin'}</span>
-    </Link>}
-    </div>
+    })}</div>
     <div className="language-toggle" role="group" aria-label="Language"><button type="button" aria-pressed={language === 'ko'} className={language === 'ko' ? 'active' : ''} onClick={() => setLanguage('ko')}>한글</button><button type="button" aria-pressed={language === 'en'} className={language === 'en' ? 'active' : ''} onClick={() => setLanguage('en')}>EN</button></div>
   </nav>;
 }
