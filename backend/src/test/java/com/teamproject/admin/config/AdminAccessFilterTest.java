@@ -40,6 +40,22 @@ class AdminAccessFilterTest {
         assertThat(status(filter, "127.0.0.1")).isEqualTo(404);
     }
 
+    @Test
+    @DisplayName("CIDR 범위 안의 주소는 통과한다")
+    void allowsAddressesInsideACidrRange() throws Exception {
+        AdminAccessFilter filter = new AdminAccessFilter(true, "192.168.56.0/24", "127.0.0.1,::1");
+
+        assertThat(status(filter, "192.168.56.101")).isEqualTo(200);
+    }
+
+    @Test
+    @DisplayName("CIDR 범위 밖의 주소는 404로 막힌다")
+    void blocksAddressesOutsideACidrRange() throws Exception {
+        AdminAccessFilter filter = new AdminAccessFilter(true, "192.168.56.0/24", "127.0.0.1,::1");
+
+        assertThat(status(filter, "192.168.57.10")).isEqualTo(404);
+    }
+
     private int status(AdminAccessFilter filter, String remoteAddress) throws Exception {
         MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/v1/admin/overview");
         request.setRemoteAddr(remoteAddress);
