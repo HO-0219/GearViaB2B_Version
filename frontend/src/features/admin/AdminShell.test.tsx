@@ -3,7 +3,7 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
-import { AdminPage } from './AdminPage';
+import { AdminShell } from './AdminShell';
 
 vi.mock('../../api/client', () => ({
   accessToken: { get: () => 'access-token', clear: vi.fn() },
@@ -21,12 +21,12 @@ vi.mock('../../api/adminApi', () => ({
   },
 }));
 
-describe('AdminPage MFA setup', () => {
+describe('AdminShell MFA setup', () => {
   beforeEach(() => localStorage.clear());
   afterEach(() => cleanup());
 
   test('shows a scannable QR code during MFA setup', async () => {
-    render(<MemoryRouter><AdminPage /></MemoryRouter>);
+    render(<MemoryRouter><AdminShell /></MemoryRouter>);
 
     fireEvent.click(await screen.findByRole('button', { name: 'MFA 설정 시작' }));
 
@@ -37,7 +37,7 @@ describe('AdminPage MFA setup', () => {
 
   test('returns to admin login after confirming the authenticator code', async () => {
     render(<MemoryRouter initialEntries={['/admin']}><Routes>
-      <Route path="/admin" element={<AdminPage />} />
+      <Route path="/admin" element={<AdminShell />} />
       <Route path="/login" element={<p>관리자 재로그인</p>} />
     </Routes></MemoryRouter>);
 

@@ -73,7 +73,7 @@ export function AppNavigation({ unreadCount }: { unreadCount?: number }) {
         {item.to === '/notifications' && liveUnreadCount > 0 && <b>{liveUnreadCount > 99 ? '99+' : liveUnreadCount}</b>}
       </Link>;
     })}
-    {isAdmin && <Link className={pathname.startsWith('/admin') ? 'active' : ''} to="/admin" aria-current={pathname.startsWith('/admin') ? 'page' : undefined}>
+    {isAdmin && <Link className={`app-navigation-admin-link ${pathname.startsWith('/admin') ? 'active' : ''}`} to="/admin" aria-current={pathname.startsWith('/admin') ? 'page' : undefined}>
       <span className="app-navigation-icon" aria-hidden="true">⚙</span>
       <span>{language === 'ko' ? '관리자' : 'Admin'}</span>
     </Link>}

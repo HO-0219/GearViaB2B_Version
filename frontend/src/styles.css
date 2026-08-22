@@ -751,6 +751,9 @@ body { background: radial-gradient(circle at 80% -10%, #eeeefe 0, transparent 26
   .group-switcher { display: none; }
   .app-navigation-context { display: none; }
   .app-navigation-items { grid-template-columns: repeat(7, 1fr); gap: 2px; height: 100%; margin: 0; }
+  /* Admin is IP/MFA-gated desktop tooling; keeping it out of the bottom bar avoids
+     overflowing the fixed 7-column grid sized for the everyday nav items. */
+  .app-navigation-admin-link { display: none; }
   .navigation-groups { position: static; }.navigation-groups > button { min-width: 0; min-height: 52px; flex-direction: column; justify-content: center; gap: 2px; padding: 3px; font-size: 10px; }.navigation-group-chevron { display: none; }.navigation-group-list { position: fixed; right: 14px; bottom: calc(82px + env(safe-area-inset-bottom)); left: 14px; max-height: 45vh; overflow-y: auto; margin: 0; padding: 12px; border: 1px solid var(--app-line); border-radius: 17px; background: #fff; box-shadow: 0 18px 48px rgba(30,27,43,.2); }.navigation-group-list > a { min-height: 42px; font-size: 12px; }
   .app-navigation-items > a { min-width: 0; min-height: 52px; flex-direction: column; justify-content: center; gap: 2px; padding: 3px; border-radius: 13px; font-size: 10px; }
   .app-navigation-icon { height: 22px; font-size: 19px; }
@@ -884,6 +887,18 @@ body { background: radial-gradient(circle at 80% -10%, #eeeefe 0, transparent 26
 .admin-page > header p { max-width: 760px; margin: 0; color: #697187; line-height: 1.6; }
 .admin-page > header > a { flex: 0 0 auto; padding: 0 14px; border: 1px solid #dce1ec; border-radius: 10px; color: #4857aa; background: #fff; font-size: 13px; font-weight: 700; }
 .admin-page > .error, .admin-page > .success-message { margin-bottom: 14px; }
+.admin-tabs { display: flex; flex-wrap: wrap; gap: 6px; margin: 18px 0; }
+.admin-tabs > a { padding: 8px 14px; border-radius: 10px; color: #777482; background: transparent; font-size: 13px; font-weight: 600; }
+.admin-tabs > a:hover { color: #443aa9; background: #f6f5fd; }
+.admin-tabs > a.active { color: #4e43b8; background: var(--app-purple-soft); }
+.ai-settings-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; margin-bottom: 16px; }
+.ai-settings-card { padding: 14px; border: 1px solid #dce1ec; border-radius: 12px; background: #fff; }
+.ai-settings-card h3 { margin: 0 0 10px; font-size: 15px; }
+.ai-settings-card dl { display: grid; gap: 6px; margin: 0; }
+.ai-settings-card dl > div { display: flex; justify-content: space-between; gap: 10px; font-size: 13px; }
+.ai-settings-card dt { color: #737b8e; }
+.ai-settings-card dd { margin: 0; font-weight: 600; }
+.admin-notice-panel-footnote { margin-top: 10px; color: #737b8e; font-size: 12px; }
 .admin-stats { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
 .admin-stats article { min-width: 0; box-shadow: 0 8px 24px rgba(31, 42, 78, .04); }
 .admin-stats span { min-height: 32px; line-height: 1.4; word-break: keep-all; }

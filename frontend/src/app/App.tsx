@@ -19,7 +19,12 @@ import { useLanguage } from './LanguageContext';
 import { PrivacyPage, TermsPage } from './PublicPages';
 import { PageMeta } from './PageMeta';
 import { SessionKeepAlive } from './SessionKeepAlive';
-import { AdminPage } from '../features/admin/AdminPage';
+import { AdminShell } from '../features/admin/AdminShell';
+import { AdminOverviewPage } from '../features/admin/pages/AdminOverviewPage';
+import { AdminUsersPage } from '../features/admin/pages/AdminUsersPage';
+import { AdminReportsPage } from '../features/admin/pages/AdminReportsPage';
+import { AdminAuditLogPage } from '../features/admin/pages/AdminAuditLogPage';
+import { AdminAiSettingsPage } from '../features/admin/pages/AdminAiSettingsPage';
 import { AiAssistantPage } from '../features/assistant/AiAssistantPage';
 import { ProjectsPage } from '../features/project/pages/ProjectsPage';
 import { ProjectFlowPage } from '../features/project/pages/ProjectFlowPage';
@@ -39,7 +44,13 @@ export default function App() {
     <Route path="/terms" element={<TermsPage />} />
     <Route path="/profile" element={<ProfilePage />} />
     <Route path="/account" element={<AccountPage />} />
-    <Route path="/admin" element={<AdminPage />} />
+    <Route path="/admin" element={<AdminShell />}>
+      <Route index element={<AdminOverviewPage />} />
+      <Route path="users" element={<AdminUsersPage />} />
+      <Route path="reports" element={<AdminReportsPage />} />
+      <Route path="ai-settings" element={<AdminAiSettingsPage />} />
+      <Route path="audit-log" element={<AdminAuditLogPage />} />
+    </Route>
     <Route path="/groups" element={<GroupsPage />} />
     <Route path="/groups/:groupId" element={<GroupDetailPage />} />
     <Route path="/groups/:groupId/members" element={<GroupMembersPage />} />
@@ -81,7 +92,11 @@ function pageLabel(pathname: string, language: 'ko' | 'en') {
   if (language === 'en') {
     if (pathname === '/') return 'Log in'; if (pathname === '/app') return 'Dashboard'; if (pathname === '/chat') return 'Chat'; if (pathname === '/calendar') return 'Calendar'; if (pathname === '/notifications') return 'Alerts'; if (pathname === '/assistant') return 'AI assistant';
     if (pathname === '/groups') return 'Groups'; if (pathname === '/profile') return 'Profile'; if (pathname === '/account') return 'Account settings';
-    if (pathname === '/admin') return 'Admin';
+    if (pathname === '/admin') return 'Admin overview';
+    if (pathname === '/admin/users') return 'Admin users';
+    if (pathname === '/admin/reports') return 'Admin reports';
+    if (pathname === '/admin/ai-settings') return 'Admin AI settings';
+    if (pathname === '/admin/audit-log') return 'Admin audit log';
     if (/\/dashboard$/.test(pathname)) return 'Group dashboard'; if (/\/members$/.test(pathname)) return 'Team members'; if (/\/chat$/.test(pathname)) return 'Group chat'; if (/\/projects$/.test(pathname)) return 'Projects'; if (/^\/projects\/\d+\/flow$/.test(pathname)) return 'Project issue flow'; if (/\/tasks$/.test(pathname)) return 'Tasks'; if (/^\/tasks\//.test(pathname)) return 'Task details';
     if (/^\/groups\/\d+$/.test(pathname)) return 'Group settings'; if (pathname === '/login') return 'Log in';
   }
@@ -102,7 +117,11 @@ function pageLabel(pathname: string, language: 'ko' | 'en') {
   if (/^\/groups\/\d+$/.test(pathname)) return '그룹 상세';
   if (pathname === '/profile') return '프로필';
   if (pathname === '/account') return '계정 설정';
-  if (pathname === '/admin') return '운영자';
+  if (pathname === '/admin') return '운영자 · 현황';
+  if (pathname === '/admin/users') return '운영자 · 사용자';
+  if (pathname === '/admin/reports') return '운영자 · 리포트';
+  if (pathname === '/admin/ai-settings') return '운영자 · AI 설정';
+  if (pathname === '/admin/audit-log') return '운영자 · 감사 로그';
   if (pathname === '/login') return '로그인';
   return 'B2BGearVia';
 }

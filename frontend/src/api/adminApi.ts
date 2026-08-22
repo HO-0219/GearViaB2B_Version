@@ -8,6 +8,10 @@ export type AdminReportDelivery = { id: number; groupId: number; groupName: stri
 export type AdminMfaStatus = { enabled: boolean; sessionVerified: boolean; encryptionConfigured: boolean; enabledAt?: string };
 export type AdminMfaSetup = { secret: string; otpauthUri: string };
 export type AdminAudit = { id: number; actorUserId?: number; method: string; path: string; status: number; outcome: string; ipAddress?: string; requestId?: string; occurredAt: string };
+export type AdminAiVerticalStatus = { enabled: boolean; apiKeyConfigured: boolean; maskedApiKey?: string; model: string; baseUrl: string };
+export type AdminAiSettingsStatus = { report: AdminAiVerticalStatus; assistant: AdminAiVerticalStatus; supportedModels: string[] };
+export type AdminAiConnectionResult = { success: boolean; message: string };
+export type AdminAiConnectionTestResponse = { report: AdminAiConnectionResult; assistant: AdminAiConnectionResult };
 type Page<T> = { items: T[]; page: number; size: number; totalElements: number; totalPages: number };
 export const adminApi = {
   overview: () => request<AdminOverview>('/admin/overview', {}, true),
@@ -25,4 +29,6 @@ export const adminApi = {
     method: 'POST', body: JSON.stringify({ code }),
   }, true),
   auditLogs: () => request<Page<AdminAudit>>('/admin/audit-logs?size=50', {}, true),
+  aiSettings: () => request<AdminAiSettingsStatus>('/admin/ai-settings', {}, true),
+  testAiConnections: () => request<AdminAiConnectionTestResponse>('/admin/ai-settings/test', { method: 'POST' }, true),
 };
