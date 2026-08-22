@@ -13,6 +13,7 @@ public final class AdminDtos {
     public record AdminUserResponse(Long id, String username, String maskedEmail, String nickname,
             String role, String status, LocalDateTime createdAt, LocalDateTime lastLoginAt, boolean forcePasswordChange) {}
     public record CreateUserRequest(@NotBlank @Email String email, @NotBlank String name, String role) {}
+    public record UpdateUserRequest(@NotBlank String nickname) {}
     public record TemporaryPasswordResponse(AdminUserResponse user, String temporaryPassword) {}
     public record AdminGroupResponse(Long id, String name, String type,
             long activeMembers, boolean reportScheduleActive, LocalDateTime createdAt) {}

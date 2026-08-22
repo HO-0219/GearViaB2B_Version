@@ -751,9 +751,6 @@ body { background: radial-gradient(circle at 80% -10%, #eeeefe 0, transparent 26
   .group-switcher { display: none; }
   .app-navigation-context { display: none; }
   .app-navigation-items { grid-template-columns: repeat(7, 1fr); gap: 2px; height: 100%; margin: 0; }
-  /* Admin is IP/MFA-gated desktop tooling; keeping it out of the bottom bar avoids
-     overflowing the fixed 7-column grid sized for the everyday nav items. */
-  .app-navigation-admin-link { display: none; }
   .navigation-groups { position: static; }.navigation-groups > button { min-width: 0; min-height: 52px; flex-direction: column; justify-content: center; gap: 2px; padding: 3px; font-size: 10px; }.navigation-group-chevron { display: none; }.navigation-group-list { position: fixed; right: 14px; bottom: calc(82px + env(safe-area-inset-bottom)); left: 14px; max-height: 45vh; overflow-y: auto; margin: 0; padding: 12px; border: 1px solid var(--app-line); border-radius: 17px; background: #fff; box-shadow: 0 18px 48px rgba(30,27,43,.2); }.navigation-group-list > a { min-height: 42px; font-size: 12px; }
   .app-navigation-items > a { min-width: 0; min-height: 52px; flex-direction: column; justify-content: center; gap: 2px; padding: 3px; border-radius: 13px; font-size: 10px; }
   .app-navigation-icon { height: 22px; font-size: 19px; }
@@ -926,6 +923,7 @@ body { background: radial-gradient(circle at 80% -10%, #eeeefe 0, transparent 26
 .admin-status--danger { color: #a32b42; background: #fff0f2; }
 .admin-status--warning { color: #855713; background: #fff5d9; }
 .admin-status--neutral { color: #596276; background: #eef1f5; }
+.admin-row-actions { display: flex; flex-wrap: wrap; gap: 6px; }
 .admin-action { min-height: 34px; padding: 0 11px; border: 1px solid #cfd6e5; border-radius: 8px; color: #4554a5; background: #fff; cursor: pointer; font-size: 11px; font-weight: 700; }
 .admin-action:hover { border-color: #8e9add; background: #f4f6ff; }
 .admin-action.danger { border-color: #efc8cf; color: #a32b42; }

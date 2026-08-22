@@ -66,6 +66,24 @@ public class AdminService {
                 user.getSystemRole().name(), user.getStatus().name(), user.getCreatedAt(), user.getLastLoginAt(), user.isForcePasswordChange());
     }
     @Transactional
+    public AdminUserResponse updateUser(Long userId, UpdateUserRequest request) {
+        User user = users.findById(userId).orElseThrow(() -> new ApplicationException("USER_NOT_FOUND", HttpStatus.NOT_FOUND, "사용자를 찾을 수 없습니다."));
+        user.updateProfile(request.nickname().trim(), user.getPhoneNumber(), user.getProfileImageUrl());
+        return toResponse(user);
+    }
+    @Transactional
+    public void withdrawUser(Long actorId, Long userId) {
+        if (actorId.equals(userId)) throw new ApplicationException("ADMIN_SELF_WITHDRAW_FORBIDDEN", HttpStatus.CONFLICT, "본인 운영자 계정은 삭제할 수 없습니다.");
+        User user = users.findById(userId).orElseThrow(() -> new ApplicationException("USER_NOT_FOUND", HttpStatus.NOT_FOUND, "사용자를 찾을 수 없습니다."));
+        if (user.getSystemRole() == User.SystemRole.ADMIN
+                && users.countByStatusAndSystemRole(User.Status.ACTIVE, User.SystemRole.ADMIN) <= 1)
+            throw new ApplicationException("LAST_ADMIN_FORBIDDEN", HttpStatus.CONFLICT, "마지막 운영자 계정은 삭제할 수 없습니다.");
+        String suffix = UUID.randomUUID().toString().replace("-", "").substring(0, 20);
+        user.anonymizeAndWithdraw("withdrawn_" + suffix, "withdrawn_" + suffix + "@withdrawn.local");
+        user.invalidateSessions();
+        refreshTokens.findAllByUserId(userId).forEach(RefreshToken::revoke);
+    }
+    @Transactional
     public TemporaryPasswordResponse createUser(CreateUserRequest request) {
         String email = request.email().trim().toLowerCase(Locale.ROOT);
         if (users.existsByEmailIgnoreCase(email))
