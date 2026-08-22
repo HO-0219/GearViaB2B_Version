@@ -54,10 +54,15 @@ public class AdminAccessFilter extends OncePerRequestFilter {
         return Arrays.stream(value.split(",")).map(String::trim).filter(rule -> !rule.isBlank()).toList();
     }
     private boolean matches(String address, String rule) {
-        if (!rule.contains("/")) return address.equals(rule);
         try {
-            String[] values = rule.split("/");
             byte[] candidate = InetAddress.getByName(address).getAddress();
+            if (!rule.contains("/")) {
+                // Compare canonical byte forms, not raw strings: Tomcat can report the
+                // IPv6 loopback as "0:0:0:0:0:0:0:1" while operators configure "::1" —
+                // those are the same address but never equal as strings.
+                return Arrays.equals(candidate, InetAddress.getByName(rule).getAddress());
+            }
+            String[] values = rule.split("/");
             byte[] network = InetAddress.getByName(values[0]).getAddress();
             int prefix = Integer.parseInt(values[1]);
             if (candidate.length != network.length || prefix < 0 || prefix > candidate.length * 8) return false;
