@@ -58,7 +58,7 @@ public class AdminMfaService {
         refreshTokens.findAllByUserId(userId).forEach(RefreshToken::revoke);
         user.invalidateSessions();
     }
-    @Transactional
+    @Transactional(noRollbackFor = ApplicationException.class)
     public boolean verifyForLogin(User user, String code) {
         if (user.getSystemRole() != User.SystemRole.ADMIN) return false;
         AdminMfaCredential value = credentials.findByUserId(user.getId()).orElse(null);
