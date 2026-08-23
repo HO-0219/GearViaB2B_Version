@@ -10,6 +10,7 @@ import { adminApi } from '../../api/adminApi';
 vi.mock('../../api/client', () => ({
   accessToken: { get: () => 'access-token', clear: vi.fn() },
   errorMessage: (value: unknown) => String(value),
+  request: vi.fn().mockResolvedValue({ organizationName: 'B2BGearVia', hasLogo: false }),
 }));
 
 vi.mock('../../api/adminApi', () => ({

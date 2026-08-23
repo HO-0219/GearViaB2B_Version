@@ -9,6 +9,7 @@ vi.mock('../../../api/client', () => ({
   accessToken: { get: () => null, set: vi.fn(), clear: vi.fn() },
   sessionMode: { isDemo: () => false, clear: vi.fn() },
   errorMessage: (value: unknown) => String(value),
+  request: vi.fn().mockResolvedValue({ organizationName: 'B2BGearVia', hasLogo: false }),
 }));
 
 vi.mock('../../../api/authApi', () => ({

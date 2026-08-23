@@ -909,6 +909,11 @@ body { background: radial-gradient(circle at 80% -10%, #eeeefe 0, transparent 26
 .admin-panel-heading p { margin: 5px 0 0; color: #737b8e; font-size: 12px; line-height: 1.55; }
 .admin-count { min-width: 29px; padding: 5px 9px; border-radius: 999px; color: #4f58a8; background: #eef0ff; text-align: center; font: 700 11px Manrope, sans-serif; }
 .admin-notice-panel small { display: block; margin-top: 10px; color: #727b8e; line-height: 1.5; }
+.admin-notice-panel .field { margin-bottom: 14px; }
+.admin-branding-preview { display: flex; align-items: center; min-height: 64px; margin-bottom: 16px; padding: 12px; border: 1px dashed #dce1ec; border-radius: 10px; }
+.admin-branding-preview img { max-height: 48px; max-width: 220px; }
+.admin-branding-preview-empty { color: #8a90a4; font-size: 13px; }
+.admin-inline-checkbox { display: flex; align-items: center; gap: 8px; margin-bottom: 16px; font-size: 13px; color: #485168; }
 .admin-inline { align-items: stretch; flex-wrap: wrap; }
 .admin-inline input { min-width: 220px; min-height: 48px; padding: 0 13px; border: 1px solid #d9deea; border-radius: 10px; color: #242a3a; background: #fff; outline: none; }
 .admin-inline input:focus { border-color: #6175dc; box-shadow: 0 0 0 3px rgba(97, 117, 220, .12); }

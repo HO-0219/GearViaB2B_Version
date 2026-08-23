@@ -25,6 +25,8 @@ import { AdminUsersPage } from '../features/admin/pages/AdminUsersPage';
 import { AdminReportsPage } from '../features/admin/pages/AdminReportsPage';
 import { AdminAuditLogPage } from '../features/admin/pages/AdminAuditLogPage';
 import { AdminAiSettingsPage } from '../features/admin/pages/AdminAiSettingsPage';
+import { AdminBrandingPage } from '../features/admin/pages/AdminBrandingPage';
+import { AdminNoticesPage } from '../features/admin/pages/AdminNoticesPage';
 import { AiAssistantPage } from '../features/assistant/AiAssistantPage';
 import { ProjectsPage } from '../features/project/pages/ProjectsPage';
 import { ProjectFlowPage } from '../features/project/pages/ProjectFlowPage';
@@ -49,6 +51,8 @@ export default function App() {
       <Route path="users" element={<AdminUsersPage />} />
       <Route path="reports" element={<AdminReportsPage />} />
       <Route path="ai-settings" element={<AdminAiSettingsPage />} />
+      <Route path="branding" element={<AdminBrandingPage />} />
+      <Route path="notices" element={<AdminNoticesPage />} />
       <Route path="audit-log" element={<AdminAuditLogPage />} />
     </Route>
     <Route path="/groups" element={<GroupsPage />} />
@@ -96,6 +100,8 @@ function pageLabel(pathname: string, language: 'ko' | 'en') {
     if (pathname === '/admin/users') return 'Admin users';
     if (pathname === '/admin/reports') return 'Admin reports';
     if (pathname === '/admin/ai-settings') return 'Admin AI settings';
+    if (pathname === '/admin/branding') return 'Admin branding';
+    if (pathname === '/admin/notices') return 'Admin notices';
     if (pathname === '/admin/audit-log') return 'Admin audit log';
     if (/\/dashboard$/.test(pathname)) return 'Group dashboard'; if (/\/members$/.test(pathname)) return 'Team members'; if (/\/chat$/.test(pathname)) return 'Group chat'; if (/\/projects$/.test(pathname)) return 'Projects'; if (/^\/projects\/\d+\/flow$/.test(pathname)) return 'Project issue flow'; if (/\/tasks$/.test(pathname)) return 'Tasks'; if (/^\/tasks\//.test(pathname)) return 'Task details';
     if (/^\/groups\/\d+$/.test(pathname)) return 'Group settings'; if (pathname === '/login') return 'Log in';
@@ -121,6 +127,8 @@ function pageLabel(pathname: string, language: 'ko' | 'en') {
   if (pathname === '/admin/users') return '운영자 · 사용자';
   if (pathname === '/admin/reports') return '운영자 · 리포트';
   if (pathname === '/admin/ai-settings') return '운영자 · AI 설정';
+  if (pathname === '/admin/branding') return '운영자 · 브랜딩';
+  if (pathname === '/admin/notices') return '운영자 · 공지 발송';
   if (pathname === '/admin/audit-log') return '운영자 · 감사 로그';
   if (pathname === '/login') return '로그인';
   return 'B2BGearVia';

@@ -952,3 +952,27 @@ CREATE TABLE user_consents (
     INDEX idx_user_consents_user_type_time (user_id, consent_type, agreed_at),
     CONSTRAINT fk_user_consents_user FOREIGN KEY (user_id) REFERENCES users (id)
 ) ENGINE = InnoDB;
+
+CREATE TABLE branding_settings (
+    id BIGINT NOT NULL,
+    organization_name VARCHAR(80) NULL,
+    logo_storage_key VARCHAR(500) NULL,
+    logo_content_type VARCHAR(100) NULL,
+    updated_at DATETIME(6) NOT NULL,
+    PRIMARY KEY (id)
+) ENGINE = InnoDB;
+
+CREATE TABLE admin_notices (
+    id BIGINT NOT NULL AUTO_INCREMENT,
+    title VARCHAR(160) NOT NULL,
+    message VARCHAR(2000) NOT NULL,
+    scheduled_at DATETIME(6) NOT NULL,
+    status VARCHAR(20) NOT NULL,
+    recipient_count INT NULL,
+    created_by_user_id BIGINT NOT NULL,
+    created_at DATETIME(6) NOT NULL,
+    sent_at DATETIME(6) NULL,
+    PRIMARY KEY (id),
+    INDEX idx_admin_notices_status_scheduled (status, scheduled_at),
+    CONSTRAINT fk_admin_notices_created_by FOREIGN KEY (created_by_user_id) REFERENCES users (id)
+) ENGINE = InnoDB;

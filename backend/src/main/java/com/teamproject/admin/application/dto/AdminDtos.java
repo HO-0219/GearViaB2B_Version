@@ -2,6 +2,8 @@ package com.teamproject.admin.application.dto;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -26,4 +28,8 @@ public final class AdminDtos {
             LocalDateTime lastAttemptAt, LocalDateTime nextRetryAt, LocalDateTime sentAt,
             LocalDateTime createdAt) {}
     public record PageResponse<T>(List<T> items, int page, int size, long totalElements, int totalPages) {}
+    public record CreateAdminNoticeRequest(@NotBlank @Size(max = 160) String title,
+            @NotBlank @Size(max = 2000) String message, @NotNull LocalDateTime scheduledAt) {}
+    public record AdminNoticeResponse(Long id, String title, String message, LocalDateTime scheduledAt,
+            String status, Integer recipientCount, LocalDateTime createdAt, LocalDateTime sentAt) {}
 }

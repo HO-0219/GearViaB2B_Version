@@ -12,6 +12,8 @@ export type AdminAiVerticalStatus = { enabled: boolean; apiKeyConfigured: boolea
 export type AdminAiSettingsStatus = { report: AdminAiVerticalStatus; assistant: AdminAiVerticalStatus; supportedModels: string[] };
 export type AdminAiConnectionResult = { success: boolean; message: string };
 export type AdminAiConnectionTestResponse = { report: AdminAiConnectionResult; assistant: AdminAiConnectionResult };
+export type AdminBranding = { organizationName: string; hasLogo: boolean };
+export type AdminNotice = { id: number; title: string; message: string; scheduledAt: string; status: string; recipientCount?: number; createdAt: string; sentAt?: string };
 type Page<T> = { items: T[]; page: number; size: number; totalElements: number; totalPages: number };
 export const adminApi = {
   overview: () => request<AdminOverview>('/admin/overview', {}, true),
@@ -33,4 +35,15 @@ export const adminApi = {
   auditLogs: () => request<Page<AdminAudit>>('/admin/audit-logs?size=50', {}, true),
   aiSettings: () => request<AdminAiSettingsStatus>('/admin/ai-settings', {}, true),
   testAiConnections: () => request<AdminAiConnectionTestResponse>('/admin/ai-settings/test', { method: 'POST' }, true),
+  updateBranding: (organizationName: string, logo: File | undefined, removeLogo: boolean) => {
+    const body = new FormData();
+    body.append('organizationName', organizationName);
+    if (logo) body.append('logo', logo);
+    body.append('removeLogo', String(removeLogo));
+    return request<AdminBranding>('/admin/branding', { method: 'PUT', body }, true);
+  },
+  notices: () => request<Page<AdminNotice>>('/admin/notices?size=30', {}, true),
+  createNotice: (body: { title: string; message: string; scheduledAt: string }) =>
+    request<AdminNotice>('/admin/notices', { method: 'POST', body: JSON.stringify(body) }, true),
+  cancelNotice: (id: number) => request<void>(`/admin/notices/${id}`, { method: 'DELETE' }, true),
 };
