@@ -63,7 +63,13 @@ services:
     expose: ["8081"]
     read_only: true
     tmpfs: [/tmp]
-    volumes: [uploads:/opt/b2bgearvia/data/uploads]
+    # /opt/b2bgearvia/data/nas is the fixed convention for STORAGE_PROVIDER=nas_mount:
+    # the host mounts its NAS/company storage share there (fstab/systemd) before
+    # compose starts, and this bind-mounts that same path into the container.
+    # Inert when STORAGE_PROVIDER=local (default) — nothing reads or writes it.
+    volumes:
+      - uploads:/opt/b2bgearvia/data/uploads
+      - /opt/b2bgearvia/data/nas:/opt/b2bgearvia/data/nas
     networks: [internal]
     depends_on:
       init-data: {condition: service_completed_successfully}

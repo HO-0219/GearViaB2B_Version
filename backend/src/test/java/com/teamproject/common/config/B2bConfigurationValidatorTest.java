@@ -63,7 +63,7 @@ class B2bConfigurationValidatorTest {
     void acceptsNasMountStorageWithNasRootConfigured() {
         MockEnvironment environment = secureB2bProductionEnvironment()
                 .withProperty("app.storage.provider", "nas_mount")
-                .withProperty("app.storage.nas-root", "/mnt/company-nas/b2bgearvia")
+                .withProperty("app.storage.nas-root", "/opt/b2bgearvia/data/nas")
                 .withProperty("spring.security.oauth2.client.registration.google.client-id", "")
                 .withProperty("spring.security.oauth2.client.registration.google.client-secret", "")
                 .withProperty("app.mail.enabled", "false")
@@ -87,7 +87,18 @@ class B2bConfigurationValidatorTest {
 
         assertThatThrownBy(() -> new B2bConfigurationValidator(environment).validate())
                 .isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("STORAGE_NAS_ROOT must be set when STORAGE_PROVIDER is nas_mount");
+                .hasMessageContaining("STORAGE_NAS_ROOT must be /opt/b2bgearvia/data/nas");
+    }
+
+    @Test
+    void rejectsNasMountStorageWithNonStandardNasRoot() {
+        MockEnvironment environment = secureB2bProductionEnvironment()
+                .withProperty("app.storage.provider", "nas_mount")
+                .withProperty("app.storage.nas-root", "/mnt/company-nas/b2bgearvia");
+
+        assertThatThrownBy(() -> new B2bConfigurationValidator(environment).validate())
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("STORAGE_NAS_ROOT must be /opt/b2bgearvia/data/nas");
     }
 
     @Test
