@@ -1,15 +1,15 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { adminApi, AdminGroup, AdminOverview } from '../../../api/adminApi';
 import { errorMessage } from '../../../api/client';
 import { useLanguage } from '../../../app/LanguageContext';
 import { AdminTable, formatTime, StatusBadge } from '../AdminShared';
+import { useAdminGoToSection } from '../AdminShell';
 
 const GROUPS_ANCHOR = 'admin-groups-table';
 
 export function AdminOverviewPage() {
   const { t } = useLanguage();
-  const navigate = useNavigate();
+  const goToSection = useAdminGoToSection();
   const [overview, setOverview] = useState<AdminOverview>();
   const [groups, setGroups] = useState<AdminGroup[]>([]);
   const [loading, setLoading] = useState(true);
@@ -28,14 +28,14 @@ export function AdminOverviewPage() {
     {error && <p className="error">{error}</p>}
     {overview && <section className="admin-stats" aria-label={t('운영 현황 요약', 'Operations overview')}>
       {([
-        [t('전체 사용자', 'Users'), overview.users, () => navigate('/admin/users')],
-        [t('활성 사용자', 'Active users'), overview.activeUsers, () => navigate('/admin/users')],
-        [t('정지 사용자', 'Suspended users'), overview.suspendedUsers, () => navigate('/admin/users')],
+        [t('전체 사용자', 'Users'), overview.users, () => goToSection('/admin/users')],
+        [t('활성 사용자', 'Active users'), overview.activeUsers, () => goToSection('/admin/users')],
+        [t('정지 사용자', 'Suspended users'), overview.suspendedUsers, () => goToSection('/admin/users')],
         [t('전체 그룹', 'Groups'), overview.groups, scrollToGroups],
         [t('팀 그룹', 'Team groups'), overview.teamGroups, scrollToGroups],
-        [t('리포트 다운로드', 'Report downloads'), overview.reportDownloads, () => navigate('/admin/reports')],
-        [t('리포트 발송', 'Report deliveries'), overview.reportDeliveries, () => navigate('/admin/reports')],
-        [t('리포트 발송 실패', 'Failed deliveries'), overview.failedReportDeliveries, () => navigate('/admin/reports')],
+        [t('리포트 다운로드', 'Report downloads'), overview.reportDownloads, () => goToSection('/admin/reports')],
+        [t('리포트 발송', 'Report deliveries'), overview.reportDeliveries, () => goToSection('/admin/reports')],
+        [t('리포트 발송 실패', 'Failed deliveries'), overview.failedReportDeliveries, () => goToSection('/admin/reports')],
       ] as [string, number, () => void][]).map(([label, value, onActivate]) =>
         <article key={label} className="admin-stat-link" role="button" tabIndex={0} onClick={onActivate}
           onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); onActivate(); } }}>
