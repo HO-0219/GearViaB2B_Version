@@ -3,6 +3,7 @@ import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-route
 import { LoginPage } from '../features/auth/pages/LoginPage';
 import { GroupsPage } from '../features/group/pages/GroupsPage';
 import { GroupDetailPage } from '../features/group/pages/GroupDetailPage';
+import { GroupFileSystemPage } from '../features/group/pages/GroupFileSystemPage';
 import { GroupMembersPage } from '../features/group/pages/GroupMembersPage';
 import { InvitationAcceptPage } from '../features/group/pages/InvitationAcceptPage';
 import { AccountPage } from '../features/user/pages/AccountPage';
@@ -66,6 +67,7 @@ export default function App() {
     <Route path="/groups/:groupId/members" element={<GroupMembersPage />} />
     <Route path="/groups/:groupId/tasks" element={<TasksPage />} />
     <Route path="/groups/:groupId/projects" element={<ProjectsPage />} />
+    <Route path="/groups/:groupId/files" element={<GroupFileSystemPage />} />
     <Route path="/chat" element={<ChatHubPage />} />
     <Route path="/groups/:groupId/chat" element={<ChatPage />} />
     <Route path="/projects/:projectId/flow" element={<ProjectFlowPage />} />
@@ -112,7 +114,7 @@ function pageLabel(pathname: string, language: 'ko' | 'en') {
     if (pathname === '/admin/notices') return 'Admin notices';
     if (pathname === '/admin/login-history') return 'Admin login history';
     if (pathname === '/admin/audit-log') return 'Admin audit log';
-    if (/\/dashboard$/.test(pathname)) return 'Group dashboard'; if (/\/members$/.test(pathname)) return 'Team members'; if (/\/chat$/.test(pathname)) return 'Group chat'; if (/\/projects$/.test(pathname)) return 'Projects'; if (/^\/projects\/\d+\/flow$/.test(pathname)) return 'Project issue flow'; if (/\/tasks$/.test(pathname)) return 'Tasks'; if (/^\/tasks\//.test(pathname)) return 'Task details';
+    if (/\/dashboard$/.test(pathname)) return 'Group dashboard'; if (/\/members$/.test(pathname)) return 'Team members'; if (/\/chat$/.test(pathname)) return 'Group chat'; if (/\/projects$/.test(pathname)) return 'Projects'; if (/\/files$/.test(pathname)) return 'Group files'; if (/^\/projects\/\d+\/flow$/.test(pathname)) return 'Project issue flow'; if (/\/tasks$/.test(pathname)) return 'Tasks'; if (/^\/tasks\//.test(pathname)) return 'Task details';
     if (/^\/groups\/\d+$/.test(pathname)) return 'Group settings'; if (pathname === '/login') return 'Log in';
   }
   if (pathname === '/') return '로그인';
@@ -125,6 +127,7 @@ function pageLabel(pathname: string, language: 'ko' | 'en') {
   if (/^\/groups\/\d+\/members$/.test(pathname)) return '팀원 목록';
   if (/^\/groups\/\d+\/tasks$/.test(pathname)) return '업무 목록';
   if (/^\/groups\/\d+\/projects$/.test(pathname)) return '프로젝트 목록';
+  if (/^\/groups\/\d+\/files$/.test(pathname)) return '그룹 파일';
   if (/^\/groups\/\d+\/chat$/.test(pathname)) return '그룹 채팅';
   if (/^\/projects\/\d+\/flow$/.test(pathname)) return '프로젝트 작업 내용';
   if (/^\/tasks\/\d+$/.test(pathname)) return '업무 상세';

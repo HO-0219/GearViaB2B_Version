@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useMemo, useState } from 'react';
+import { DragEvent, FormEvent, useEffect, useMemo, useRef, useState } from 'react';
 import { errorMessage } from '../../../api/client';
 import { ProjectDocument, ProjectFileTree, projectDocumentApi } from '../../../api/projectDocumentApi';
 import { ProjectResponse } from '../../../api/projectApi';
@@ -16,6 +16,9 @@ export function ProjectFileSystem({ project, nodes }: { project: ProjectResponse
   const [file, setFile] = useState<File>();
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const [dragActive, setDragActive] = useState(false);
+  const [dropUploading, setDropUploading] = useState(false);
+  const dragCounter = useRef(0);
   const children = useMemo(() => {
     const values = new Map<number | undefined, ProjectIssue[]>();
     nodes.forEach((node) => values.set(node.parentId, [...(values.get(node.parentId) ?? []), node]));
@@ -43,6 +46,24 @@ export function ProjectFileSystem({ project, nodes }: { project: ProjectResponse
     try { await projectDocumentApi.remove(document.id); await load(); }
     catch (value) { setError(errorMessage(value)); }
   }
+  function onDragEnter(event: DragEvent) {
+    event.preventDefault(); if (!canAdd || !event.dataTransfer.types.includes('Files')) return;
+    dragCounter.current += 1; setDragActive(true);
+  }
+  function onDragOver(event: DragEvent) { event.preventDefault(); }
+  function onDragLeave(event: DragEvent) {
+    event.preventDefault(); dragCounter.current = Math.max(0, dragCounter.current - 1);
+    if (dragCounter.current === 0) setDragActive(false);
+  }
+  async function onDrop(event: DragEvent) {
+    event.preventDefault(); dragCounter.current = 0; setDragActive(false);
+    if (!canAdd) return;
+    const dropped = Array.from(event.dataTransfer.files); if (dropped.length === 0) return;
+    setDropUploading(true); setError('');
+    try { for (const value of dropped) await projectDocumentApi.upload(project.id, value, '', selectedId); await load(); }
+    catch (value) { setError(errorMessage(value)); }
+    finally { setDropUploading(false); }
+  }
   const percent = data?.limitBytes ? Math.min(100, Math.round(data.usedBytes * 100 / data.limitBytes)) : 0;
   return <section className="project-files">
     <header><div><span className="page-eyebrow">PROJECT FILES</span><h2>{t('프로젝트 파일 시스템', 'Project file system')}</h2>
@@ -53,19 +74,22 @@ export function ProjectFileSystem({ project, nodes }: { project: ProjectResponse
     <div className="project-file-layout"><nav className="project-folder-tree" aria-label={t('프로젝트 폴더', 'Project folders')}>
       <button className={!selectedId ? 'selected' : ''} onClick={() => setSelectedId(undefined)}>📁 {project.name}</button>
       {(children.get(undefined) ?? []).map((major) => <FolderBranch key={major.id} node={major} childrenMap={children} selectedId={selectedId} onSelect={setSelectedId} />)}
-    </nav><div className="project-file-content">
+    </nav><div className={`project-file-content${dragActive ? ' drop-active' : ''}`}
+      onDragEnter={onDragEnter} onDragOver={onDragOver} onDragLeave={onDragLeave} onDrop={onDrop}>
       <div className="project-file-toolbar"><div><small>{t('현재 위치', 'Location')}</small><strong>{selected ? `${levelLabel(selected.level, language)} / ${selected.title}` : project.name}</strong></div>
         {canAdd && <div><button className="secondary" type="button" onClick={() => open('LINK')}>＋ {t('링크', 'Link')}</button><button className="primary" type="button" onClick={() => open('FILE')}>＋ {t('파일', 'File')}</button></div>}</div>
-      {items.length === 0 ? <p className="project-files-empty">{t('이 위치에 등록된 자료가 없습니다.', 'No items in this location.')}</p>
+      {dropUploading && <p className="project-drop-uploading">{t('업로드 중...', 'Uploading...')}</p>}
+      {items.length === 0 ? <p className="project-files-empty">{canAdd ? t('이 위치에 등록된 자료가 없습니다. 파일을 여기로 끌어다 놓아도 업로드됩니다.', 'No items in this location. You can also drag files here to upload.') : t('이 위치에 등록된 자료가 없습니다.', 'No items in this location.')}</p>
         : <div className="project-document-list">{items.map((item) => <article key={item.id}><span className={`document-icon ${item.type.toLowerCase()}`}>{item.type === 'FILE' ? '▤' : '↗'}</span><div><strong>{item.title}</strong><small>{item.originalFilename ?? item.url} · {item.createdByNickname}{item.sizeBytes ? ` · ${formatBytes(item.sizeBytes)}` : ''}</small></div><div>
           {item.type === 'LINK' ? <a className="secondary" href={item.url} target="_blank" rel="noopener noreferrer">{t('열기', 'Open')}</a> : <button className="secondary" type="button" onClick={() => projectDocumentApi.download(item).catch((value) => setError(errorMessage(value)))}>{t('다운로드', 'Download')}</button>}
           {item.canDelete && <button className="ghost danger-text" type="button" onClick={() => remove(item)}>{t('삭제', 'Delete')}</button>}</div></article>)}</div>}
+      {dragActive && <div className="project-drop-overlay">📥 {t('여기에 놓아 업로드', 'Drop to upload')}</div>}
     </div></div>
     {mode && <Modal title={mode === 'FILE' ? t('파일 올리기', 'Upload file') : t('링크 등록', 'Add link')} onClose={() => setMode(undefined)}><form className="form modal-form" onSubmit={save}>
       <p className="modal-location">📁 {selected?.title ?? project.name}</p>
       <label className="field"><span>{t('자료 제목', 'Title')}</span><input required={mode === 'LINK'} maxLength={160} value={title} onChange={(event) => setTitle(event.target.value)} placeholder={mode === 'FILE' ? t('비우면 파일명을 사용합니다.', 'Uses filename when empty.') : ''} /></label>
       {mode === 'LINK' ? <label className="field"><span>HTTPS URL</span><input required type="url" maxLength={1000} value={url} onChange={(event) => setUrl(event.target.value)} placeholder="https://" /></label>
-        : <label className={`field project-upload-picker ${file ? 'selected' : ''}`}><span>{t('파일', 'File')}</span><input required type="file" accept=".pdf,.png,.jpg,.jpeg,.gif,.txt,.csv,.docx,.xlsx,.pptx,.zip" onChange={(event) => setFile(event.target.files?.[0])} />{file && <ProjectUploadSelection file={file} />}<small>{t('무료 20MB · 유료 100MB/파일', 'Free 20MB · Paid 100MB/file')}</small></label>}
+        : <label className={`field project-upload-picker ${file ? 'selected' : ''}`}><span>{t('파일', 'File')}</span><input required type="file" accept=".pdf,.png,.jpg,.jpeg,.gif,.txt,.csv,.docx,.xlsx,.pptx,.zip" onChange={(event) => setFile(event.target.files?.[0])} />{file && <ProjectUploadSelection file={file} />}<small>{t('최대 100MB/파일', 'Up to 100MB per file')}</small></label>}
       <div className="modal-actions"><button className="secondary" type="button" onClick={() => setMode(undefined)}>{t('취소', 'Cancel')}</button><button className="primary" disabled={saving || mode === 'FILE' && !file}>{saving ? t('저장 중...', 'Saving...') : t('저장', 'Save')}</button></div>
     </form></Modal>}
   </section>;

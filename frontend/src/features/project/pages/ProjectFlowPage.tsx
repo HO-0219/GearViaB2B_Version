@@ -31,6 +31,7 @@ export function ProjectFlowPage() {
   const [status, setStatus] = useState<IssueStatus>('OPEN');
   const [dueDate, setDueDate] = useState('');
   const [checklistDrafts, setChecklistDrafts] = useState<Record<number, string>>({});
+  const [showFiles, setShowFiles] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -138,9 +139,10 @@ export function ProjectFlowPage() {
     <header className="flow-header"><div><Link to={`/groups/${project.groupId}/projects`}>← {t('프로젝트 목록', 'Projects')}</Link>
       <span className="page-eyebrow">PROJECT WORKSPACE</span><h1>{project.name}</h1>
       <p>{t('프로젝트 안에서 주제를 나누고, 각 주제의 업무와 진행 상황을 한 흐름으로 관리합니다.', 'Organize topics, tasks, and progress in one project flow.')}</p></div>
-      <div className="flow-header-actions"><Link className="secondary button-link" to={`/groups/${project.groupId}/tasks?projectId=${project.id}&create=1`}>＋ {t('프로젝트 업무', 'Project task')}</Link>{project.canManageFlow && <button className="primary" type="button" onClick={() => openCreate('MAJOR')}>＋ {t('주제 추가', 'Add topic')}</button>}</div>
+      <div className="flow-header-actions"><Link className="secondary button-link" to={`/groups/${project.groupId}/tasks?projectId=${project.id}&create=1`}>＋ {t('프로젝트 업무', 'Project task')}</Link>{project.canManageFlow && <button className="primary" type="button" onClick={() => openCreate('MAJOR')}>＋ {t('주제 추가', 'Add topic')}</button>}<button className={`secondary${showFiles ? ' active' : ''}`} type="button" aria-pressed={showFiles} onClick={() => setShowFiles((value) => !value)}>📁 {t('파일·링크', 'Files & links')}</button></div>
     </header>
     {error && <p className="error">{error}</p>}
+    {showFiles && <ProjectFileSystem project={project} nodes={nodes} />}
     <section className="flow-overview" aria-label={t('프로젝트 현황', 'Project overview')}>
       <div><span>{t('주제', 'Topics')}</span><strong>{activeNodes.filter((node) => node.level === 'MAJOR').length}</strong></div>
       <div><span>{t('진행 업무', 'Active tasks')}</span><strong>{activeTasks.length}</strong></div>
@@ -172,7 +174,6 @@ export function ProjectFlowPage() {
         </section>)}</div></details>}
       </section>)}</div>}
     {unclassifiedTasks.length > 0 && <section className="unclassified-project-tasks"><header><div><span className="page-eyebrow">NEEDS TOPIC</span><h2>{t('주제 미분류 업무', 'Tasks without a topic')}</h2><p>{t('프로젝트에는 연결됐지만 아직 주제가 정해지지 않은 업무입니다.', 'These tasks belong to the project but do not have a topic yet.')}</p></div><Link className="secondary button-link" to={`/groups/${project.groupId}/tasks`}>{t('업무에서 주제 지정', 'Assign topics')}</Link></header><ProjectTaskList title={t('미분류 업무', 'Unclassified tasks')} tasks={unclassifiedTasks} members={members} language={language} empty="" /></section>}
-    <details className="project-support-tools"><summary><span>📁</span><div><strong>{t('프로젝트 파일·링크', 'Project files and links')}</strong><small>{t('필요할 때 열어 파일과 자료를 관리합니다.', 'Open when you need to manage project resources.')}</small></div></summary><ProjectFileSystem project={project} nodes={nodes} /></details>
     {archivedNodes.length > 0 && <details className="archived-projects archived-issues"><summary>{t(`보관된 항목 ${archivedNodes.length}개`, `${archivedNodes.length} archived items`)}</summary>
       <div className="archived-issue-list">{archivedNodes.map((node) => <article key={node.id}><div><strong>{node.title}</strong><small>{levelLabel(node.level, language)} · {node.archivedAt ? new Date(node.archivedAt).toLocaleDateString() : ''}</small></div>
         {node.images.length > 0 && <div className="issue-images">{node.images.map((image) => <div key={image.id}><AuthenticatedIssueImage image={image} alt={image.originalFilename} />{image.canDelete && <button type="button" aria-label={t('이미지 삭제', 'Delete image')} onClick={() => deleteImage(node, image)}>×</button>}</div>)}</div>}</article>)}</div>
