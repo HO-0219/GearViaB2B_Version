@@ -39,4 +39,17 @@ public final class AdminDtos {
             LocalDateTime createdAt, LocalDateTime updatedAt) {}
     public record AdminLoginHistoryResponse(Long id, String username, Long userId, String outcome,
             String ipAddress, String deviceName, LocalDateTime occurredAt) {}
+    public record AdminMonitoringResponse(SystemUsageResponse system, AiUsageResponse aiUsage) {}
+    public record SystemUsageResponse(MetricResponse cpu, CapacityResponse memory, CapacityResponse storage) {}
+    public record MetricResponse(boolean available, Double usedPercent) {}
+    public record CapacityResponse(boolean available, Long usedBytes, Long totalBytes, Double usedPercent,
+            String provider) {}
+    public record AiUsageResponse(String timeZone, AiUsagePeriodsResponse periods,
+            List<AiUsageBreakdownResponse> breakdown) {}
+    public record AiUsagePeriodsResponse(AiUsagePeriodResponse today, AiUsagePeriodResponse thisMonth,
+            AiUsagePeriodResponse allTime) {}
+    public record AiUsagePeriodResponse(Long requests, Long failedRequests, Long inputTokens,
+            Long outputTokens, Long totalTokens) {}
+    public record AiUsageBreakdownResponse(String operation, String model, Long requests, Long failedRequests,
+            Long inputTokens, Long outputTokens, Long totalTokens) {}
 }

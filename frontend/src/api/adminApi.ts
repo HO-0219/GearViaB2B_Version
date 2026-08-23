@@ -16,9 +16,18 @@ export type AdminBranding = { organizationName: string; hasLogo: boolean };
 export type AdminNotice = { id: number; title: string; message: string; scheduledAt: string; status: string; recipientCount?: number; createdAt: string; sentAt?: string };
 export type AdminTask = { id: number; groupId: number; groupName: string; title: string; status: string; requesterId: number; requesterNickname: string; assigneeId?: number; assigneeNickname?: string; dueAt?: string; holdReason?: string; deletedAt?: string; createdAt: string; updatedAt: string };
 export type AdminLoginHistoryEntry = { id: number; username: string; userId?: number; outcome: string; ipAddress?: string; deviceName?: string; occurredAt: string };
+export type AdminMetric = { available: boolean; usedPercent?: number | null };
+export type AdminCapacity = { available: boolean; usedBytes?: number | null; totalBytes?: number | null; usedPercent?: number | null };
+export type AdminAiUsageTotals = { requests: number; failedRequests: number; inputTokens?: number | null; outputTokens?: number | null; totalTokens?: number | null };
+export type AdminAiUsageBreakdown = AdminAiUsageTotals & { operation: string; model: string };
+export type AdminMonitoring = {
+  system: { cpu: AdminMetric; memory: AdminCapacity; storage: AdminCapacity & { provider: string } };
+  aiUsage: { timeZone: string; periods: { today: AdminAiUsageTotals; thisMonth: AdminAiUsageTotals; allTime: AdminAiUsageTotals }; breakdown: AdminAiUsageBreakdown[] };
+};
 type Page<T> = { items: T[]; page: number; size: number; totalElements: number; totalPages: number };
 export const adminApi = {
   overview: () => request<AdminOverview>('/admin/overview', {}, true),
+  monitoring: () => request<AdminMonitoring>('/admin/monitoring', {}, true),
   users: () => request<Page<AdminUser>>('/admin/users?size=50', {}, true),
   userStatus: (id: number, status: 'ACTIVE' | 'SUSPENDED') => request<AdminUser>(`/admin/users/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status }) }, true),
   createUser: (body: { email: string; name: string; role?: string }) => request<{ user: AdminUser; temporaryPassword: string }>('/admin/users', { method: 'POST', body: JSON.stringify(body) }, true),

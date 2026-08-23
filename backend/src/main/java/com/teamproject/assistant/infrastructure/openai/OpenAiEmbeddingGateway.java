@@ -2,6 +2,8 @@ package com.teamproject.assistant.infrastructure.openai;
 
 import com.openai.client.OpenAIClient;
 import com.openai.models.embeddings.EmbeddingCreateParams;
+import com.teamproject.aiusage.application.AiUsageRecorder;
+import com.teamproject.aiusage.domain.AiUsageOperation;
 import com.teamproject.assistant.application.port.EmbeddingGateway;
 import com.teamproject.common.exception.ApplicationException;
 import com.teamproject.report.infrastructure.openai.OpenAiReportProperties;
@@ -18,12 +20,15 @@ public class OpenAiEmbeddingGateway implements EmbeddingGateway {
     private final OpenAIClient client;
     private final OpenAiAssistantProperties properties;
     private final OpenAiReportProperties sharedProperties;
+    private final AiUsageRecorder usageRecorder;
 
     public OpenAiEmbeddingGateway(@Qualifier("openAiAssistantClient") OpenAIClient client,
-            OpenAiAssistantProperties properties, OpenAiReportProperties sharedProperties) {
+            OpenAiAssistantProperties properties, OpenAiReportProperties sharedProperties,
+            AiUsageRecorder usageRecorder) {
         this.client = client;
         this.properties = properties;
         this.sharedProperties = sharedProperties;
+        this.usageRecorder = usageRecorder;
     }
 
     @Override
@@ -65,11 +70,21 @@ public class OpenAiEmbeddingGateway implements EmbeddingGateway {
             for (float[] vector : ordered) {
                 if (vector == null) throw new IllegalStateException("embedding response incomplete");
             }
+            usageRecorder.success(AiUsageOperation.DOCUMENT_EMBEDDING, properties.embeddingModel(),
+                    response._usage().asKnown()
+                            .flatMap(usage -> usage._promptTokens().asKnown())
+                            .orElse(null),
+                    0L,
+                    response._usage().asKnown()
+                            .flatMap(usage -> usage._totalTokens().asKnown())
+                            .orElse(null));
             return List.of(ordered);
         } catch (ApplicationException exception) {
             throw exception;
         } catch (Exception exception) {
             // 요청 본문과 응답 원문은 남기지 않는다. 실패 사실만 계약된 코드로 올린다.
+            usageRecorder.failure(AiUsageOperation.DOCUMENT_EMBEDDING, properties.embeddingModel(),
+                    "AI_ASSISTANT_EMBEDDING_FAILED");
             throw new ApplicationException("AI_ASSISTANT_EMBEDDING_FAILED", HttpStatus.SERVICE_UNAVAILABLE,
                     "자료 검색 준비에 실패했습니다. 잠시 후 다시 시도해 주세요.");
         }

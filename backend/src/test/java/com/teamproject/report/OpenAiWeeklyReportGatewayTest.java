@@ -7,6 +7,8 @@ import com.openai.models.responses.Response;
 import com.openai.models.responses.StructuredResponse;
 import com.openai.models.responses.StructuredResponseCreateParams;
 import com.openai.services.blocking.ResponseService;
+import com.teamproject.aiusage.application.AiUsageRecorder;
+import com.teamproject.aiusage.domain.AiUsageOperation;
 import com.teamproject.report.application.AiWeeklyReportFallbackFactory;
 import com.teamproject.report.application.AiWeeklyReportPolicyEngine;
 import com.teamproject.report.application.dto.AiWeeklyReportAnalysisDtos.AiWeeklyReportAnalysisV1;
@@ -40,6 +42,7 @@ class OpenAiWeeklyReportGatewayTest {
     private final ObjectMapper json = new ObjectMapper();
     private final OpenAIClient client = mock(OpenAIClient.class);
     private final ResponseService responses = mock(ResponseService.class);
+    private final AiUsageRecorder recorder = mock(AiUsageRecorder.class);
     private final OpenAiAnalysisContractMapper mapper = new OpenAiAnalysisContractMapper();
     private final AiWeeklyReportPolicyEngine policyEngine = new AiWeeklyReportPolicyEngine();
     private final AiWeeklyReportFallbackFactory fallbackFactory = new AiWeeklyReportFallbackFactory();
@@ -66,7 +69,7 @@ class OpenAiWeeklyReportGatewayTest {
                 3000L,
                 "v7-2-prompt-001"
         );
-        return new OpenAiWeeklyReportGateway(client, props, json, mapper);
+        return new OpenAiWeeklyReportGateway(client, props, json, mapper, recorder);
     }
 
     @Test
@@ -153,6 +156,32 @@ class OpenAiWeeklyReportGatewayTest {
         OpenAiWeeklyReportGateway noModelGateway = gateway(true, "");
         assertThatThrownBy(() -> noModelGateway.analyze(snapshot))
                 .isInstanceOf(OpenAiReportUnavailableException.class);
+        org.mockito.Mockito.verifyNoInteractions(recorder);
+    }
+
+    @Test
+    void recordsUsageAfterReturningAValidWeeklyAnalysis() throws Exception {
+        AiWeeklyReportAnalysisV1 fallback = fallbackFactory.create(snapshot);
+        stubResponse(completed(json.writeValueAsString(fallback)));
+
+        var analysis = gateway(true, MODEL).analyze(snapshot);
+
+        assertThat(analysis.inputTokens()).isEqualTo(11);
+        assertThat(analysis.outputTokens()).isEqualTo(7);
+        org.mockito.Mockito.verify(recorder).success(AiUsageOperation.WEEKLY_REPORT,
+                MODEL, 11L, 7L, 18L);
+    }
+
+    @Test
+    void recordsTheStableWeeklyReportFailureCodeWhenTheProviderCallFails() {
+        when(responses.create(any(StructuredResponseCreateParams.class)))
+                .thenThrow(new RuntimeException("500 Internal Server Error"));
+
+        assertThatThrownBy(() -> gateway(true, MODEL).analyze(snapshot))
+                .isInstanceOf(OpenAiReportInvalidResponseException.class);
+
+        org.mockito.Mockito.verify(recorder).failure(AiUsageOperation.WEEKLY_REPORT,
+                MODEL, "AI_REPORT_INVALID_RESPONSE");
     }
 
     @Test
@@ -232,6 +261,7 @@ class OpenAiWeeklyReportGatewayTest {
                 "created_at", 1785222000,
                 "status", "completed",
                 "model", MODEL,
+                "usage", Map.of("input_tokens", 11, "output_tokens", 7, "total_tokens", 18),
                 "output", List.of(Map.of(
                         "id", "msg_test",
                         "type", "message",

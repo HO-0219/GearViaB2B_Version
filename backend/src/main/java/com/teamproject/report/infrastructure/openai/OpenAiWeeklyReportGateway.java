@@ -5,6 +5,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.openai.client.OpenAIClient;
 import com.openai.models.responses.ResponseCreateParams;
 import com.openai.models.responses.StructuredResponseCreateParams;
+import com.teamproject.aiusage.application.AiUsageRecorder;
+import com.teamproject.aiusage.domain.AiUsageOperation;
 import com.teamproject.report.application.dto.AiWeeklyReportAnalysisDtos.AiWeeklyReportAnalysisV1;
 import com.teamproject.report.application.dto.AiWeeklyReportDtos.AiWeeklyReportSnapshotV1;
 import com.teamproject.report.application.port.AiWeeklyReportGateway;
@@ -30,17 +32,20 @@ public class OpenAiWeeklyReportGateway implements AiWeeklyReportGateway {
     private final OpenAiReportProperties properties;
     private final ObjectMapper objectMapper;
     private final OpenAiAnalysisContractMapper mapper;
+    private final AiUsageRecorder usageRecorder;
 
     public OpenAiWeeklyReportGateway(
             @Qualifier("openAiReportClient") OpenAIClient client,
             OpenAiReportProperties properties,
             ObjectMapper objectMapper,
-            OpenAiAnalysisContractMapper mapper
+            OpenAiAnalysisContractMapper mapper,
+            AiUsageRecorder usageRecorder
     ) {
         this.client = client;
         this.properties = properties;
         this.objectMapper = objectMapper;
         this.mapper = mapper;
+        this.usageRecorder = usageRecorder;
     }
 
     @Override
@@ -95,18 +100,28 @@ public class OpenAiWeeklyReportGateway implements AiWeeklyReportGateway {
 
             Integer inputTokens = response.usage().map(u -> (int) u.inputTokens()).orElse(null);
             Integer outputTokens = response.usage().map(u -> (int) u.outputTokens()).orElse(null);
-            return new Analysis(mapper.toDomain(contract), inputTokens, outputTokens);
+            Analysis analysis = new Analysis(mapper.toDomain(contract), inputTokens, outputTokens);
+            usageRecorder.success(AiUsageOperation.WEEKLY_REPORT, properties.model(),
+                    response.usage().map(usage -> usage.inputTokens()).orElse(null),
+                    response.usage().map(usage -> usage.outputTokens()).orElse(null),
+                    response.usage().map(usage -> usage.totalTokens()).orElse(null));
+            return analysis;
 
         } catch (OpenAiReportException e) {
+            usageRecorder.failure(AiUsageOperation.WEEKLY_REPORT, properties.model(), failureCode(e));
             log.warn("OpenAI weekly report call failed: category={}", e.getClass().getSimpleName());
             throw e;
         } catch (Exception e) {
             String msg = e.getMessage() != null ? e.getMessage() : "";
             if (msg.contains("429") || msg.contains("rate_limit")) {
+                usageRecorder.failure(AiUsageOperation.WEEKLY_REPORT, properties.model(),
+                        "AI_REPORT_RATE_LIMIT");
                 log.warn("OpenAI rate limit error occurred");
                 throw new OpenAiReportRateLimitException("Rate limit reached", e);
             }
             if (msg.contains("timeout") || msg.contains("Timeout")) {
+                usageRecorder.failure(AiUsageOperation.WEEKLY_REPORT, properties.model(),
+                        "AI_REPORT_TIMEOUT");
                 log.warn("OpenAI call timed out");
                 throw new OpenAiReportTimeoutException("Request timed out", e);
             }
@@ -114,8 +129,17 @@ public class OpenAiWeeklyReportGateway implements AiWeeklyReportGateway {
             // 남긴다. 메시지 본문은 응답 조각을 담을 수 있어 넣지 않는다(명세 8.2).
             log.warn("OpenAI report call failed: exception={} rootCause={}",
                     e.getClass().getSimpleName(), rootCauseName(e));
+            usageRecorder.failure(AiUsageOperation.WEEKLY_REPORT, properties.model(),
+                    "AI_REPORT_INVALID_RESPONSE");
             throw new OpenAiReportInvalidResponseException("OpenAI response call failed", e);
         }
+    }
+
+    private String failureCode(OpenAiReportException exception) {
+        if (exception instanceof OpenAiReportRateLimitException) return "AI_REPORT_RATE_LIMIT";
+        if (exception instanceof OpenAiReportTimeoutException) return "AI_REPORT_TIMEOUT";
+        if (exception instanceof OpenAiReportInvalidResponseException) return "AI_REPORT_INVALID_RESPONSE";
+        return "AI_REPORT_UNAVAILABLE";
     }
 
     /** 원인 사슬의 마지막 클래스 이름. 값이나 메시지는 담지 않는다. */

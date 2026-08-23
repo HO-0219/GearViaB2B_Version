@@ -11,6 +11,7 @@ const tabs: { to: string; end?: boolean; label: [string, string] }[] = [
   { to: '/admin/users', label: ['사용자 관리', 'Users'] },
   { to: '/admin/tasks', label: ['업무 관리', 'Tasks'] },
   { to: '/admin/reports', label: ['리포트', 'Reports'] },
+  { to: '/admin/monitoring', label: ['모니터링', 'Monitoring'] },
   { to: '/admin/ai-settings', label: ['AI 설정', 'AI settings'] },
   { to: '/admin/branding', label: ['브랜딩', 'Branding'] },
   { to: '/admin/notices', label: ['공지 발송', 'Notices'] },
