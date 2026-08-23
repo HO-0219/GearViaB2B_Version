@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { adminApi, AdminAiUsageTotals, AdminCapacity, AdminMetric, AdminMonitoring } from '../../../api/adminApi';
+import { adminApi, AdminAiUsageTotals, AdminCapacity, AdminMetric, AdminMonitoring, AdminStorageSettings } from '../../../api/adminApi';
 import { errorMessage } from '../../../api/client';
 import { useLanguage } from '../../../app/LanguageContext';
 import { AdminTable } from '../AdminShared';
@@ -7,11 +7,13 @@ import { AdminTable } from '../AdminShared';
 export function AdminMonitoringPage() {
   const { t } = useLanguage();
   const [monitoring, setMonitoring] = useState<AdminMonitoring>();
+  const [storage, setStorage] = useState<AdminStorageSettings>();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
   useEffect(() => {
-    adminApi.monitoring().then(setMonitoring)
+    Promise.all([adminApi.monitoring(), adminApi.storageSettings()])
+      .then(([monitoringValue, storageValue]) => { setMonitoring(monitoringValue); setStorage(storageValue); })
       .catch((value) => setError(errorMessage(value)))
       .finally(() => setLoading(false));
   }, []);
@@ -29,6 +31,15 @@ export function AdminMonitoringPage() {
             detail={`${t('저장소 제공자', 'Storage provider')}: ${monitoring.system.storage.provider}`} />
         </div>
       </section>
+      {storage && <section className="admin-panel admin-notice-panel">
+        <div className="admin-panel-heading"><div><h2>{t('스토리지 연동 설정', 'Storage integration')}</h2><p>{t('저장 위치는 서버 관리자가 배포 시 설정합니다. 이 화면은 현재 설정과 지원되는 연동 방식만 보여줍니다.', 'The storage location is set by the server administrator at deploy time. This screen only shows the current setting and which integrations are supported.')}</p></div></div>
+        <dl className="admin-storage-settings">
+          <div><dt>{t('현재 방식', 'Active provider')}</dt><dd>{providerLabel(storage.provider, t)}</dd></div>
+          <div><dt>{t('경로', 'Path')}</dt><dd>{storage.rootPath || '-'}</dd></div>
+          <div><dt>{t('마운트 상태', 'Mount status')}</dt><dd className={storage.mounted ? 'success-message' : 'error'}>{storage.mounted ? t('정상', 'Healthy') : t('연결 안 됨', 'Unavailable')}</dd></div>
+        </dl>
+        <p className="admin-notice-panel-footnote">{t('지원되는 연동 방식', 'Supported providers')}: {storage.supportedProviders.map((value) => providerLabel(value, t)).join(', ')}</p>
+      </section>}
       <AdminTable title={t('AI 사용량', 'AI usage')} emptyLabel={t('AI 호출 기록이 없습니다.', 'No AI requests recorded.')}
         headers={[t('기간', 'Period'), t('호출', 'Requests'), t('실패', 'Failed'), t('입력 토큰', 'Input tokens'), t('출력 토큰', 'Output tokens'), t('총 토큰', 'Total tokens')]}
         rows={[
@@ -61,6 +72,12 @@ function CapacityCard({ title, value, unavailable, detail }: { title: string; va
 
 function totalCells(value: AdminAiUsageTotals): (number | string)[] {
   return [value.requests, value.failedRequests, tokens(value.inputTokens), tokens(value.outputTokens), tokens(value.totalTokens)];
+}
+
+function providerLabel(provider: string, t: (ko: string, en: string) => string) {
+  if (provider.toLowerCase() === 'local') return t('로컬 디스크', 'Local disk');
+  if (provider.toLowerCase() === 'nas_mount') return t('NAS/사내 스토리지', 'NAS / company storage');
+  return provider;
 }
 
 function operationLabel(operation: string, t: (ko: string, en: string) => string) {

@@ -46,10 +46,15 @@ public class B2bConfigurationValidator {
                 "AUTH_SECURE_COOKIE must be true");
         require("spring.jpa.hibernate.ddl-auto", value -> value.equalsIgnoreCase("validate"), failures,
                 "SPRING_JPA_HIBERNATE_DDL_AUTO must be validate");
-        require("app.storage.provider", value -> value.equalsIgnoreCase("local"), failures,
-                "STORAGE_PROVIDER must be local");
-        require("app.storage.local-root", value -> value.equals(UPLOAD_ROOT), failures,
-                "UPLOAD_LOCAL_ROOT must be /opt/b2bgearvia/data/uploads");
+        require("app.storage.provider", value -> value.equalsIgnoreCase("local") || value.equalsIgnoreCase("nas_mount"),
+                failures, "STORAGE_PROVIDER must be local or nas_mount");
+        if (value("app.storage.provider").equalsIgnoreCase("nas_mount")) {
+            require("app.storage.nas-root", value -> !value.isBlank(), failures,
+                    "STORAGE_NAS_ROOT must be set when STORAGE_PROVIDER is nas_mount");
+        } else {
+            require("app.storage.local-root", value -> value.equals(UPLOAD_ROOT), failures,
+                    "UPLOAD_LOCAL_ROOT must be /opt/b2bgearvia/data/uploads");
+        }
         require("app.demo.enabled", value -> !Boolean.parseBoolean(value), failures,
                 "DEMO_ENABLED must be false");
 

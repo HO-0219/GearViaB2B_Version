@@ -11,7 +11,7 @@ vi.mock('../../../api/client', () => ({
 }));
 
 vi.mock('../../../api/adminApi', () => ({
-  adminApi: { monitoring: vi.fn() },
+  adminApi: { monitoring: vi.fn(), storageSettings: vi.fn() },
 }));
 
 const totals = (requests: number) => ({
@@ -27,6 +27,10 @@ describe('AdminMonitoringPage', () => {
     localStorage.clear();
     localStorage.setItem('b2bgearvia-language', 'en');
     vi.mocked(adminApi.monitoring).mockReset();
+    vi.mocked(adminApi.storageSettings).mockReset();
+    vi.mocked(adminApi.storageSettings).mockResolvedValue({
+      provider: 'local', supportedProviders: ['local', 'nas_mount'], rootPath: '/opt/b2bgearvia/data/uploads', mounted: true,
+    });
   });
   afterEach(() => cleanup());
 

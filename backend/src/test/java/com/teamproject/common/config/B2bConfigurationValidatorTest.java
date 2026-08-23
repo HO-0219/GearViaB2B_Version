@@ -55,8 +55,39 @@ class B2bConfigurationValidatorTest {
                 .hasMessageContaining("DEMO_ENABLED must be false")
                 .hasMessageContaining("AUTH_SECURE_COOKIE must be true")
                 .hasMessageContaining("SPRING_JPA_HIBERNATE_DDL_AUTO must be validate")
-                .hasMessageContaining("STORAGE_PROVIDER must be local")
+                .hasMessageContaining("STORAGE_PROVIDER must be local or nas_mount")
                 .hasMessageContaining("UPLOAD_LOCAL_ROOT must be /opt/b2bgearvia/data/uploads");
+    }
+
+    @Test
+    void acceptsNasMountStorageWithNasRootConfigured() {
+        MockEnvironment environment = secureB2bProductionEnvironment()
+                .withProperty("app.storage.provider", "nas_mount")
+                .withProperty("app.storage.nas-root", "/mnt/company-nas/b2bgearvia")
+                .withProperty("spring.security.oauth2.client.registration.google.client-id", "")
+                .withProperty("spring.security.oauth2.client.registration.google.client-secret", "")
+                .withProperty("app.mail.enabled", "false")
+                .withProperty("spring.mail.host", "")
+                .withProperty("spring.mail.username", "")
+                .withProperty("spring.mail.password", "")
+                .withProperty("app.mail.from", "no-reply@b2bgearvia.local")
+                .withProperty("app.openai.api-key", "")
+                .withProperty("app.ai-report.enabled", "false")
+                .withProperty("app.ai-assistant.enabled", "false");
+
+        assertThatCode(() -> new B2bConfigurationValidator(environment).validate())
+                .doesNotThrowAnyException();
+    }
+
+    @Test
+    void rejectsNasMountStorageWithoutNasRoot() {
+        MockEnvironment environment = secureB2bProductionEnvironment()
+                .withProperty("app.storage.provider", "nas_mount")
+                .withProperty("app.storage.nas-root", "");
+
+        assertThatThrownBy(() -> new B2bConfigurationValidator(environment).validate())
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("STORAGE_NAS_ROOT must be set when STORAGE_PROVIDER is nas_mount");
     }
 
     @Test
