@@ -14,6 +14,7 @@ const tabs: { to: string; end?: boolean; label: [string, string] }[] = [
   { to: '/admin/ai-settings', label: ['AI 설정', 'AI settings'] },
   { to: '/admin/branding', label: ['브랜딩', 'Branding'] },
   { to: '/admin/notices', label: ['공지 발송', 'Notices'] },
+  { to: '/admin/login-history', label: ['로그인 이력', 'Login history'] },
   { to: '/admin/audit-log', label: ['감사 로그', 'Audit log'] },
 ];
 

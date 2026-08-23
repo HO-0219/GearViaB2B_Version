@@ -962,6 +962,19 @@ CREATE TABLE branding_settings (
     PRIMARY KEY (id)
 ) ENGINE = InnoDB;
 
+CREATE TABLE login_history (
+    id BIGINT NOT NULL AUTO_INCREMENT,
+    username VARCHAR(120) NOT NULL,
+    user_id BIGINT NULL,
+    outcome VARCHAR(20) NOT NULL,
+    ip_address VARCHAR(64) NULL,
+    device_name VARCHAR(120) NULL,
+    occurred_at DATETIME(6) NOT NULL,
+    PRIMARY KEY (id),
+    INDEX idx_login_history_occurred_at (occurred_at),
+    CONSTRAINT fk_login_history_user FOREIGN KEY (user_id) REFERENCES users (id)
+) ENGINE = InnoDB;
+
 CREATE TABLE admin_notices (
     id BIGINT NOT NULL AUTO_INCREMENT,
     title VARCHAR(160) NOT NULL,

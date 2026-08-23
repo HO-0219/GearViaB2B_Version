@@ -32,10 +32,12 @@ public class SessionService {
     private final String demoUsername;
     private final AdminMfaService adminMfa;
     private final PushSubscriptionService pushSubscriptions;
+    private final LoginHistoryRecorder loginHistory;
 
     public SessionService(UserRepository users, PasswordEncoder passwordEncoder,
             RefreshTokenService refreshTokens, AccessSessionIssuer issuer, NotificationService notifications,
             AdminMfaService adminMfa, PushSubscriptionService pushSubscriptions,
+            LoginHistoryRecorder loginHistory,
             @Value("${app.demo.enabled:true}") boolean demoEnabled,
             @Value("${app.demo.username:demo_leader}") String demoUsername) {
         this.users = users;
@@ -45,33 +47,48 @@ public class SessionService {
         this.notifications = notifications;
         this.adminMfa = adminMfa;
         this.pushSubscriptions = pushSubscriptions;
+        this.loginHistory = loginHistory;
         this.demoEnabled = demoEnabled;
         this.demoUsername = demoUsername;
     }
 
-    @Transactional
+    @Transactional(noRollbackFor = ApplicationException.class)
     public IssuedTokens login(LoginRequest request) {
         return login(request, ClientMode.WEB);
     }
 
-    @Transactional
+    @Transactional(noRollbackFor = ApplicationException.class)
     public IssuedTokens login(LoginRequest request, ClientMode mode) {
         return login(request, mode, SessionDevice.unknown());
     }
 
-    @Transactional
+    @Transactional(noRollbackFor = ApplicationException.class)
     public IssuedTokens login(LoginRequest request, ClientMode mode, SessionDevice device) {
+        return login(request, mode, device, null);
+    }
+
+    @Transactional(noRollbackFor = ApplicationException.class)
+    public IssuedTokens login(LoginRequest request, ClientMode mode, SessionDevice device, String ipAddress) {
         String identifier = request.username().trim();
-        User user = identifier.contains("@")
-                ? users.findByEmailIgnoreCase(identifier).orElseThrow(this::credentials)
-                : users.findByUsernameIgnoreCase(identifier).orElseThrow(this::credentials);
-        if (user.getPasswordHash() == null || !passwordEncoder.matches(request.password(), user.getPasswordHash())) {
+        User user = (identifier.contains("@")
+                ? users.findByEmailIgnoreCase(identifier)
+                : users.findByUsernameIgnoreCase(identifier)).orElse(null);
+        if (user == null || user.getPasswordHash() == null
+                || !passwordEncoder.matches(request.password(), user.getPasswordHash())) {
+            loginHistory.failure(identifier, ipAddress, device.deviceName());
             throw credentials();
         }
-        boolean mfaVerified = adminMfa.verifyForLogin(user, request.mfaCode());
+        boolean mfaVerified;
+        try {
+            mfaVerified = adminMfa.verifyForLogin(user, request.mfaCode());
+        } catch (ApplicationException exception) {
+            loginHistory.failure(identifier, ipAddress, device.deviceName());
+            throw exception;
+        }
         boolean newDevice = refreshTokens.hasAnySession(user.getId())
                 && !refreshTokens.isKnownDevice(user.getId(), device.deviceId());
         user.recordLogin();
+        loginHistory.success(user, ipAddress, device.deviceName());
         securityLog.info("event=LOGIN outcome=SUCCESS actorUserId={}", user.getId());
         IssuedTokens tokens = issuer.issue(user, mode, device, mfaVerified);
         if (newDevice) {

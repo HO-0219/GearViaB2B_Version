@@ -15,6 +15,7 @@ export type AdminAiConnectionTestResponse = { report: AdminAiConnectionResult; a
 export type AdminBranding = { organizationName: string; hasLogo: boolean };
 export type AdminNotice = { id: number; title: string; message: string; scheduledAt: string; status: string; recipientCount?: number; createdAt: string; sentAt?: string };
 export type AdminTask = { id: number; groupId: number; groupName: string; title: string; status: string; requesterId: number; requesterNickname: string; assigneeId?: number; assigneeNickname?: string; dueAt?: string; holdReason?: string; deletedAt?: string; createdAt: string; updatedAt: string };
+export type AdminLoginHistoryEntry = { id: number; username: string; userId?: number; outcome: string; ipAddress?: string; deviceName?: string; occurredAt: string };
 type Page<T> = { items: T[]; page: number; size: number; totalElements: number; totalPages: number };
 export const adminApi = {
   overview: () => request<AdminOverview>('/admin/overview', {}, true),
@@ -53,4 +54,5 @@ export const adminApi = {
   resumeTask: (id: number) => request<AdminTask>(`/admin/tasks/${id}/resume`, { method: 'POST' }, true),
   deleteTask: (id: number) => request<void>(`/admin/tasks/${id}`, { method: 'DELETE' }, true),
   restoreTask: (id: number) => request<AdminTask>(`/admin/tasks/${id}/restore`, { method: 'POST' }, true),
+  loginHistory: () => request<Page<AdminLoginHistoryEntry>>('/admin/login-history?size=50', {}, true),
 };

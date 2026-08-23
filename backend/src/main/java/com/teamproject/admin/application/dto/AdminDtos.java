@@ -37,4 +37,6 @@ public final class AdminDtos {
             Long requesterId, String requesterNickname, Long assigneeId, String assigneeNickname,
             LocalDateTime dueAt, String holdReason, LocalDateTime deletedAt,
             LocalDateTime createdAt, LocalDateTime updatedAt) {}
+    public record AdminLoginHistoryResponse(Long id, String username, Long userId, String outcome,
+            String ipAddress, String deviceName, LocalDateTime occurredAt) {}
 }
