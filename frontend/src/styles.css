@@ -937,6 +937,11 @@ body { background: radial-gradient(circle at 80% -10%, #eeeefe 0, transparent 26
 .admin-action.danger { border-color: #efc8cf; color: #a32b42; }
 .admin-action.danger:hover { background: #fff3f5; }
 .admin-table-panel td.admin-empty { height: 104px; max-width: none; color: #81889a; text-align: center; vertical-align: middle; white-space: normal; }
+.admin-monitoring-cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.admin-monitoring-card { display: grid; gap: 6px; min-width: 0; padding: 15px; border: 1px solid #e3e7ef; border-radius: 12px; background: #f9faff; }
+.admin-monitoring-card > span, .admin-monitoring-card small, .admin-monitoring-footnote { color: #737b8e; font-size: 12px; }
+.admin-monitoring-card strong { overflow-wrap: anywhere; color: #283457; font: 750 17px/1.35 Manrope, sans-serif; }
+.admin-monitoring-footnote { margin: 12px 2px 0; }
 
 @media (max-width: 760px) {
   .admin-page > header > a { margin-top: 15px; }
@@ -959,6 +964,7 @@ body { background: radial-gradient(circle at 80% -10%, #eeeefe 0, transparent 26
   .admin-message-cell, .admin-path-cell { min-width: 0; max-width: none; }
   .admin-table-panel td.admin-empty { display: grid; place-items: center; height: 92px; }
   .admin-table-panel td.admin-empty::before { display: none; }
+  .admin-monitoring-cards { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 420px) {

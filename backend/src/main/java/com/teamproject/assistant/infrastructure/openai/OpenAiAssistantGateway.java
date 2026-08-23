@@ -4,6 +4,8 @@ import com.openai.client.OpenAIClient;
 import com.openai.core.JsonValue;
 import com.openai.models.responses.FunctionTool;
 import com.openai.models.responses.ResponseCreateParams;
+import com.teamproject.aiusage.application.AiUsageRecorder;
+import com.teamproject.aiusage.domain.AiUsageOperation;
 import com.teamproject.assistant.application.port.AiAssistantGateway;
 import com.teamproject.common.exception.ApplicationException;
 import com.teamproject.report.infrastructure.openai.OpenAiReportProperties;
@@ -42,12 +44,15 @@ public class OpenAiAssistantGateway implements AiAssistantGateway {
     private final OpenAIClient client;
     private final OpenAiAssistantProperties properties;
     private final OpenAiReportProperties sharedProperties;
+    private final AiUsageRecorder usageRecorder;
 
     public OpenAiAssistantGateway(@Qualifier("openAiAssistantClient") OpenAIClient client,
-            OpenAiAssistantProperties properties, OpenAiReportProperties sharedProperties) {
+            OpenAiAssistantProperties properties, OpenAiReportProperties sharedProperties,
+            AiUsageRecorder usageRecorder) {
         this.client = client;
         this.properties = properties;
         this.sharedProperties = sharedProperties;
+        this.usageRecorder = usageRecorder;
     }
 
     @Override
@@ -104,20 +109,32 @@ public class OpenAiAssistantGateway implements AiAssistantGateway {
         var params = builder.build();
         try {
             var response = client.responses().create(params);
-            var call = response.output().stream().flatMap(item -> item.functionCall().stream()).findFirst();
-            if (call.isPresent()) {
-                return new ToolDecision(call.get().name(), call.get().arguments());
+            if (response.status().filter(com.openai.models.responses.ResponseStatus.COMPLETED::equals).isEmpty()) {
+                throw new IllegalStateException("assistant response is incomplete");
             }
-            String text = response.output().stream()
-                    .flatMap(item -> item.message().stream())
-                    .flatMap(outputMessage -> outputMessage.content().stream())
-                    .flatMap(content -> content.outputText().stream())
-                    .map(value -> value.text())
-                    .findFirst().orElse("요청을 이해하지 못했습니다. 조금 더 구체적으로 말씀해 주세요.");
-            return new TextDecision(text);
+            var call = response.output().stream().flatMap(item -> item.functionCall().stream()).findFirst();
+            Decision decision;
+            if (call.isPresent()) {
+                decision = new ToolDecision(call.get().name(), call.get().arguments());
+            } else {
+                String text = response.output().stream()
+                        .flatMap(item -> item.message().stream())
+                        .flatMap(outputMessage -> outputMessage.content().stream())
+                        .flatMap(content -> content.outputText().stream())
+                        .map(value -> value.text())
+                        .findFirst().orElse("요청을 이해하지 못했습니다. 조금 더 구체적으로 말씀해 주세요.");
+                decision = new TextDecision(text);
+            }
+            usageRecorder.success(AiUsageOperation.ASSISTANT_RESPONSE, properties.model(),
+                    response.usage().map(usage -> usage.inputTokens()).orElse(null),
+                    response.usage().map(usage -> usage.outputTokens()).orElse(null),
+                    response.usage().map(usage -> usage.totalTokens()).orElse(null));
+            return decision;
         } catch (ApplicationException exception) {
             throw exception;
         } catch (Exception exception) {
+            usageRecorder.failure(AiUsageOperation.ASSISTANT_RESPONSE, properties.model(),
+                    "AI_ASSISTANT_UNAVAILABLE");
             throw new ApplicationException("AI_ASSISTANT_UNAVAILABLE", HttpStatus.SERVICE_UNAVAILABLE,
                     "AI 비서가 잠시 응답하지 않습니다. 잠시 후 다시 시도해 주세요.");
         }

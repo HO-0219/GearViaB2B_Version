@@ -1013,3 +1013,18 @@ CREATE TABLE admin_notices (
     INDEX idx_admin_notices_status_scheduled (status, scheduled_at),
     CONSTRAINT fk_admin_notices_created_by FOREIGN KEY (created_by_user_id) REFERENCES users (id)
 ) ENGINE = InnoDB;
+
+CREATE TABLE ai_usage_records (
+    id BIGINT NOT NULL AUTO_INCREMENT,
+    operation VARCHAR(40) NOT NULL,
+    model VARCHAR(120) NOT NULL,
+    outcome VARCHAR(16) NOT NULL,
+    input_tokens BIGINT NULL,
+    output_tokens BIGINT NULL,
+    total_tokens BIGINT NULL,
+    failure_code VARCHAR(100) NULL,
+    occurred_at DATETIME(6) NOT NULL,
+    PRIMARY KEY (id),
+    INDEX idx_ai_usage_records_occurred_at (occurred_at),
+    INDEX idx_ai_usage_records_operation_model (operation, model)
+) ENGINE = InnoDB;
