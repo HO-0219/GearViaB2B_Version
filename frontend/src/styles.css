@@ -898,6 +898,9 @@ body { background: radial-gradient(circle at 80% -10%, #eeeefe 0, transparent 26
 .admin-notice-panel-footnote { margin-top: 10px; color: #737b8e; font-size: 12px; }
 .admin-stats { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
 .admin-stats article { min-width: 0; box-shadow: 0 8px 24px rgba(31, 42, 78, .04); }
+.admin-stat-link { cursor: pointer; transition: border-color .18s, box-shadow .18s, transform .18s; }
+.admin-stat-link:hover, .admin-stat-link:focus-visible { border-color: #c7cdf0; box-shadow: 0 10px 26px rgba(47, 39, 86, .09); transform: translateY(-1px); }
+.admin-stat-link:focus-visible { outline: 2px solid #6175dc; outline-offset: 2px; }
 .admin-stats span { min-height: 32px; line-height: 1.4; word-break: keep-all; }
 .admin-stats strong { display: block; margin-top: 5px; line-height: 1; font-family: Manrope, sans-serif; }
 .admin-panel { min-width: 0; box-shadow: 0 8px 24px rgba(31, 42, 78, .035); }
