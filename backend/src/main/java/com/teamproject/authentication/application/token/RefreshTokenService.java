@@ -50,12 +50,17 @@ public class RefreshTokenService {
 
     @Transactional
     public IssuedRefreshToken issue(User user, ClientMode mode, SessionDevice device) {
+        return issue(user, mode, device, false);
+    }
+
+    @Transactional
+    public IssuedRefreshToken issue(User user, ClientMode mode, SessionDevice device, boolean mfaVerified) {
         LocalDateTime now = LocalDateTime.now();
         long idleSeconds = idleSeconds(mode);
         LocalDateTime absoluteExpiry = now.plusSeconds(mode == ClientMode.PWA ? pwaAbsoluteSeconds : webRefreshSeconds);
         String sessionId = UUID.randomUUID().toString();
         return save(user, sessionId, mode, now.plusSeconds(idleSeconds), absoluteExpiry,
-                device, now, now);
+                device, now, now, mfaVerified);
     }
 
     @Transactional(noRollbackFor = ApplicationException.class)
@@ -95,7 +100,7 @@ public class RefreshTokenService {
         SessionDevice device = currentDevice == null ? new SessionDevice(
                 token.getDeviceId(), token.getDeviceName(), token.getUserAgent(), token.getIpAddress()) : currentDevice;
         IssuedRefreshToken issued = save(token.getUser(), token.getSessionId(), mode,
-                expiry, absoluteExpiry, device, token.getCreatedAt(), now);
+                expiry, absoluteExpiry, device, token.getCreatedAt(), now, token.isMfaVerified());
         if (newlyIdentifiedDevice) {
             notifications.newDeviceLogin(token.getUser(), device.deviceName(),
                     "SECURITY_NEW_DEVICE:" + device.deviceId() + ":" + token.getUser().getAuthVersion());
@@ -104,11 +109,12 @@ public class RefreshTokenService {
     }
 
     private IssuedRefreshToken save(User user, String sessionId, ClientMode mode, LocalDateTime expiry,
-            LocalDateTime absoluteExpiry, SessionDevice device, LocalDateTime createdAt, LocalDateTime now) {
+            LocalDateTime absoluteExpiry, SessionDevice device, LocalDateTime createdAt, LocalDateTime now,
+            boolean mfaVerified) {
         String raw = Base64.getUrlEncoder().withoutPadding().encodeToString(random.generateSeed(48));
         repository.save(new RefreshToken(user, hashService.sha256(raw), sessionId, mode, expiry, absoluteExpiry,
-                device, createdAt, now));
-        return new IssuedRefreshToken(raw, sessionId, Math.max(1, Duration.between(now, expiry).toSeconds()));
+                device, createdAt, now, mfaVerified));
+        return new IssuedRefreshToken(raw, sessionId, Math.max(1, Duration.between(now, expiry).toSeconds()), mfaVerified);
     }
 
     @Transactional public void revoke(String raw) { if (raw != null) repository.findByTokenHash(hashService.sha256(raw)).ifPresent(RefreshToken::revoke); }
@@ -150,6 +156,6 @@ public class RefreshTokenService {
     private long idleSeconds(ClientMode mode) { return mode == ClientMode.PWA ? pwaIdleSeconds : webRefreshSeconds; }
     private ApplicationException invalid() { return new ApplicationException("REFRESH_TOKEN_INVALID", HttpStatus.UNAUTHORIZED, "로그인이 만료되었습니다."); }
     private ApplicationException reused() { return new ApplicationException("REFRESH_TOKEN_REUSED", HttpStatus.UNAUTHORIZED, "세션 보안을 위해 이 기기의 로그인이 해제되었습니다."); }
-    public record IssuedRefreshToken(String rawToken, String sessionId, long cookieMaxAgeSeconds) {}
+    public record IssuedRefreshToken(String rawToken, String sessionId, long cookieMaxAgeSeconds, boolean mfaVerified) {}
     public record RotatedRefreshToken(User user, IssuedRefreshToken refreshToken) {}
 }

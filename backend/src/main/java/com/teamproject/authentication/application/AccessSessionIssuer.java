@@ -33,7 +33,7 @@ public class AccessSessionIssuer {
         if (!user.isActive()) {
             throw new ApplicationException("ACCOUNT_INACTIVE", HttpStatus.FORBIDDEN, "사용할 수 없는 계정입니다.");
         }
-        var refresh = refreshTokens.issue(user, mode, device);
+        var refresh = refreshTokens.issue(user, mode, device, mfaVerified);
         return tokens(user, refresh, mfaVerified);
     }
 
@@ -50,7 +50,7 @@ public class AccessSessionIssuer {
         if (!rotated.user().isActive()) {
             throw new ApplicationException("ACCOUNT_INACTIVE", HttpStatus.FORBIDDEN, "사용할 수 없는 계정입니다.");
         }
-        return tokens(rotated.user(), rotated.refreshToken(), false);
+        return tokens(rotated.user(), rotated.refreshToken(), rotated.refreshToken().mfaVerified());
     }
 
     private IssuedTokens tokens(User user, RefreshTokenService.IssuedRefreshToken refresh, boolean mfaVerified) {

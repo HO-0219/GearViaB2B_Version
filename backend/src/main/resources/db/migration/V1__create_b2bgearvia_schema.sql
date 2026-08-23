@@ -1028,3 +1028,6 @@ CREATE TABLE ai_usage_records (
     INDEX idx_ai_usage_records_occurred_at (occurred_at),
     INDEX idx_ai_usage_records_operation_model (operation, model)
 ) ENGINE = InnoDB;
+
+ALTER TABLE refresh_tokens
+    ADD COLUMN mfa_verified BOOLEAN NOT NULL DEFAULT FALSE;
