@@ -20,7 +20,7 @@ class AdminAiSettingsServiceTest {
     }
 
     private OpenAiAssistantProperties assistantProperties(boolean enabled, String model) {
-        return new OpenAiAssistantProperties(enabled, model, Duration.ofSeconds(30), 800L);
+        return new OpenAiAssistantProperties(enabled, model, Duration.ofSeconds(30), 800L, null);
     }
 
     private OpenAIClient clientReturning(ModelService models) {

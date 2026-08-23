@@ -3,9 +3,11 @@ package com.teamproject.assistant.presentation;
 import com.teamproject.assistant.application.AiAssistantActionService;
 import com.teamproject.assistant.application.AiAssistantChatService;
 import com.teamproject.assistant.application.AiAssistantMessageStore;
+import com.teamproject.assistant.application.AiDocumentIndexService;
 import com.teamproject.assistant.application.dto.AiAssistantDtos.ActionResponse;
 import com.teamproject.assistant.application.dto.AiAssistantDtos.ChatRequest;
 import com.teamproject.assistant.application.dto.AiAssistantDtos.ChatResponse;
+import com.teamproject.assistant.application.dto.AiAssistantDtos.IndexResponse;
 import jakarta.validation.Valid;
 import java.util.List;
 import org.springframework.security.core.Authentication;
@@ -17,12 +19,19 @@ public class AiAssistantController {
     private final AiAssistantChatService chat;
     private final AiAssistantActionService actions;
     private final AiAssistantMessageStore messages;
+    private final AiDocumentIndexService index;
 
     public AiAssistantController(AiAssistantChatService chat, AiAssistantActionService actions,
-            AiAssistantMessageStore messages) {
+            AiAssistantMessageStore messages, AiDocumentIndexService index) {
         this.chat = chat;
         this.actions = actions;
         this.messages = messages;
+        this.index = index;
+    }
+
+    @PostMapping("/reindex")
+    IndexResponse reindex(Authentication authentication, @RequestParam Long groupId) {
+        return index.reindex((Long) authentication.getPrincipal(), groupId);
     }
 
     @GetMapping("/messages")

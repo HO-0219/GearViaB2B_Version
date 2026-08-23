@@ -953,6 +953,30 @@ CREATE TABLE user_consents (
     CONSTRAINT fk_user_consents_user FOREIGN KEY (user_id) REFERENCES users (id)
 ) ENGINE = InnoDB;
 
+CREATE TABLE ai_document_chunks (
+    id BIGINT NOT NULL AUTO_INCREMENT,
+    group_id BIGINT NOT NULL,
+    group_resource_id BIGINT NULL,
+    project_document_id BIGINT NULL,
+    chunk_index INT NOT NULL,
+    title VARCHAR(120) NOT NULL,
+    filename VARCHAR(255) NULL,
+    content TEXT NOT NULL,
+    embedding LONGBLOB NOT NULL,
+    dimensions INT NOT NULL,
+    embedding_model VARCHAR(120) NOT NULL,
+    created_at DATETIME(6) NOT NULL,
+    PRIMARY KEY (id),
+    UNIQUE KEY uk_ai_document_chunks_group_resource_chunk (group_resource_id, chunk_index),
+    UNIQUE KEY uk_ai_document_chunks_project_document_chunk (project_document_id, chunk_index),
+    INDEX idx_ai_document_chunks_group (group_id, id),
+    CONSTRAINT fk_ai_document_chunks_group FOREIGN KEY (group_id) REFERENCES work_groups (id),
+    CONSTRAINT fk_ai_document_chunks_group_resource FOREIGN KEY (group_resource_id) REFERENCES group_resources (id),
+    CONSTRAINT fk_ai_document_chunks_project_document FOREIGN KEY (project_document_id) REFERENCES project_documents (id),
+    CONSTRAINT ck_ai_document_chunks_single_source
+        CHECK ((group_resource_id IS NULL) <> (project_document_id IS NULL))
+) ENGINE = InnoDB;
+
 CREATE TABLE branding_settings (
     id BIGINT NOT NULL,
     organization_name VARCHAR(80) NULL,
