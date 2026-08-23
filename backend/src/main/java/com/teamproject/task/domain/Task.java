@@ -121,6 +121,8 @@ public class Task {
 
     public void delete() { this.deletedAt = LocalDateTime.now(); this.updatedAt = deletedAt; }
 
+    public void restore() { this.deletedAt = null; this.updatedAt = LocalDateTime.now(); }
+
     public void start() {
         if (startAt == null) startAt = LocalDateTime.now();
         changeStatus(Status.IN_PROGRESS);

@@ -22,6 +22,7 @@ import { SessionKeepAlive } from './SessionKeepAlive';
 import { AdminShell } from '../features/admin/AdminShell';
 import { AdminOverviewPage } from '../features/admin/pages/AdminOverviewPage';
 import { AdminUsersPage } from '../features/admin/pages/AdminUsersPage';
+import { AdminTasksPage } from '../features/admin/pages/AdminTasksPage';
 import { AdminReportsPage } from '../features/admin/pages/AdminReportsPage';
 import { AdminAuditLogPage } from '../features/admin/pages/AdminAuditLogPage';
 import { AdminAiSettingsPage } from '../features/admin/pages/AdminAiSettingsPage';
@@ -49,6 +50,7 @@ export default function App() {
     <Route path="/admin" element={<AdminShell />}>
       <Route index element={<AdminOverviewPage />} />
       <Route path="users" element={<AdminUsersPage />} />
+      <Route path="tasks" element={<AdminTasksPage />} />
       <Route path="reports" element={<AdminReportsPage />} />
       <Route path="ai-settings" element={<AdminAiSettingsPage />} />
       <Route path="branding" element={<AdminBrandingPage />} />
@@ -98,6 +100,7 @@ function pageLabel(pathname: string, language: 'ko' | 'en') {
     if (pathname === '/groups') return 'Groups'; if (pathname === '/profile') return 'Profile'; if (pathname === '/account') return 'Account settings';
     if (pathname === '/admin') return 'Admin overview';
     if (pathname === '/admin/users') return 'Admin users';
+    if (pathname === '/admin/tasks') return 'Admin tasks';
     if (pathname === '/admin/reports') return 'Admin reports';
     if (pathname === '/admin/ai-settings') return 'Admin AI settings';
     if (pathname === '/admin/branding') return 'Admin branding';
@@ -125,6 +128,7 @@ function pageLabel(pathname: string, language: 'ko' | 'en') {
   if (pathname === '/account') return '계정 설정';
   if (pathname === '/admin') return '운영자 · 현황';
   if (pathname === '/admin/users') return '운영자 · 사용자';
+  if (pathname === '/admin/tasks') return '운영자 · 업무';
   if (pathname === '/admin/reports') return '운영자 · 리포트';
   if (pathname === '/admin/ai-settings') return '운영자 · AI 설정';
   if (pathname === '/admin/branding') return '운영자 · 브랜딩';

@@ -32,4 +32,9 @@ public final class AdminDtos {
             @NotBlank @Size(max = 2000) String message, @NotNull LocalDateTime scheduledAt) {}
     public record AdminNoticeResponse(Long id, String title, String message, LocalDateTime scheduledAt,
             String status, Integer recipientCount, LocalDateTime createdAt, LocalDateTime sentAt) {}
+    public record SuspendTaskRequest(@NotBlank @Size(max = 500) String reason) {}
+    public record AdminTaskResponse(Long id, Long groupId, String groupName, String title, String status,
+            Long requesterId, String requesterNickname, Long assigneeId, String assigneeNickname,
+            LocalDateTime dueAt, String holdReason, LocalDateTime deletedAt,
+            LocalDateTime createdAt, LocalDateTime updatedAt) {}
 }

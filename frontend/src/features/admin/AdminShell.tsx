@@ -9,6 +9,7 @@ import { useBranding } from '../../app/useBranding';
 const tabs: { to: string; end?: boolean; label: [string, string] }[] = [
   { to: '/admin', end: true, label: ['운영 현황', 'Overview'] },
   { to: '/admin/users', label: ['사용자 관리', 'Users'] },
+  { to: '/admin/tasks', label: ['업무 관리', 'Tasks'] },
   { to: '/admin/reports', label: ['리포트', 'Reports'] },
   { to: '/admin/ai-settings', label: ['AI 설정', 'AI settings'] },
   { to: '/admin/branding', label: ['브랜딩', 'Branding'] },
