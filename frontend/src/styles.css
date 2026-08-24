@@ -16,7 +16,7 @@ a { min-height: 44px; display: inline-flex; align-items: center; color: #5067d9;
 .brand { position: relative; overflow: hidden; padding: clamp(56px, 7vw, 104px); display: flex; flex-direction: column; justify-content: center; color: white; background: linear-gradient(145deg, #1b2350 0%, #394db3 65%, #5d74e9 100%); }
 .brand::after { content: ''; width: 420px; height: 420px; position: absolute; right: -210px; bottom: -170px; border: 80px solid rgba(255,255,255,.08); border-radius: 50%; }
 .brand-mark { width: 52px; height: 52px; display: grid; place-items: center; border-radius: 16px; background: rgba(255,255,255,.14); color: white; box-shadow: 0 12px 30px rgba(12,19,66,.2); }
-.brand-mark svg { width: 38px; height: 38px; }
+.brand-mark svg, .brand-mark img { width: 38px; height: 38px; object-fit: contain; }
 .brand-mark svg path, .app-navigation-brand svg path, .mobile-logo svg path { fill: none; stroke: currentColor; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
 .brand-mark svg circle, .app-navigation-brand svg circle, .mobile-logo svg circle { fill: currentColor; }
 .brand > p { margin: 28px 0 12px; color: #bfc9ff; letter-spacing: .16em; font: 700 12px Manrope; }
@@ -27,7 +27,7 @@ a { min-height: 44px; display: inline-flex; align-items: center; color: #5067d9;
 .auth-card h2 { margin: 0 0 10px; font-size: 30px; letter-spacing: -.03em; }
 .auth-card header p { margin: 0; color: #768097; }
 .mobile-logo { display: none; gap: 9px; color: #4f43b7; font-family: Manrope, sans-serif; }
-.mobile-logo svg { width: 30px; height: 30px; }
+.mobile-logo svg, .mobile-logo img { width: 30px; height: 30px; object-fit: contain; }
 .form { display: grid; gap: 18px; }
 .auth-admin-link { width: 100%; justify-content: center; margin-top: 14px; border: 1px solid #dce0ea; border-radius: 10px; color: #485168; background: #fff; font-weight: 700; }
 .auth-admin-link:hover { border-color: #aab5ee; color: #4359c4; background: #f7f8ff; }
@@ -438,7 +438,7 @@ body { background: radial-gradient(circle at 80% -10%, #eeeefe 0, transparent 26
 .app-navigation { position: fixed; z-index: 50; top: 22px; bottom: 22px; left: var(--app-shell-edge); width: 184px; display: flex; flex-direction: column; overflow-x: hidden; overflow-y: auto; scrollbar-width: thin; padding: 18px 12px; border: 1px solid rgba(232, 229, 222, .9); border-radius: 26px; background: rgba(255, 255, 255, .88); box-shadow: 0 18px 50px rgba(54, 47, 90, .08); backdrop-filter: blur(18px); }
 .app-navigation-brand { gap: 10px; min-height: 54px; padding: 4px 8px 18px; color: var(--app-ink); }
 .app-navigation-brand > span { width: 38px; height: 38px; display: grid; place-items: center; flex: 0 0 auto; border-radius: 13px; color: #fff; background: linear-gradient(145deg, #756ae8, #574cc9); box-shadow: 0 8px 18px rgba(98, 86, 217, .24); }
-.app-navigation-brand svg { width: 29px; height: 29px; }
+.app-navigation-brand svg, .app-navigation-brand img { width: 29px; height: 29px; object-fit: contain; }
 .app-navigation-brand strong { max-width: 96px; font: 700 13px/1.25 Manrope; }
 .demo-session-notice { margin: 3px 2px 8px; padding: 9px; display: grid; gap: 6px; border-radius: 11px; color: #735d20; background: #fff5cf; font-size: 10px; font-weight: 700; }.demo-session-notice button { min-height: 30px; padding: 4px 6px; border: 1px solid #ead887; border-radius: 7px; color: #66531d; background: #fffdf5; cursor: pointer; font-size: 10px; font-weight: 700; }
 .group-switcher { display: grid; gap: 7px; margin: 4px 4px 14px; }.group-switcher > span { padding-left: 3px; color: #797381; font-size: 10px; font-weight: 800; letter-spacing: .08em; }.group-switcher select { width: 100%; min-height: 44px; padding: 0 28px 0 10px; overflow: hidden; border: 1px solid #ded9ef; border-radius: 12px; color: #403a4a; background: #f8f7ff; text-overflow: ellipsis; font-size: 11px; font-weight: 750; }
