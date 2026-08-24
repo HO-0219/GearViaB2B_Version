@@ -1,10 +1,9 @@
 package com.teamproject.assistant.application;
 
-import com.teamproject.assistant.infrastructure.openai.OpenAiAssistantProperties;
+import com.teamproject.aiprovider.infrastructure.openai.DynamicOpenAiSettings;
 import com.teamproject.common.scheduling.DatabaseJobLock;
 import com.teamproject.group.domain.Group;
 import com.teamproject.group.domain.GroupRepository;
-import com.teamproject.report.infrastructure.openai.OpenAiReportProperties;
 import java.time.Duration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,22 +29,19 @@ public class AiDocumentAutoIndexRetryScheduler {
     private final GroupRepository groups;
     private final AiDocumentIndexService indexService;
     private final DatabaseJobLock locks;
-    private final OpenAiAssistantProperties assistantProperties;
-    private final OpenAiReportProperties sharedProperties;
+    private final DynamicOpenAiSettings openAi;
 
     public AiDocumentAutoIndexRetryScheduler(GroupRepository groups, AiDocumentIndexService indexService,
-            DatabaseJobLock locks, OpenAiAssistantProperties assistantProperties,
-            OpenAiReportProperties sharedProperties) {
+            DatabaseJobLock locks, DynamicOpenAiSettings openAi) {
         this.groups = groups;
         this.indexService = indexService;
         this.locks = locks;
-        this.assistantProperties = assistantProperties;
-        this.sharedProperties = sharedProperties;
+        this.openAi = openAi;
     }
 
     @Scheduled(cron = "${app.ai-assistant.auto-index-retry-cron:0 */20 * * * *}", zone = "Asia/Seoul")
     public void retry() {
-        if (!assistantProperties.enabled() || !sharedProperties.hasApiKey()) return;
+        if (!openAi.assistantEnabled() || !openAi.hasApiKey()) return;
         if (!locks.acquire("ai-document-auto-index-retry", Duration.ofMinutes(15))) return;
         for (Group group : groups.findAllByTypeOrderByCreatedAtDesc(Group.Type.TEAM)) {
             try {
