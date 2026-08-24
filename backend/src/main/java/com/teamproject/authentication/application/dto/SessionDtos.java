@@ -18,8 +18,10 @@ public final class SessionDtos {
             return "TokenResponse[tokenType=" + tokenType + ", expiresIn=" + expiresIn + "]";
         }
     }
-    public record MeResponse(Long userId, String username, String email, String name, String role, boolean passwordChangeRequired) {
-        public MeResponse(Long userId, String username, String email, String name, String role) { this(userId, username, email, name, role, false); }
+    public record MeResponse(Long userId, String username, String email, String name, String nickname, String role, boolean passwordChangeRequired) {
+        public MeResponse(Long userId, String username, String email, String name, String nickname, String role) {
+            this(userId, username, email, name, nickname, role, false);
+        }
         @Override public String toString() { return "MeResponse[userId=" + userId + ", role=" + role + "]"; }
     }
     public record DeviceSessionResponse(String sessionId, String deviceName, String clientMode,

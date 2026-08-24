@@ -1,15 +1,13 @@
 package com.teamproject.assistant.infrastructure.openai;
 
-import com.openai.client.OpenAIClient;
 import com.openai.models.embeddings.EmbeddingCreateParams;
+import com.teamproject.aiprovider.infrastructure.openai.DynamicOpenAiSettings;
 import com.teamproject.aiusage.application.AiUsageRecorder;
 import com.teamproject.aiusage.domain.AiUsageOperation;
 import com.teamproject.assistant.application.port.EmbeddingGateway;
 import com.teamproject.common.exception.ApplicationException;
-import com.teamproject.report.infrastructure.openai.OpenAiReportProperties;
 import java.util.ArrayList;
 import java.util.List;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 
@@ -17,17 +15,14 @@ import org.springframework.stereotype.Component;
 public class OpenAiEmbeddingGateway implements EmbeddingGateway {
     private static final int BATCH = 64;
 
-    private final OpenAIClient client;
+    private final DynamicOpenAiSettings openAi;
     private final OpenAiAssistantProperties properties;
-    private final OpenAiReportProperties sharedProperties;
     private final AiUsageRecorder usageRecorder;
 
-    public OpenAiEmbeddingGateway(@Qualifier("openAiAssistantClient") OpenAIClient client,
-            OpenAiAssistantProperties properties, OpenAiReportProperties sharedProperties,
+    public OpenAiEmbeddingGateway(DynamicOpenAiSettings openAi, OpenAiAssistantProperties properties,
             AiUsageRecorder usageRecorder) {
-        this.client = client;
+        this.openAi = openAi;
         this.properties = properties;
-        this.sharedProperties = sharedProperties;
         this.usageRecorder = usageRecorder;
     }
 
@@ -39,7 +34,7 @@ public class OpenAiEmbeddingGateway implements EmbeddingGateway {
     @Override
     public List<float[]> embed(List<String> texts) {
         if (texts.isEmpty()) return List.of();
-        if (!properties.enabled() || !sharedProperties.hasApiKey()
+        if (!openAi.assistantEnabled() || !openAi.hasApiKey()
                 || properties.embeddingModel().isBlank()) {
             throw new ApplicationException("AI_ASSISTANT_NOT_CONFIGURED", HttpStatus.SERVICE_UNAVAILABLE,
                     "AI 비서가 아직 활성화되지 않았습니다.");
@@ -58,7 +53,7 @@ public class OpenAiEmbeddingGateway implements EmbeddingGateway {
                 .inputOfArrayOfStrings(batch)
                 .build();
         try {
-            var response = client.embeddings().create(params);
+            var response = openAi.assistantClient().embeddings().create(params);
             // 응답 순서를 신뢰하지 않고 index 로 되돌린다.
             float[][] ordered = new float[batch.size()][];
             response.data().forEach(embedding -> {

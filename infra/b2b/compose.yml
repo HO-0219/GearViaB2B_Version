@@ -40,6 +40,7 @@ services:
       - path: /opt/b2bgearvia/config/ai.env
         required: false
     environment:
+      TZ: Asia/Seoul
       APP_ENVIRONMENT: ${APP_ENVIRONMENT:?set APP_ENVIRONMENT}
       JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET}
       AUTH_SECURE_COOKIE: ${AUTH_SECURE_COOKIE:-true}

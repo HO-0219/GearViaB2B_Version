@@ -12,7 +12,8 @@ export type AdminAiVerticalStatus = { enabled: boolean; apiKeyConfigured: boolea
 export type AdminAiSettingsStatus = { report: AdminAiVerticalStatus; assistant: AdminAiVerticalStatus; supportedModels: string[] };
 export type AdminAiConnectionResult = { success: boolean; message: string };
 export type AdminAiConnectionTestResponse = { report: AdminAiConnectionResult; assistant: AdminAiConnectionResult };
-export type AdminStorageSettings = { provider: string; supportedProviders: string[]; rootPath: string; mounted: boolean };
+export type AdminStorageSettings = { provider: string; supportedProviders: string[]; localRootPath: string; localMounted: boolean; nasRootPath: string; nasMounted: boolean };
+export type AdminStorageTestResult = { success: boolean; message: string };
 export type AdminBranding = { organizationName: string; hasLogo: boolean };
 export type AdminNotice = { id: number; title: string; message: string; scheduledAt: string; status: string; recipientCount?: number; createdAt: string; sentAt?: string };
 export type AdminTask = { id: number; groupId: number; groupName: string; title: string; status: string; requesterId: number; requesterNickname: string; assigneeId?: number; assigneeNickname?: string; dueAt?: string; holdReason?: string; deletedAt?: string; createdAt: string; updatedAt: string };
@@ -25,7 +26,7 @@ export type AdminMonitoring = {
   system: { cpu: AdminMetric; memory: AdminCapacity; storage: AdminCapacity & { provider: string } };
   aiUsage: { timeZone: string; periods: { today: AdminAiUsageTotals; thisMonth: AdminAiUsageTotals; allTime: AdminAiUsageTotals }; breakdown: AdminAiUsageBreakdown[] };
 };
-type Page<T> = { items: T[]; page: number; size: number; totalElements: number; totalPages: number };
+export type Page<T> = { items: T[]; page: number; size: number; totalElements: number; totalPages: number };
 export const adminApi = {
   overview: () => request<AdminOverview>('/admin/overview', {}, true),
   monitoring: () => request<AdminMonitoring>('/admin/monitoring', {}, true),
@@ -44,10 +45,17 @@ export const adminApi = {
   mfaConfirm: (code: string) => request<void>('/admin/mfa/confirm', {
     method: 'POST', body: JSON.stringify({ code }),
   }, true),
-  auditLogs: () => request<Page<AdminAudit>>('/admin/audit-logs?size=50', {}, true),
+  auditLogs: (page = 0) => request<Page<AdminAudit>>(`/admin/audit-logs?page=${page}&size=50`, {}, true),
   aiSettings: () => request<AdminAiSettingsStatus>('/admin/ai-settings', {}, true),
   testAiConnections: () => request<AdminAiConnectionTestResponse>('/admin/ai-settings/test', { method: 'POST' }, true),
+  updateAiSettings: (apiKey: string | undefined, reportEnabled: boolean, assistantEnabled: boolean) =>
+    request<AdminAiSettingsStatus>('/admin/ai-settings', {
+      method: 'PUT', body: JSON.stringify({ apiKey, reportEnabled, assistantEnabled }),
+    }, true),
   storageSettings: () => request<AdminStorageSettings>('/admin/storage-settings', {}, true),
+  testNasStorage: () => request<AdminStorageTestResult>('/admin/storage-settings/nas/test', { method: 'POST' }, true),
+  activateNasStorage: () => request<AdminStorageTestResult>('/admin/storage-settings/nas/activate', { method: 'POST' }, true),
+  activateLocalStorage: () => request<AdminStorageSettings>('/admin/storage-settings/local/activate', { method: 'POST' }, true),
   updateBranding: (organizationName: string, logo: File | undefined, removeLogo: boolean) => {
     const body = new FormData();
     body.append('organizationName', organizationName);

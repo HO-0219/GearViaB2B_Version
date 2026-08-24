@@ -7,6 +7,7 @@ import com.openai.models.responses.Response;
 import com.openai.models.responses.StructuredResponse;
 import com.openai.models.responses.StructuredResponseCreateParams;
 import com.openai.services.blocking.ResponseService;
+import com.teamproject.aiprovider.infrastructure.openai.DynamicOpenAiSettings;
 import com.teamproject.aiusage.application.AiUsageRecorder;
 import com.teamproject.aiusage.domain.AiUsageOperation;
 import com.teamproject.report.application.AiWeeklyReportFallbackFactory;
@@ -69,7 +70,11 @@ class OpenAiWeeklyReportGatewayTest {
                 3000L,
                 "v7-2-prompt-001"
         );
-        return new OpenAiWeeklyReportGateway(client, props, json, mapper, recorder);
+        DynamicOpenAiSettings openAi = mock(DynamicOpenAiSettings.class);
+        when(openAi.reportEnabled()).thenReturn(enabled);
+        when(openAi.hasApiKey()).thenReturn(true);
+        when(openAi.reportClient()).thenReturn(client);
+        return new OpenAiWeeklyReportGateway(openAi, props, json, mapper, recorder);
     }
 
     @Test

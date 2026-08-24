@@ -6,12 +6,12 @@ import com.openai.core.ObjectMappers;
 import com.openai.models.embeddings.CreateEmbeddingResponse;
 import com.openai.models.embeddings.EmbeddingCreateParams;
 import com.openai.services.blocking.EmbeddingService;
+import com.teamproject.aiprovider.infrastructure.openai.DynamicOpenAiSettings;
 import com.teamproject.aiusage.application.AiUsageRecorder;
 import com.teamproject.aiusage.domain.AiUsageOperation;
 import com.teamproject.assistant.infrastructure.openai.OpenAiAssistantProperties;
 import com.teamproject.assistant.infrastructure.openai.OpenAiEmbeddingGateway;
 import com.teamproject.common.exception.ApplicationException;
-import com.teamproject.report.infrastructure.openai.OpenAiReportProperties;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
@@ -75,10 +75,11 @@ class OpenAiEmbeddingGatewayTest {
     private OpenAiEmbeddingGateway gateway(boolean enabled, String model, String apiKey) {
         OpenAiAssistantProperties assistant = new OpenAiAssistantProperties(
                 enabled, "gpt-5.6-luna", Duration.ofSeconds(30), 800L, model);
-        OpenAiReportProperties shared = new OpenAiReportProperties(
-                false, apiKey, "", OpenAiReportProperties.DEFAULT_BASE_URL,
-                Duration.ofSeconds(45), 1, 3000L, "test");
-        return new OpenAiEmbeddingGateway(client, assistant, shared, recorder);
+        DynamicOpenAiSettings openAi = mock(DynamicOpenAiSettings.class);
+        when(openAi.assistantEnabled()).thenReturn(enabled);
+        when(openAi.hasApiKey()).thenReturn(apiKey != null && !apiKey.isBlank());
+        when(openAi.assistantClient()).thenReturn(client);
+        return new OpenAiEmbeddingGateway(openAi, assistant, recorder);
     }
 
     private CreateEmbeddingResponse completedResponse() throws Exception {

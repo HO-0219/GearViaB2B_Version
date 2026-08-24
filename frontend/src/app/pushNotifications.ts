@@ -45,11 +45,19 @@ export async function enablePushNotifications(): Promise<PushSetupResult> {
 
 export async function disablePushForCurrentDevice() {
   if (!supportsPush()) return;
-  const registration = await pwaRegistration();
-  const subscription = await registration?.pushManager.getSubscription();
+  // navigator.serviceWorker.ready never resolves if registration failed or never
+  // finished, which would otherwise hang this indefinitely -- and callers (e.g.
+  // logout) await this before doing anything else. Give up instead of blocking them.
+  const registration = await Promise.race([pwaRegistration(), timeout(3000)]);
+  if (!registration) return;
+  const subscription = await registration.pushManager.getSubscription();
   if (!subscription) return;
   try { await notificationApi.unsubscribePush(subscription.endpoint); }
   finally { await subscription.unsubscribe(); }
+}
+
+function timeout(ms: number): Promise<undefined> {
+  return new Promise((resolve) => setTimeout(() => resolve(undefined), ms));
 }
 
 function supportsPush() {

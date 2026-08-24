@@ -29,7 +29,9 @@ describe('AdminMonitoringPage', () => {
     vi.mocked(adminApi.monitoring).mockReset();
     vi.mocked(adminApi.storageSettings).mockReset();
     vi.mocked(adminApi.storageSettings).mockResolvedValue({
-      provider: 'local', supportedProviders: ['local', 'nas_mount'], rootPath: '/opt/b2bgearvia/data/uploads', mounted: true,
+      provider: 'local', supportedProviders: ['local', 'nas_mount'],
+      localRootPath: '/opt/b2bgearvia/data/uploads', localMounted: true,
+      nasRootPath: '/opt/b2bgearvia/data/nas', nasMounted: false,
     });
   });
   afterEach(() => cleanup());

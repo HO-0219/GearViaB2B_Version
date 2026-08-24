@@ -26,9 +26,14 @@ export function StatusBadge({ value }: { value: string }) {
   return <span className={`admin-status admin-status--${tone}`}>{labels[normalized]?.[language === 'ko' ? 0 : 1] ?? (value || '-')}</span>;
 }
 
-export function AdminTable({ title, headers, rows, emptyLabel }: { title: string; headers: string[]; rows: ReactNode[][]; emptyLabel: string }) {
+export type AdminTablePagination = { page: number; totalPages: number; totalElements: number; onPrevious: () => void; onNext: () => void };
+
+export function AdminTable({ title, headers, rows, emptyLabel, pagination }: {
+  title: string; headers: string[]; rows: ReactNode[][]; emptyLabel: string; pagination?: AdminTablePagination;
+}) {
+  const { t } = useLanguage();
   return <section className="admin-panel admin-table-panel">
-    <div className="admin-panel-heading"><h2>{title}</h2><span className="admin-count">{rows.length}</span></div>
+    <div className="admin-panel-heading"><h2>{title}</h2><span className="admin-count">{pagination?.totalElements ?? rows.length}</span></div>
     <div className="admin-table-wrap">
       <table>
         <thead><tr>{headers.map((header) => <th key={header}>{header}</th>)}</tr></thead>
@@ -38,5 +43,10 @@ export function AdminTable({ title, headers, rows, emptyLabel }: { title: string
         </tbody>
       </table>
     </div>
+    {pagination && pagination.totalPages > 1 && <div className="admin-table-pagination">
+      <button type="button" className="secondary" disabled={pagination.page <= 0} onClick={pagination.onPrevious}>{t('이전', 'Previous')}</button>
+      <span>{t(`${pagination.page + 1} / ${pagination.totalPages} 페이지`, `Page ${pagination.page + 1} of ${pagination.totalPages}`)}</span>
+      <button type="button" className="secondary" disabled={pagination.page >= pagination.totalPages - 1} onClick={pagination.onNext}>{t('다음', 'Next')}</button>
+    </div>}
   </section>;
 }

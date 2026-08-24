@@ -10,13 +10,44 @@ export function AdminMonitoringPage() {
   const [storage, setStorage] = useState<AdminStorageSettings>();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [switching, setSwitching] = useState(false);
+  const [switchResult, setSwitchResult] = useState<{ success: boolean; message: string }>();
+
+  function loadStorage() {
+    return adminApi.storageSettings().then(setStorage);
+  }
 
   useEffect(() => {
-    Promise.all([adminApi.monitoring(), adminApi.storageSettings()])
-      .then(([monitoringValue, storageValue]) => { setMonitoring(monitoringValue); setStorage(storageValue); })
+    Promise.all([adminApi.monitoring(), loadStorage()])
+      .then(([monitoringValue]) => setMonitoring(monitoringValue))
       .catch((value) => setError(errorMessage(value)))
       .finally(() => setLoading(false));
   }, []);
+
+  async function activateNas() {
+    setSwitching(true); setSwitchResult(undefined); setError('');
+    try {
+      const result = await adminApi.activateNasStorage();
+      setSwitchResult(result);
+      await loadStorage();
+    } catch (value) {
+      setError(errorMessage(value));
+    } finally {
+      setSwitching(false);
+    }
+  }
+
+  async function activateLocal() {
+    setSwitching(true); setSwitchResult(undefined); setError('');
+    try {
+      await adminApi.activateLocalStorage();
+      await loadStorage();
+    } catch (value) {
+      setError(errorMessage(value));
+    } finally {
+      setSwitching(false);
+    }
+  }
 
   if (loading) return <p className="admin-loading">{t('모니터링 데이터를 불러오는 중...', 'Loading monitoring data...')}</p>;
   return <>
@@ -32,13 +63,22 @@ export function AdminMonitoringPage() {
         </div>
       </section>
       {storage && <section className="admin-panel admin-notice-panel">
-        <div className="admin-panel-heading"><div><h2>{t('스토리지 연동 설정', 'Storage integration')}</h2><p>{t('저장 위치는 서버 관리자가 배포 시 설정합니다. 이 화면은 현재 설정과 지원되는 연동 방식만 보여줍니다.', 'The storage location is set by the server administrator at deploy time. This screen only shows the current setting and which integrations are supported.')}</p></div></div>
+        <div className="admin-panel-heading"><div><h2>{t('스토리지 연동 설정', 'Storage integration')}</h2><p>{t('NAS/사내 스토리지는 호스트에 미리 마운트해 둔 상태여야 합니다. 연결 테스트가 성공해야만 전환되고, 실패하면 현재 방식이 그대로 유지됩니다.', 'The NAS/company storage share must already be mounted on the host. Switching only happens if the connection test succeeds — on failure the current provider stays active.')}</p></div></div>
         <dl className="admin-storage-settings">
           <div><dt>{t('현재 방식', 'Active provider')}</dt><dd>{providerLabel(storage.provider, t)}</dd></div>
-          <div><dt>{t('경로', 'Path')}</dt><dd>{storage.rootPath || '-'}</dd></div>
-          <div><dt>{t('마운트 상태', 'Mount status')}</dt><dd className={storage.mounted ? 'success-message' : 'error'}>{storage.mounted ? t('정상', 'Healthy') : t('연결 안 됨', 'Unavailable')}</dd></div>
+          <div><dt>{t('로컬 경로', 'Local path')}</dt><dd>{storage.localRootPath || '-'} · <span className={storage.localMounted ? 'success-message' : 'error'}>{storage.localMounted ? t('정상', 'Healthy') : t('연결 안 됨', 'Unavailable')}</span></dd></div>
+          <div><dt>{t('NAS 경로', 'NAS path')}</dt><dd>{storage.nasRootPath || '-'} · <span className={storage.nasMounted ? 'success-message' : 'error'}>{storage.nasMounted ? t('정상', 'Healthy') : t('연결 안 됨', 'Unavailable')}</span></dd></div>
         </dl>
         <p className="admin-notice-panel-footnote">{t('지원되는 연동 방식', 'Supported providers')}: {storage.supportedProviders.map((value) => providerLabel(value, t)).join(', ')}</p>
+        <div className="admin-storage-actions">
+          <button className="primary" type="button" disabled={switching || storage.provider === 'nas_mount'} onClick={activateNas}>
+            {switching ? t('연결 테스트 중...', 'Testing connection...') : t('NAS 연결 테스트 및 전환', 'Test NAS connection and switch')}
+          </button>
+          <button className="secondary" type="button" disabled={switching || storage.provider === 'local'} onClick={activateLocal}>
+            {t('로컬로 되돌리기', 'Revert to local')}
+          </button>
+        </div>
+        {switchResult && <p className={switchResult.success ? 'success-message' : 'error'}>{switchResult.message}</p>}
       </section>}
       <AdminTable title={t('AI 사용량', 'AI usage')} emptyLabel={t('AI 호출 기록이 없습니다.', 'No AI requests recorded.')}
         headers={[t('기간', 'Period'), t('호출', 'Requests'), t('실패', 'Failed'), t('입력 토큰', 'Input tokens'), t('출력 토큰', 'Output tokens'), t('총 토큰', 'Total tokens')]}

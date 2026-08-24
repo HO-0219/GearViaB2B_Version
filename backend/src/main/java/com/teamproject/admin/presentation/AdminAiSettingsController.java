@@ -5,6 +5,8 @@ import com.teamproject.admin.application.AdminAiSettingsService.ConnectionTestRe
 import com.teamproject.admin.application.AdminAiSettingsService.StatusResponse;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -26,4 +28,12 @@ public class AdminAiSettingsController {
     ConnectionTestResponse test() {
         return service.testConnections();
     }
+
+    @PutMapping
+    StatusResponse update(@RequestBody UpdateRequest request) {
+        return service.update(request.apiKey(), request.reportEnabled(), request.assistantEnabled());
+    }
+
+    /** apiKey: omit/null keeps the existing key, "" clears it, non-blank replaces it. */
+    public record UpdateRequest(String apiKey, boolean reportEnabled, boolean assistantEnabled) {}
 }

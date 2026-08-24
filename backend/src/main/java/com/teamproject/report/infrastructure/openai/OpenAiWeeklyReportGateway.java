@@ -2,12 +2,11 @@ package com.teamproject.report.infrastructure.openai;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.openai.client.OpenAIClient;
 import com.openai.models.responses.ResponseCreateParams;
 import com.openai.models.responses.StructuredResponseCreateParams;
+import com.teamproject.aiprovider.infrastructure.openai.DynamicOpenAiSettings;
 import com.teamproject.aiusage.application.AiUsageRecorder;
 import com.teamproject.aiusage.domain.AiUsageOperation;
-import com.teamproject.report.application.dto.AiWeeklyReportAnalysisDtos.AiWeeklyReportAnalysisV1;
 import com.teamproject.report.application.dto.AiWeeklyReportDtos.AiWeeklyReportSnapshotV1;
 import com.teamproject.report.application.port.AiWeeklyReportGateway;
 import com.teamproject.report.infrastructure.openai.OpenAiReportExceptions.*;
@@ -15,7 +14,6 @@ import com.teamproject.report.infrastructure.openai.contract.AiWeeklyReportAnaly
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
-import org.springframework.beans.factory.annotation.Qualifier;
 
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
@@ -28,20 +26,20 @@ public class OpenAiWeeklyReportGateway implements AiWeeklyReportGateway {
 
     private static final Logger log = LoggerFactory.getLogger(OpenAiWeeklyReportGateway.class);
 
-    private final OpenAIClient client;
+    private final DynamicOpenAiSettings openAi;
     private final OpenAiReportProperties properties;
     private final ObjectMapper objectMapper;
     private final OpenAiAnalysisContractMapper mapper;
     private final AiUsageRecorder usageRecorder;
 
     public OpenAiWeeklyReportGateway(
-            @Qualifier("openAiReportClient") OpenAIClient client,
+            DynamicOpenAiSettings openAi,
             OpenAiReportProperties properties,
             ObjectMapper objectMapper,
             OpenAiAnalysisContractMapper mapper,
             AiUsageRecorder usageRecorder
     ) {
-        this.client = client;
+        this.openAi = openAi;
         this.properties = properties;
         this.objectMapper = objectMapper;
         this.mapper = mapper;
@@ -50,7 +48,7 @@ public class OpenAiWeeklyReportGateway implements AiWeeklyReportGateway {
 
     @Override
     public Analysis analyze(AiWeeklyReportSnapshotV1 snapshot) {
-        if (!properties.enabled()) {
+        if (!openAi.reportEnabled()) {
             log.info("OpenAI report generation is disabled via properties");
             throw new OpenAiReportUnavailableException("AI 리포트가 비활성화되어 있습니다. 관리자에게 서버 AI 설정을 요청해 주세요.");
         }
@@ -60,7 +58,7 @@ public class OpenAiWeeklyReportGateway implements AiWeeklyReportGateway {
         }
         // 키 없이 켜져 있으면 placeholder 키로 호출해 401을 받을 때까지 기다린다(최대 45초).
         // 결과는 어차피 fallback이므로 기다릴 이유가 없다.
-        if (!properties.hasApiKey()) {
+        if (!openAi.hasApiKey()) {
             log.warn("OpenAI API key is missing");
             throw new OpenAiReportUnavailableException("AI 리포트 API 키가 설정되지 않았습니다. 관리자에게 서버 AI 설정을 요청해 주세요.");
         }
@@ -85,7 +83,7 @@ public class OpenAiWeeklyReportGateway implements AiWeeklyReportGateway {
                         .build();
 
         try {
-            var response = client.responses().create(params);
+            var response = openAi.reportClient().responses().create(params);
 
             if (response.status().filter(com.openai.models.responses.ResponseStatus.COMPLETED::equals).isEmpty()) {
                 throw new OpenAiReportInvalidResponseException("OpenAI response status is incomplete: " + response.status().map(Object::toString).orElse("NONE"));
