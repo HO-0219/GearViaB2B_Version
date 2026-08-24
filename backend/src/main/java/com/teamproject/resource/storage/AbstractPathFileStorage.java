@@ -4,9 +4,12 @@ import com.teamproject.common.exception.ApplicationException;
 import org.springframework.http.HttpStatus;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.util.List;
+import java.util.stream.Stream;
 
 abstract class AbstractPathFileStorage implements FileStorage {
     private final Path root;
@@ -40,6 +43,18 @@ abstract class AbstractPathFileStorage implements FileStorage {
             Files.deleteIfExists(target);
             Files.deleteIfExists(contentTypePath(target));
         } catch (IOException ignored) {}
+    }
+
+    @Override public List<String> listKeys() {
+        if (!Files.isDirectory(root)) return List.of();
+        try (Stream<Path> paths = Files.walk(root)) {
+            return paths.filter(Files::isRegularFile)
+                    .filter(path -> !path.getFileName().toString().endsWith(".contenttype"))
+                    .map(path -> root.relativize(path).toString().replace('\\', '/'))
+                    .toList();
+        } catch (IOException exception) {
+            throw new UncheckedIOException(exception);
+        }
     }
 
     /**

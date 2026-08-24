@@ -68,6 +68,34 @@ class DynamicFileStorageTest {
     }
 
     @Test
+    void activateNasMigratesFilesThatWereStoredWhileLocalWasActive() {
+        when(settings.findById(StorageSettings.SINGLETON_ID)).thenReturn(Optional.empty());
+        DynamicFileStorage storage = new DynamicFileStorage("local", localRoot.toString(), nasRoot.toString(), settings);
+        storage.put("profile/pic.png", "old-bytes".getBytes(StandardCharsets.UTF_8), "image/png");
+
+        storage.activateNas();
+
+        FileStorage.StoredFile migrated = storage.get("profile/pic.png");
+        assertThat(new String(migrated.content(), StandardCharsets.UTF_8)).isEqualTo("old-bytes");
+        assertThat(migrated.contentType()).isEqualTo("image/png");
+        assertThat(nasRoot.resolve("profile/pic.png")).exists();
+    }
+
+    @Test
+    void activateLocalMigratesFilesThatWereStoredWhileNasWasActive() {
+        when(settings.findById(StorageSettings.SINGLETON_ID)).thenReturn(Optional.empty());
+        DynamicFileStorage storage = new DynamicFileStorage("local", localRoot.toString(), nasRoot.toString(), settings);
+        storage.activateNas();
+        storage.put("profile/pic.png", "nas-bytes".getBytes(StandardCharsets.UTF_8), "image/png");
+
+        storage.activateLocal();
+
+        FileStorage.StoredFile migrated = storage.get("profile/pic.png");
+        assertThat(new String(migrated.content(), StandardCharsets.UTF_8)).isEqualTo("nas-bytes");
+        assertThat(localRoot.resolve("profile/pic.png")).exists();
+    }
+
+    @Test
     void activateNasLeavesTheProviderUnchangedWhenTheTestFails() {
         when(settings.findById(StorageSettings.SINGLETON_ID)).thenReturn(Optional.empty());
         Path unmounted = nasRoot.resolve("not-mounted");

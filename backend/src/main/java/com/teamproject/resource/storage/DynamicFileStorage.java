@@ -61,6 +61,7 @@ public class DynamicFileStorage implements FileStorage {
     @Override public void put(String key, byte[] content, String contentType) { delegate().put(key, content, contentType); }
     @Override public StoredFile get(String key) { return delegate().get(key); }
     @Override public void delete(String key) { delegate().delete(key); }
+    @Override public List<String> listKeys() { return delegate().listKeys(); }
 
     private FileStorage delegate() {
         return NAS_MOUNT.equals(active) && nas != null ? nas : local;
@@ -90,12 +91,18 @@ public class DynamicFileStorage implements FileStorage {
         }
     }
 
-    /** Tests the NAS mount and only switches to it if the test succeeds; otherwise the active provider is unchanged. */
+    /**
+     * Tests the NAS mount and only switches to it if the test succeeds; otherwise the
+     * active provider is unchanged. Files already stored under the currently-active
+     * provider are copied over first so they stay reachable after the switch.
+     */
     @Transactional
     public TestResult activateNas() {
         TestResult result = testNas();
         if (!result.success()) return result;
-        this.nas = new NasFileStorage(nasRoot);
+        NasFileStorage target = new NasFileStorage(nasRoot);
+        migrate(delegate(), target);
+        this.nas = target;
         this.active = NAS_MOUNT;
         persist(NAS_MOUNT);
         return result;
@@ -103,8 +110,16 @@ public class DynamicFileStorage implements FileStorage {
 
     @Transactional
     public void activateLocal() {
+        migrate(delegate(), local);
         this.active = LOCAL;
         persist(LOCAL);
+    }
+
+    private void migrate(FileStorage source, FileStorage target) {
+        for (String key : source.listKeys()) {
+            StoredFile file = source.get(key);
+            target.put(key, file.content(), file.contentType());
+        }
     }
 
     private void persist(String provider) {
