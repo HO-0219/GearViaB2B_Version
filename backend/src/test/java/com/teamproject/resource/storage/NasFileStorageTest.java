@@ -28,6 +28,15 @@ class NasFileStorageTest {
     }
 
     @Test
+    void getReturnsTheContentTypeThatWasPutEvenForAnExtensionLessKey() {
+        NasFileStorage storage = new NasFileStorage(mountPoint.toString());
+
+        storage.put("branding/logo", "png-bytes".getBytes(StandardCharsets.UTF_8), "image/png");
+
+        assertThat(storage.get("branding/logo").contentType()).isEqualTo("image/png");
+    }
+
+    @Test
     void listKeysReturnsEveryStoredKeyButNotItsContentTypeSidecar() {
         NasFileStorage storage = new NasFileStorage(mountPoint.toString());
         storage.put("docs/a.txt", "hello".getBytes(StandardCharsets.UTF_8), "text/plain");
