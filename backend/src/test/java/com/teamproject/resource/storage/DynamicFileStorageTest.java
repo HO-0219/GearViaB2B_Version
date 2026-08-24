@@ -1,0 +1,108 @@
+package com.teamproject.resource.storage;
+
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
+
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
+import java.util.Optional;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+class DynamicFileStorageTest {
+    @TempDir Path localRoot;
+    @TempDir Path nasRoot;
+    private final StorageSettingsRepository settings = mock(StorageSettingsRepository.class);
+
+    @Test
+    void defaultsToLocalAndServesThroughItWhenNoSettingIsPersisted() {
+        when(settings.findById(StorageSettings.SINGLETON_ID)).thenReturn(Optional.empty());
+        DynamicFileStorage storage = new DynamicFileStorage("local", localRoot.toString(), nasRoot.toString(), settings);
+
+        storage.put("a.txt", "hello".getBytes(StandardCharsets.UTF_8), "text/plain");
+
+        assertThat(localRoot.resolve("a.txt")).exists();
+        assertThat(storage.status().provider()).isEqualTo("local");
+    }
+
+    @Test
+    void testNasReportsFailureWhenTheMountIsUnreachableWithoutSwitchingAnything() {
+        when(settings.findById(StorageSettings.SINGLETON_ID)).thenReturn(Optional.empty());
+        Path unmounted = nasRoot.resolve("not-mounted");
+        DynamicFileStorage storage = new DynamicFileStorage("local", localRoot.toString(), unmounted.toString(), settings);
+
+        DynamicFileStorage.TestResult result = storage.testNas();
+
+        assertThat(result.success()).isFalse();
+        assertThat(storage.status().provider()).isEqualTo("local");
+    }
+
+    @Test
+    void testNasSucceedsAndProbeFileIsCleanedUpWhenTheMountIsWritable() {
+        when(settings.findById(StorageSettings.SINGLETON_ID)).thenReturn(Optional.empty());
+        DynamicFileStorage storage = new DynamicFileStorage("local", localRoot.toString(), nasRoot.toString(), settings);
+
+        DynamicFileStorage.TestResult result = storage.testNas();
+
+        assertThat(result.success()).isTrue();
+        assertThat(nasRoot).isEmptyDirectory();
+    }
+
+    @Test
+    void activateNasSwitchesTheDelegateAndPersistsOnSuccess() {
+        when(settings.findById(StorageSettings.SINGLETON_ID)).thenReturn(Optional.empty());
+        DynamicFileStorage storage = new DynamicFileStorage("local", localRoot.toString(), nasRoot.toString(), settings);
+
+        DynamicFileStorage.TestResult result = storage.activateNas();
+        storage.put("b.txt", "hi".getBytes(StandardCharsets.UTF_8), "text/plain");
+
+        assertThat(result.success()).isTrue();
+        assertThat(storage.status().provider()).isEqualTo("nas_mount");
+        assertThat(nasRoot.resolve("b.txt")).exists();
+        assertThat(localRoot.resolve("b.txt")).doesNotExist();
+        verify(settings).save(any());
+    }
+
+    @Test
+    void activateNasLeavesTheProviderUnchangedWhenTheTestFails() {
+        when(settings.findById(StorageSettings.SINGLETON_ID)).thenReturn(Optional.empty());
+        Path unmounted = nasRoot.resolve("not-mounted");
+        DynamicFileStorage storage = new DynamicFileStorage("local", localRoot.toString(), unmounted.toString(), settings);
+
+        DynamicFileStorage.TestResult result = storage.activateNas();
+        storage.put("c.txt", "hi".getBytes(StandardCharsets.UTF_8), "text/plain");
+
+        assertThat(result.success()).isFalse();
+        assertThat(storage.status().provider()).isEqualTo("local");
+        assertThat(localRoot.resolve("c.txt")).exists();
+    }
+
+    @Test
+    void fallsBackToLocalAtStartupWhenThePersistedProviderIsNasButTheMountIsGone() {
+        StorageSettings persisted = new StorageSettings("nas_mount");
+        when(settings.findById(StorageSettings.SINGLETON_ID)).thenReturn(Optional.of(persisted));
+        Path unmounted = nasRoot.resolve("gone");
+
+        DynamicFileStorage storage = new DynamicFileStorage("local", localRoot.toString(), unmounted.toString(), settings);
+        storage.put("d.txt", "hi".getBytes(StandardCharsets.UTF_8), "text/plain");
+
+        assertThat(localRoot.resolve("d.txt")).exists();
+    }
+
+    @Test
+    void activateLocalRevertsAndPersists() {
+        when(settings.findById(StorageSettings.SINGLETON_ID)).thenReturn(Optional.empty());
+        DynamicFileStorage storage = new DynamicFileStorage("local", localRoot.toString(), nasRoot.toString(), settings);
+        storage.activateNas();
+
+        storage.activateLocal();
+        storage.put("e.txt", "hi".getBytes(StandardCharsets.UTF_8), "text/plain");
+
+        assertThat(storage.status().provider()).isEqualTo("local");
+        assertThat(localRoot.resolve("e.txt")).exists();
+    }
+}

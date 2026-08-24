@@ -24,16 +24,39 @@ abstract class AbstractPathFileStorage implements FileStorage {
                 Files.write(temporary, content);
                 Files.move(temporary, target, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
             } finally { Files.deleteIfExists(temporary); }
+            Files.writeString(contentTypePath(target), contentType);
         } catch (IOException exception) { throw storageFailure(); }
     }
 
     @Override public StoredFile get(String key) {
-        try { return new StoredFile(Files.readAllBytes(resolve(key)), Files.probeContentType(resolve(key))); }
+        Path target = resolve(key);
+        try { return new StoredFile(Files.readAllBytes(target), readContentType(target)); }
         catch (IOException exception) { throw new ApplicationException("RESOURCE_FILE_NOT_FOUND", HttpStatus.NOT_FOUND, "파일을 찾을 수 없습니다."); }
     }
 
     @Override public void delete(String key) {
-        try { Files.deleteIfExists(resolve(key)); } catch (IOException ignored) {}
+        Path target = resolve(key);
+        try {
+            Files.deleteIfExists(target);
+            Files.deleteIfExists(contentTypePath(target));
+        } catch (IOException ignored) {}
+    }
+
+    /**
+     * Files.probeContentType() guesses from the filename extension, which fails for
+     * storage keys with no extension (e.g. the fixed "branding/logo" key) and returns
+     * null — breaking MediaType.parseMediaType() downstream. Persist what put() was
+     * actually told instead of re-guessing it on read.
+     */
+    private String readContentType(Path target) throws IOException {
+        Path sidecar = contentTypePath(target);
+        if (Files.exists(sidecar)) return Files.readString(sidecar);
+        String probed = Files.probeContentType(target);
+        return probed != null ? probed : "application/octet-stream";
+    }
+
+    private Path contentTypePath(Path target) {
+        return target.resolveSibling(target.getFileName().toString() + ".contenttype");
     }
 
     private Path resolve(String key) {

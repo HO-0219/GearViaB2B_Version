@@ -905,9 +905,10 @@ body { background: radial-gradient(circle at 80% -10%, #eeeefe 0, transparent 26
 .ai-settings-card dt { color: #737b8e; }
 .ai-settings-card dd { margin: 0; font-weight: 600; }
 .admin-notice-panel-footnote { margin-top: 10px; color: #737b8e; font-size: 12px; }
-.admin-storage-settings { display: grid; gap: 8px; margin: 0 0 4px; max-width: 420px; }
+.admin-storage-settings { display: grid; gap: 8px; margin: 0 0 4px; max-width: 520px; }
 .admin-storage-settings > div { display: flex; justify-content: space-between; gap: 10px; font-size: 13px; }
 .admin-storage-settings dd { margin: 0; font-weight: 600; }
+.admin-storage-actions { display: flex; gap: 10px; margin-top: 12px; }
 .admin-stats { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
 .admin-stats article { min-width: 0; box-shadow: 0 8px 24px rgba(31, 42, 78, .04); }
 .admin-stat-link { cursor: pointer; transition: border-color .18s, box-shadow .18s, transform .18s; }

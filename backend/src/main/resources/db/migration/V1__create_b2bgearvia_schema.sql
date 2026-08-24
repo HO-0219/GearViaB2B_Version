@@ -1031,3 +1031,10 @@ CREATE TABLE ai_usage_records (
 
 ALTER TABLE refresh_tokens
     ADD COLUMN mfa_verified BOOLEAN NOT NULL DEFAULT FALSE;
+
+CREATE TABLE storage_settings (
+    id BIGINT NOT NULL,
+    active_provider VARCHAR(20) NOT NULL,
+    updated_at DATETIME(6) NOT NULL,
+    PRIMARY KEY (id)
+) ENGINE = InnoDB;

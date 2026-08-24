@@ -1,10 +1,7 @@
 package com.teamproject.resource.storage;
 
 import com.teamproject.common.exception.ApplicationException;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
-import org.springframework.stereotype.Component;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -14,11 +11,10 @@ import java.nio.file.Path;
  * mounted by the OS at app.storage.nas-root) as a plain filesystem, reusing the
  * same put/get/delete semantics as LocalFileStorage. Protocol-level clients
  * (SMB/NFS/S3) are intentionally out of scope for this first version.
+ * Constructed directly by {@link DynamicFileStorage} — not a Spring bean itself.
  */
-@Component
-@ConditionalOnProperty(name = "app.storage.provider", havingValue = "nas_mount")
 public class NasFileStorage extends AbstractPathFileStorage {
-    public NasFileStorage(@Value("${app.storage.nas-root:}") String root) {
+    public NasFileStorage(String root) {
         super(verifyMounted(root));
     }
 
