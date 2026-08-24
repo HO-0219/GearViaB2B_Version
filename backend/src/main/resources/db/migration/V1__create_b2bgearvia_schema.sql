@@ -1038,3 +1038,12 @@ CREATE TABLE storage_settings (
     updated_at DATETIME(6) NOT NULL,
     PRIMARY KEY (id)
 ) ENGINE = InnoDB;
+
+CREATE TABLE ai_provider_settings (
+    id BIGINT NOT NULL,
+    api_key_encrypted VARCHAR(1000) NULL,
+    report_enabled BOOLEAN NOT NULL,
+    assistant_enabled BOOLEAN NOT NULL,
+    updated_at DATETIME(6) NOT NULL,
+    PRIMARY KEY (id)
+) ENGINE = InnoDB;

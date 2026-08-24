@@ -6,6 +6,7 @@ import com.openai.core.ObjectMappers;
 import com.openai.models.responses.Response;
 import com.openai.models.responses.ResponseCreateParams;
 import com.openai.services.blocking.ResponseService;
+import com.teamproject.aiprovider.infrastructure.openai.DynamicOpenAiSettings;
 import com.teamproject.aiusage.application.AiUsageRecorder;
 import com.teamproject.aiusage.domain.AiUsageOperation;
 import com.teamproject.assistant.application.port.AiAssistantGateway.Decision;
@@ -13,7 +14,6 @@ import com.teamproject.assistant.application.port.AiAssistantGateway.TextDecisio
 import com.teamproject.assistant.infrastructure.openai.OpenAiAssistantGateway;
 import com.teamproject.assistant.infrastructure.openai.OpenAiAssistantProperties;
 import com.teamproject.common.exception.ApplicationException;
-import com.teamproject.report.infrastructure.openai.OpenAiReportProperties;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
@@ -89,10 +89,11 @@ class OpenAiAssistantGatewayTest {
     private OpenAiAssistantGateway gateway(boolean enabled, String model, String apiKey) {
         OpenAiAssistantProperties assistant = new OpenAiAssistantProperties(
                 enabled, model, Duration.ofSeconds(30), 800L, "text-embedding-3-small");
-        OpenAiReportProperties shared = new OpenAiReportProperties(
-                false, apiKey, "", OpenAiReportProperties.DEFAULT_BASE_URL,
-                Duration.ofSeconds(45), 1, 3000L, "test");
-        return new OpenAiAssistantGateway(client, assistant, shared, recorder);
+        DynamicOpenAiSettings openAi = mock(DynamicOpenAiSettings.class);
+        when(openAi.assistantEnabled()).thenReturn(enabled);
+        when(openAi.hasApiKey()).thenReturn(apiKey != null && !apiKey.isBlank());
+        when(openAi.assistantClient()).thenReturn(client);
+        return new OpenAiAssistantGateway(openAi, assistant, recorder);
     }
 
     private Response completedResponse() throws Exception {

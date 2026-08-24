@@ -1,9 +1,9 @@
 package com.teamproject.admin.application;
 
 import com.openai.client.OpenAIClient;
+import com.teamproject.aiprovider.infrastructure.openai.DynamicOpenAiSettings;
 import com.teamproject.assistant.infrastructure.openai.OpenAiAssistantProperties;
 import com.teamproject.report.infrastructure.openai.OpenAiReportProperties;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -11,52 +11,54 @@ import java.util.Arrays;
 import java.util.List;
 
 /**
- * Read-only view of the AI provider configuration plus a connection test.
- * The OpenAI API key is intentionally never accepted or changed through this
- * service — it stays managed by installer/commands/configure-ai.sh (root-only
- * file, never rendered in the web app) so the key never has to pass through
- * the browser or the application database.
+ * Lets an admin view AI integration status, test the connection, and set the API key
+ * plus per-vertical enabled flags from the web — backed by {@link DynamicOpenAiSettings}
+ * (AES-GCM encrypted at rest, see AdminMfaCipher). The model stays fixed from
+ * app.ai-report.model / app.ai-assistant.model — not admin-editable.
  */
 @Service
 public class AdminAiSettingsService {
     private final OpenAiReportProperties reportProperties;
     private final OpenAiAssistantProperties assistantProperties;
-    private final OpenAIClient reportClient;
-    private final OpenAIClient assistantClient;
+    private final DynamicOpenAiSettings openAi;
     private final List<String> supportedModels;
 
     public AdminAiSettingsService(OpenAiReportProperties reportProperties, OpenAiAssistantProperties assistantProperties,
-            @Qualifier("openAiReportClient") OpenAIClient reportClient,
-            @Qualifier("openAiAssistantClient") OpenAIClient assistantClient,
+            DynamicOpenAiSettings openAi,
             @Value("${app.ai.supported-models:gpt-5.6-sol,gpt-5.6-luna}") String supportedModelsCsv) {
         this.reportProperties = reportProperties;
         this.assistantProperties = assistantProperties;
-        this.reportClient = reportClient;
-        this.assistantClient = assistantClient;
+        this.openAi = openAi;
         this.supportedModels = Arrays.stream(supportedModelsCsv.split(","))
                 .map(String::trim).filter(value -> !value.isEmpty()).toList();
     }
 
     public StatusResponse status() {
         return new StatusResponse(
-                verticalStatus(reportProperties.enabled(), reportProperties.model(), reportProperties.baseUrl()),
-                verticalStatus(assistantProperties.enabled(), assistantProperties.model(), reportProperties.baseUrl()),
+                verticalStatus(openAi.reportEnabled(), reportProperties.model(), reportProperties.baseUrl()),
+                verticalStatus(openAi.assistantEnabled(), assistantProperties.model(), reportProperties.baseUrl()),
                 supportedModels);
     }
 
     public ConnectionTestResponse testConnections() {
         return new ConnectionTestResponse(
-                testVertical(reportClient, reportProperties.enabled(), reportProperties.model()),
-                testVertical(assistantClient, assistantProperties.enabled(), assistantProperties.model()));
+                testVertical(openAi.reportClient(), openAi.reportEnabled(), reportProperties.model()),
+                testVertical(openAi.assistantClient(), openAi.assistantEnabled(), assistantProperties.model()));
+    }
+
+    /** apiKeyOrNull: null keeps the existing key, blank clears it, non-blank replaces it. */
+    public StatusResponse update(String apiKeyOrNull, boolean reportEnabled, boolean assistantEnabled) {
+        openAi.update(apiKeyOrNull, reportEnabled, assistantEnabled);
+        return status();
     }
 
     private VerticalStatus verticalStatus(boolean enabled, String model, String baseUrl) {
-        return new VerticalStatus(enabled, reportProperties.hasApiKey(), maskedKey(), model, baseUrl);
+        return new VerticalStatus(enabled, openAi.hasApiKey(), openAi.maskedApiKey(), model, baseUrl);
     }
 
     private VerticalTestResult testVertical(OpenAIClient client, boolean enabled, String model) {
         if (!enabled) return new VerticalTestResult(false, "AI 기능이 비활성화되어 있습니다.");
-        if (!reportProperties.hasApiKey()) return new VerticalTestResult(false, "API 키가 설정되지 않았습니다.");
+        if (!openAi.hasApiKey()) return new VerticalTestResult(false, "API 키가 설정되지 않았습니다.");
         if (model == null || model.isBlank()) return new VerticalTestResult(false, "모델이 설정되지 않았습니다.");
         try {
             client.models().retrieve(model);
@@ -64,13 +66,6 @@ public class AdminAiSettingsService {
         } catch (Exception exception) {
             return new VerticalTestResult(false, "연결에 실패했습니다: " + exception.getClass().getSimpleName());
         }
-    }
-
-    private String maskedKey() {
-        String key = reportProperties.apiKey();
-        if (key == null || key.isBlank()) return null;
-        String trimmed = key.trim();
-        return "****" + trimmed.substring(Math.max(0, trimmed.length() - 4));
     }
 
     public record VerticalStatus(boolean enabled, boolean apiKeyConfigured, String maskedApiKey, String model, String baseUrl) {}

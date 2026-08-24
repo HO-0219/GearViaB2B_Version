@@ -1,17 +1,15 @@
 package com.teamproject.assistant.infrastructure.openai;
 
-import com.openai.client.OpenAIClient;
 import com.openai.core.JsonValue;
 import com.openai.models.responses.FunctionTool;
 import com.openai.models.responses.ResponseCreateParams;
+import com.teamproject.aiprovider.infrastructure.openai.DynamicOpenAiSettings;
 import com.teamproject.aiusage.application.AiUsageRecorder;
 import com.teamproject.aiusage.domain.AiUsageOperation;
 import com.teamproject.assistant.application.port.AiAssistantGateway;
 import com.teamproject.common.exception.ApplicationException;
-import com.teamproject.report.infrastructure.openai.OpenAiReportProperties;
 import java.util.List;
 import java.util.Map;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 
@@ -41,23 +39,20 @@ public class OpenAiAssistantGateway implements AiAssistantGateway {
             현재 역할로 실행할 수 없거나 지원하지 않는 변경 요청에는 정확히 "승인되지 않은 내용입니다."라고만 답한다.
             """;
 
-    private final OpenAIClient client;
+    private final DynamicOpenAiSettings openAi;
     private final OpenAiAssistantProperties properties;
-    private final OpenAiReportProperties sharedProperties;
     private final AiUsageRecorder usageRecorder;
 
-    public OpenAiAssistantGateway(@Qualifier("openAiAssistantClient") OpenAIClient client,
-            OpenAiAssistantProperties properties, OpenAiReportProperties sharedProperties,
+    public OpenAiAssistantGateway(DynamicOpenAiSettings openAi, OpenAiAssistantProperties properties,
             AiUsageRecorder usageRecorder) {
-        this.client = client;
+        this.openAi = openAi;
         this.properties = properties;
-        this.sharedProperties = sharedProperties;
         this.usageRecorder = usageRecorder;
     }
 
     @Override
     public Decision decide(String context, List<ChatMessage> history, String message, String searchResult) {
-        if (!properties.enabled() || !sharedProperties.hasApiKey() || properties.model().isBlank()) {
+        if (!openAi.assistantEnabled() || !openAi.hasApiKey() || properties.model().isBlank()) {
             throw new ApplicationException("AI_ASSISTANT_NOT_CONFIGURED", HttpStatus.SERVICE_UNAVAILABLE,
                     "AI 비서가 비활성화되어 있습니다. 관리자에게 서버 AI 설정(기능 활성화와 API 키)을 요청해 주세요.");
         }
@@ -108,7 +103,7 @@ public class OpenAiAssistantGateway implements AiAssistantGateway {
         }
         var params = builder.build();
         try {
-            var response = client.responses().create(params);
+            var response = openAi.assistantClient().responses().create(params);
             if (response.status().filter(com.openai.models.responses.ResponseStatus.COMPLETED::equals).isEmpty()) {
                 throw new IllegalStateException("assistant response is incomplete");
             }
