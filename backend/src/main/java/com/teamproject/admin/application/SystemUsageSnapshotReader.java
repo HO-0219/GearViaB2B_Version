@@ -1,19 +1,18 @@
 package com.teamproject.admin.application;
 
+import com.teamproject.resource.storage.DynamicFileStorage;
 import java.util.OptionalDouble;
 import java.util.OptionalLong;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 @Component
 public class SystemUsageSnapshotReader {
     private final SystemUsageProbe probe;
-    private final String storageProvider;
+    private final DynamicFileStorage storage;
 
-    public SystemUsageSnapshotReader(SystemUsageProbe probe,
-                                     @Value("${app.storage.provider:local}") String storageProvider) {
+    public SystemUsageSnapshotReader(SystemUsageProbe probe, DynamicFileStorage storage) {
         this.probe = probe;
-        this.storageProvider = storageProvider;
+        this.storage = storage;
     }
 
     public Snapshot read() {
@@ -21,7 +20,7 @@ public class SystemUsageSnapshotReader {
     }
 
     public String storageProvider() {
-        return storageProvider;
+        return storage.status().provider();
     }
 
     private Metric cpu() {
