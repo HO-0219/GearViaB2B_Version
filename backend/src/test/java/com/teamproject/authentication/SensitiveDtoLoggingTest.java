@@ -31,10 +31,10 @@ class SensitiveDtoLoggingTest {
     void tokenAndProfileResponsesDoNotExposeTheirPayloadByToString() {
         var token = new TokenResponse("private-access-token", "Bearer", 3600);
         var signup = new SignupResponse(1L, "private-user", "private@example.com", "Private Name");
-        var me = new MeResponse(1L, "private-user", "private@example.com", "Private Name", "USER");
+        var me = new MeResponse(1L, "private-user", "private@example.com", "Private Name", "Private Nickname", "USER");
 
         assertThat(token.toString()).doesNotContain("private-access-token");
         assertThat(signup.toString()).doesNotContain("private-user", "private@example.com", "Private Name");
-        assertThat(me.toString()).doesNotContain("private-user", "private@example.com", "Private Name");
+        assertThat(me.toString()).doesNotContain("private-user", "private@example.com", "Private Name", "Private Nickname");
     }
 }
