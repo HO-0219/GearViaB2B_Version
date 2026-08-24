@@ -1,5 +1,6 @@
 package com.teamproject.organization.application;
 
+import com.teamproject.aiprovider.infrastructure.openai.DynamicOpenAiSettings;
 import com.teamproject.common.exception.ApplicationException;
 import com.teamproject.group.application.GroupAuthorization;
 import com.teamproject.group.application.GroupFeaturePolicy.FeaturePolicyResponse;
@@ -17,26 +18,20 @@ public class OrganizationFeaturePolicy {
     private final int messageRetentionDays;
     private final long storageLimitBytes;
     private final long attachmentLimitBytes;
-    private final boolean aiAssistantEnabled;
-    private final boolean aiWeeklyReportEnabled;
-    private final String openAiApiKey;
+    private final DynamicOpenAiSettings openAi;
 
     public OrganizationFeaturePolicy(GroupAuthorization authorization,
             @Value("${app.organization.chat.channel-limit:50}") int chatChannelLimit,
             @Value("${app.organization.chat.message-retention-days:365}") int messageRetentionDays,
             @Value("${app.organization.storage.total-bytes:5368709120}") long storageLimitBytes,
             @Value("${app.organization.storage.attachment-limit-bytes:104857600}") long attachmentLimitBytes,
-            @Value("${app.ai-assistant.enabled:false}") boolean aiAssistantEnabled,
-            @Value("${app.ai-report.enabled:false}") boolean aiWeeklyReportEnabled,
-            @Value("${app.openai.api-key:}") String openAiApiKey) {
+            DynamicOpenAiSettings openAi) {
         this.authorization = authorization;
         this.chatChannelLimit = chatChannelLimit;
         this.messageRetentionDays = messageRetentionDays;
         this.storageLimitBytes = storageLimitBytes;
         this.attachmentLimitBytes = attachmentLimitBytes;
-        this.aiAssistantEnabled = aiAssistantEnabled;
-        this.aiWeeklyReportEnabled = aiWeeklyReportEnabled;
-        this.openAiApiKey = openAiApiKey == null ? "" : openAiApiKey.trim();
+        this.openAi = openAi;
     }
 
     @Transactional(readOnly = true)
@@ -50,14 +45,14 @@ public class OrganizationFeaturePolicy {
 
     @Transactional(readOnly = true)
     public GroupMember requireAiAssistant(Long userId, Long groupId) {
-        GroupMember member = requireConfiguredAi(userId, groupId, aiAssistantEnabled);
+        GroupMember member = requireConfiguredAi(userId, groupId, openAi.assistantEnabled());
         requireLeader(member);
         return member;
     }
 
     @Transactional(readOnly = true)
     public GroupMember requireAiWeeklyReport(Long userId, Long groupId) {
-        GroupMember member = requireConfiguredAi(userId, groupId, aiWeeklyReportEnabled);
+        GroupMember member = requireConfiguredAi(userId, groupId, openAi.reportEnabled());
         requireLeader(member);
         return member;
     }
@@ -77,7 +72,7 @@ public class OrganizationFeaturePolicy {
     private GroupMember requireConfiguredAi(Long userId, Long groupId, boolean adminEnabled) {
         GroupMember member = authorization.requireActiveMember(groupId, userId);
         requireTeam(member);
-        if (!adminEnabled || openAiApiKey.isBlank()) {
+        if (!adminEnabled || !openAi.hasApiKey()) {
             throw new ApplicationException("AI_ADMIN_CONFIGURATION_REQUIRED", HttpStatus.FORBIDDEN,
                     "AI 기능은 서버 관리자가 기능을 활성화하고 OpenAI API 키를 설정한 뒤 사용할 수 있습니다. 관리자에게 설정을 요청해 주세요.");
         }

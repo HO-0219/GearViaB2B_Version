@@ -31,7 +31,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @SpringBootTest(classes = B2BGearViaApplication.class, properties = {
         "app.ai-assistant.enabled=true",
-        "app.openai.api-key=test-openai-key"
+        "app.ai-report.api-key=test-openai-key"
 })
 @Transactional
 class AiAssistantActionServiceTest {

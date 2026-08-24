@@ -1,5 +1,6 @@
 package com.teamproject.organization;
 
+import com.teamproject.aiprovider.infrastructure.openai.DynamicOpenAiSettings;
 import com.teamproject.assistant.application.AiAssistantEntitlementService;
 import com.teamproject.common.exception.ApplicationException;
 import com.teamproject.group.application.GroupAuthorization;
@@ -127,8 +128,11 @@ class OrganizationFeaturePolicyTest {
 
     private OrganizationFeaturePolicy policy(GroupAuthorization authorization,
             boolean assistantEnabled, boolean reportEnabled, String openAiKey) {
-        return new OrganizationFeaturePolicy(authorization, 12, 45, 2048, 512,
-                assistantEnabled, reportEnabled, openAiKey);
+        DynamicOpenAiSettings openAi = mock(DynamicOpenAiSettings.class);
+        when(openAi.assistantEnabled()).thenReturn(assistantEnabled);
+        when(openAi.reportEnabled()).thenReturn(reportEnabled);
+        when(openAi.hasApiKey()).thenReturn(openAiKey != null && !openAiKey.isBlank());
+        return new OrganizationFeaturePolicy(authorization, 12, 45, 2048, 512, openAi);
     }
 
     private static GroupAuthorization mockAuthorization(GroupMember member) {

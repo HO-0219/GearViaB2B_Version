@@ -34,14 +34,14 @@ import static org.assertj.core.api.Assertions.assertThat;
 /**
  * B2B는 결제/멤버십 개념이 없다 — WorkTaskFlow(원본)의 이 테스트는 그룹을
  * {@code Group.MembershipPlan.PAID}로 전환해 AI 비서 사용 권한을 얻지만, 여기서는
- * {@code app.ai-assistant.enabled}와 {@code app.openai.api-key}만 있으면
+ * {@code app.ai-assistant.enabled}와 {@code app.ai-report.api-key}만 있으면
  * {@link com.teamproject.organization.application.OrganizationFeaturePolicy}가 통과시킨다.
  */
 @SpringBootTest(classes = B2BGearViaApplication.class,
         properties = {
                 "app.storage.local-root=target/test-uploads",
                 "app.ai-assistant.enabled=true",
-                "app.openai.api-key=test-key",
+                "app.ai-report.api-key=test-key",
         })
 @Transactional
 class AiAssistantDocumentChatTest {
