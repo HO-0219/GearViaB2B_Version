@@ -26,7 +26,7 @@ export type AdminMonitoring = {
   system: { cpu: AdminMetric; memory: AdminCapacity; storage: AdminCapacity & { provider: string } };
   aiUsage: { timeZone: string; periods: { today: AdminAiUsageTotals; thisMonth: AdminAiUsageTotals; allTime: AdminAiUsageTotals }; breakdown: AdminAiUsageBreakdown[] };
 };
-type Page<T> = { items: T[]; page: number; size: number; totalElements: number; totalPages: number };
+export type Page<T> = { items: T[]; page: number; size: number; totalElements: number; totalPages: number };
 export const adminApi = {
   overview: () => request<AdminOverview>('/admin/overview', {}, true),
   monitoring: () => request<AdminMonitoring>('/admin/monitoring', {}, true),
@@ -45,7 +45,7 @@ export const adminApi = {
   mfaConfirm: (code: string) => request<void>('/admin/mfa/confirm', {
     method: 'POST', body: JSON.stringify({ code }),
   }, true),
-  auditLogs: () => request<Page<AdminAudit>>('/admin/audit-logs?size=50', {}, true),
+  auditLogs: (page = 0) => request<Page<AdminAudit>>(`/admin/audit-logs?page=${page}&size=50`, {}, true),
   aiSettings: () => request<AdminAiSettingsStatus>('/admin/ai-settings', {}, true),
   testAiConnections: () => request<AdminAiConnectionTestResponse>('/admin/ai-settings/test', { method: 'POST' }, true),
   updateAiSettings: (apiKey: string | undefined, reportEnabled: boolean, assistantEnabled: boolean) =>
