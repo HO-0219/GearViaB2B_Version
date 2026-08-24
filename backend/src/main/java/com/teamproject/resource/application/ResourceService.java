@@ -11,6 +11,7 @@ import com.teamproject.resource.domain.GroupResourceRepository;
 import com.teamproject.resource.storage.FileStorage;
 import com.teamproject.task.domain.Task;
 import com.teamproject.task.domain.TaskRepository;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -31,10 +32,12 @@ public class ResourceService {
     private final TaskRepository tasks;
     private final FileStorage storage;
     private final GroupStorageQuotaService quota;
+    private final ApplicationEventPublisher events;
     public ResourceService(GroupAuthorization authorization, GroupResourceRepository resources,
-            TaskRepository tasks, FileStorage storage, GroupStorageQuotaService quota) {
+            TaskRepository tasks, FileStorage storage, GroupStorageQuotaService quota,
+            ApplicationEventPublisher events) {
         this.authorization = authorization; this.resources = resources; this.tasks = tasks;
-        this.storage = storage; this.quota = quota;
+        this.storage = storage; this.quota = quota; this.events = events;
     }
 
     @Transactional(readOnly = true)
@@ -78,6 +81,7 @@ public class ResourceService {
             GroupResource saved = resources.save(GroupResource.file(member.getGroup(), task, member,
                     title == null || title.isBlank() ? filename : title.trim(), key, filename,
                     contentType, bytes.length, checksum));
+            events.publishEvent(new ResourceUploadedEvent(groupId, saved.getId()));
             return response(saved, member);
         } catch (RuntimeException exception) {
             storage.delete(key);

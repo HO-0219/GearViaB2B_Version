@@ -21,6 +21,7 @@ export function AiAssistantPage() {
   const [items, setItems] = useState<ChatItem[]>([]);
   const [pending, setPending] = useState(false);
   const [loadingHistory, setLoadingHistory] = useState(false);
+  const [reindexing, setReindexing] = useState(false);
   const groupId = Number(params.get('groupId') ?? 0);
 
   useEffect(() => {
@@ -95,6 +96,26 @@ export function AiAssistantPage() {
     }
   }
 
+  async function reindex() {
+    if (!groupId || reindexing) return;
+    setReindexing(true);
+    try {
+      const result = await assistantApi.reindex(groupId);
+      const summary = result.indexed === 0 && result.removed === 0
+        ? t('새로 색인할 자료가 없습니다.', 'No new material to index.')
+        : t(`자료 ${result.indexed}건을 새로 색인했습니다${result.removed > 0 ? ` (삭제된 자료 ${result.removed}건 정리)` : ''}.`,
+          `Indexed ${result.indexed} file(s)${result.removed > 0 ? ` (removed ${result.removed} deleted file(s))` : ''}.`);
+      setItems((old) => [...old, assistantMessage(
+        result.failures.length > 0
+          ? `${summary} ${t(`(${result.failures.join(', ')} 처리 실패)`, `(failed: ${result.failures.join(', ')})`)}`
+          : summary)]);
+    } catch (caught) {
+      setItems((old) => [...old, assistantMessage(errorMessage(caught))]);
+    } finally {
+      setReindexing(false);
+    }
+  }
+
   async function copyInvite(url: string) {
     await navigator.clipboard.writeText(url);
     setItems((old) => [...old, assistantMessage(t('초대 링크를 복사했습니다.', 'Invite link copied.'))]);
@@ -118,7 +139,9 @@ export function AiAssistantPage() {
 
     {!assistantEnabled && selectedGroup && <section className="assistant-policy-lock"><span aria-hidden="true">✦</span><div><h2>{t('AI 비서는 관리자 정책에서 허용된 팀장 기능입니다.', 'AI assistant is available to team leaders when enabled by an admin.')}</h2><p>{t('서버 관리자가 AI 기능과 API 키를 설정하면 팀장이 사용할 수 있습니다.', 'Team leaders can use it after a server admin enables AI and configures an API key.')}</p></div>{selectedGroup.role === 'LEADER' ? <Link className="primary" to={`/groups/${selectedGroup.id}`}>{t('그룹 설정', 'Group settings')}</Link> : <small>{t('팀장에게 AI 기능 사용을 요청해 주세요.', 'Ask your team leader to use AI for this team.')}</small>}</section>}
     {assistantEnabled && <div className="assistant-workspace-layout"><section className="assistant-chat" aria-label={t('AI 비서 대화', 'AI assistant chat')}>
-      <header className="assistant-chat-heading"><div><span>✦</span><div><strong>{t('B2BGearVia AI', 'B2BGearVia AI')}</strong><small>{t(`${selectedGroup?.name ?? ''}의 업무를 바탕으로 답변합니다.`, `Answers from work in ${selectedGroup?.name ?? ''}.`)}</small></div></div><b>{t('온라인', 'Online')}</b></header>
+      <header className="assistant-chat-heading"><div><span>✦</span><div><strong>{t('B2BGearVia AI', 'B2BGearVia AI')}</strong><small>{t(`${selectedGroup?.name ?? ''}의 업무를 바탕으로 답변합니다.`, `Answers from work in ${selectedGroup?.name ?? ''}.`)}</small></div></div>
+        <button type="button" className="secondary assistant-reindex-button" disabled={reindexing || pending} onClick={reindex}>{reindexing ? t('자료 색인 중...', 'Indexing...') : t('자료 재색인', 'Reindex files')}</button>
+        <b>{t('온라인', 'Online')}</b></header>
       <div className="assistant-messages" aria-live="polite">{items.map((item) =>
         <article className={`assistant-message ${item.role}`} key={item.id}>
           <span>{item.role === 'assistant' ? 'AI' : t('나', 'Me')}</span><p>{item.content}</p>

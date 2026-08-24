@@ -33,8 +33,9 @@ class SessionServiceCompanyEmailTest {
         NotificationService notifications = mock(NotificationService.class);
         AdminMfaService adminMfa = mock(AdminMfaService.class);
         PushSubscriptionService pushSubscriptions = mock(PushSubscriptionService.class);
+        LoginHistoryRecorder loginHistory = mock(LoginHistoryRecorder.class);
         SessionService service = new SessionService(users, passwordEncoder, refreshTokens, issuer,
-                notifications, adminMfa, pushSubscriptions, false, "demo_leader");
+                notifications, adminMfa, pushSubscriptions, loginHistory, false, "demo_leader");
 
         User employee = new User("employee_internal", "employee@company.com", "encoded", "홍길동", true);
         IssuedTokens expected = new IssuedTokens(new TokenResponse("access", "Bearer", 300), "refresh", 3600);

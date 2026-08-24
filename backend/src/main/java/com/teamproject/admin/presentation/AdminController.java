@@ -2,6 +2,7 @@ package com.teamproject.admin.presentation;
 
 import com.teamproject.admin.application.AdminService;
 import com.teamproject.admin.application.dto.AdminDtos.*;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import java.util.Map;
@@ -24,8 +25,21 @@ public class AdminController {
         return admin.changeStatus((Long) auth.getPrincipal(), userId, request.getOrDefault("status", ""));
     }
     @PostMapping("/users") TemporaryPasswordResponse create(@jakarta.validation.Valid @RequestBody CreateUserRequest request) { return admin.createUser(request); }
+    @PatchMapping("/users/{userId}")
+    AdminUserResponse update(@PathVariable Long userId, @jakarta.validation.Valid @RequestBody UpdateUserRequest request) {
+        return admin.updateUser(userId, request);
+    }
+    @DeleteMapping("/users/{userId}")
+    ResponseEntity<Void> withdraw(Authentication auth, @PathVariable Long userId) {
+        admin.withdrawUser((Long) auth.getPrincipal(), userId);
+        return ResponseEntity.noContent().build();
+    }
     @PostMapping("/users/{userId}/temporary-password") TemporaryPasswordResponse reset(@PathVariable Long userId) { return admin.resetPassword(userId); }
-    @PostMapping("/users/{userId}/end-sessions") void endSessions(@PathVariable Long userId) { admin.endSessions(userId); }
+    @PostMapping("/users/{userId}/end-sessions")
+    ResponseEntity<Void> endSessions(@PathVariable Long userId) {
+        admin.endSessions(userId);
+        return ResponseEntity.noContent().build();
+    }
     @GetMapping("/groups")
     PageResponse<AdminGroupResponse> groups(@RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "50") int size) { return admin.groups(page, size); }

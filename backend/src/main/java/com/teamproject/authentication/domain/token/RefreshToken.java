@@ -38,11 +38,17 @@ public class RefreshToken {
     private LocalDateTime createdAt;
     @Column(nullable = false)
     private LocalDateTime lastUsedAt;
+    /** Set once, at the login that first created this session, and carried forward on every
+     * rotation — access tokens are short-lived and memory-only, so if this lived only on the JWT
+     * claim, any refresh (which happens on nearly every page load) would silently downgrade an
+     * already MFA-verified admin session back to unverified. */
+    @Column(name = "mfa_verified", nullable = false)
+    private boolean mfaVerified;
 
     protected RefreshToken() {}
     public RefreshToken(User user, String tokenHash, String sessionId, ClientMode clientMode,
             LocalDateTime expiresAt, LocalDateTime absoluteExpiresAt, SessionDevice device,
-            LocalDateTime createdAt, LocalDateTime lastUsedAt) {
+            LocalDateTime createdAt, LocalDateTime lastUsedAt, boolean mfaVerified) {
         this.user = user;
         this.tokenHash = tokenHash;
         this.sessionId = sessionId;
@@ -55,6 +61,7 @@ public class RefreshToken {
         this.absoluteExpiresAt = absoluteExpiresAt;
         this.createdAt = createdAt;
         this.lastUsedAt = lastUsedAt;
+        this.mfaVerified = mfaVerified;
     }
     public boolean isValid(LocalDateTime now) {
         return revokedAt == null && expiresAt.isAfter(now) && absoluteExpiresAt.isAfter(now);
@@ -72,6 +79,7 @@ public class RefreshToken {
     public String getIpAddress() { return ipAddress; }
     public LocalDateTime getCreatedAt() { return createdAt; }
     public LocalDateTime getLastUsedAt() { return lastUsedAt; }
+    public boolean isMfaVerified() { return mfaVerified; }
 
     public enum ClientMode { WEB, PWA }
 }

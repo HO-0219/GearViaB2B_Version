@@ -5,6 +5,7 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
 import java.time.LocalDateTime;
+import java.util.List;
 
 public final class AiAssistantDtos {
     private AiAssistantDtos() {}
@@ -22,4 +23,5 @@ public final class AiAssistantDtos {
             Long id, String role, String content, Long actionId, String actionType,
             String actionSummary, LocalDateTime actionExpiresAt, String actionStatus,
             LocalDateTime createdAt) {}
+    public record IndexResponse(int indexed, int skipped, int removed, int unsupported, List<String> failures) {}
 }

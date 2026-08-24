@@ -56,10 +56,20 @@ services:
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/b2bgearvia?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Seoul
       SPRING_DATASOURCE_USERNAME: b2bgearvia
       UPLOAD_LOCAL_ROOT: /opt/b2bgearvia/data/uploads
+      STORAGE_PROVIDER: ${STORAGE_PROVIDER:-local}
+      STORAGE_NAS_ROOT: ${STORAGE_NAS_ROOT:-}
+      AI_SUPPORTED_MODELS: ${AI_SUPPORTED_MODELS:-gpt-5.6-sol,gpt-5.6-luna}
+      AI_ASSISTANT_EMBEDDING_MODEL: ${AI_ASSISTANT_EMBEDDING_MODEL:-text-embedding-3-small}
     expose: ["8081"]
     read_only: true
     tmpfs: [/tmp]
-    volumes: [uploads:/opt/b2bgearvia/data/uploads]
+    # /opt/b2bgearvia/data/nas is the fixed convention for STORAGE_PROVIDER=nas_mount:
+    # the host mounts its NAS/company storage share there (fstab/systemd) before
+    # compose starts, and this bind-mounts that same path into the container.
+    # Inert when STORAGE_PROVIDER=local (default) — nothing reads or writes it.
+    volumes:
+      - uploads:/opt/b2bgearvia/data/uploads
+      - /opt/b2bgearvia/data/nas:/opt/b2bgearvia/data/nas
     networks: [internal]
     depends_on:
       init-data: {condition: service_completed_successfully}

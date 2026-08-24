@@ -33,7 +33,7 @@ public class SessionController {
             HttpServletResponse response) {
         var tokens = sessions.login(request,
                 "PWA".equalsIgnoreCase(clientMode) ? ClientMode.PWA : ClientMode.WEB,
-                devices.resolve(servletRequest));
+                devices.resolve(servletRequest), servletRequest.getRemoteAddr());
         cookies.add(response, tokens.refreshToken(), tokens.refreshCookieMaxAgeSeconds());
         return tokens.response();
     }

@@ -7,6 +7,7 @@ import com.teamproject.group.domain.*;
 import com.teamproject.project.application.dto.ProjectDocumentDtos.*;
 import com.teamproject.project.domain.*;
 import com.teamproject.resource.storage.FileStorage;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -28,12 +29,13 @@ public class ProjectDocumentService {
     private final GroupAuthorization authorization;
     private final GroupFeaturePolicy features;
     private final FileStorage storage;
+    private final ApplicationEventPublisher events;
 
     public ProjectDocumentService(ProjectRepository projects, ProjectIssueRepository issues,
             ProjectDocumentRepository documents, GroupAuthorization authorization, GroupStorageQuotaService quota,
-            GroupFeaturePolicy features, FileStorage storage) {
+            GroupFeaturePolicy features, FileStorage storage, ApplicationEventPublisher events) {
         this.projects = projects; this.issues = issues; this.documents = documents; this.authorization = authorization;
-        this.features = features; this.storage = storage; this.quota = quota;
+        this.features = features; this.storage = storage; this.quota = quota; this.events = events;
     }
 
     @Transactional(readOnly = true)
@@ -81,6 +83,7 @@ public class ProjectDocumentService {
         String contentType = contentType(extension); storage.put(key, bytes, contentType); deleteOnRollback(key);
         ProjectDocument saved = documents.saveAndFlush(ProjectDocument.file(project, location, actor,
                 title == null || title.isBlank() ? filename : title.trim(), key, filename, contentType, bytes.length, checksum));
+        events.publishEvent(new ProjectDocumentUploadedEvent(project.getGroup().getId(), saved.getId()));
         return response(saved, userId);
     }
 

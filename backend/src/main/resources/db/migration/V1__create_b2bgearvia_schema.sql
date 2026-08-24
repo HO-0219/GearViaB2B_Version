@@ -952,3 +952,82 @@ CREATE TABLE user_consents (
     INDEX idx_user_consents_user_type_time (user_id, consent_type, agreed_at),
     CONSTRAINT fk_user_consents_user FOREIGN KEY (user_id) REFERENCES users (id)
 ) ENGINE = InnoDB;
+
+CREATE TABLE ai_document_chunks (
+    id BIGINT NOT NULL AUTO_INCREMENT,
+    group_id BIGINT NOT NULL,
+    group_resource_id BIGINT NULL,
+    project_document_id BIGINT NULL,
+    chunk_index INT NOT NULL,
+    title VARCHAR(120) NOT NULL,
+    filename VARCHAR(255) NULL,
+    content TEXT NOT NULL,
+    embedding LONGBLOB NOT NULL,
+    dimensions INT NOT NULL,
+    embedding_model VARCHAR(120) NOT NULL,
+    created_at DATETIME(6) NOT NULL,
+    PRIMARY KEY (id),
+    UNIQUE KEY uk_ai_document_chunks_group_resource_chunk (group_resource_id, chunk_index),
+    UNIQUE KEY uk_ai_document_chunks_project_document_chunk (project_document_id, chunk_index),
+    INDEX idx_ai_document_chunks_group (group_id, id),
+    CONSTRAINT fk_ai_document_chunks_group FOREIGN KEY (group_id) REFERENCES work_groups (id),
+    CONSTRAINT fk_ai_document_chunks_group_resource FOREIGN KEY (group_resource_id) REFERENCES group_resources (id),
+    CONSTRAINT fk_ai_document_chunks_project_document FOREIGN KEY (project_document_id) REFERENCES project_documents (id),
+    CONSTRAINT ck_ai_document_chunks_single_source
+        CHECK ((group_resource_id IS NULL) <> (project_document_id IS NULL))
+) ENGINE = InnoDB;
+
+CREATE TABLE branding_settings (
+    id BIGINT NOT NULL,
+    organization_name VARCHAR(80) NULL,
+    logo_storage_key VARCHAR(500) NULL,
+    logo_content_type VARCHAR(100) NULL,
+    updated_at DATETIME(6) NOT NULL,
+    PRIMARY KEY (id)
+) ENGINE = InnoDB;
+
+CREATE TABLE login_history (
+    id BIGINT NOT NULL AUTO_INCREMENT,
+    username VARCHAR(120) NOT NULL,
+    user_id BIGINT NULL,
+    outcome VARCHAR(20) NOT NULL,
+    ip_address VARCHAR(64) NULL,
+    device_name VARCHAR(120) NULL,
+    occurred_at DATETIME(6) NOT NULL,
+    PRIMARY KEY (id),
+    INDEX idx_login_history_occurred_at (occurred_at),
+    CONSTRAINT fk_login_history_user FOREIGN KEY (user_id) REFERENCES users (id)
+) ENGINE = InnoDB;
+
+CREATE TABLE admin_notices (
+    id BIGINT NOT NULL AUTO_INCREMENT,
+    title VARCHAR(160) NOT NULL,
+    message VARCHAR(2000) NOT NULL,
+    scheduled_at DATETIME(6) NOT NULL,
+    status VARCHAR(20) NOT NULL,
+    recipient_count INT NULL,
+    created_by_user_id BIGINT NOT NULL,
+    created_at DATETIME(6) NOT NULL,
+    sent_at DATETIME(6) NULL,
+    PRIMARY KEY (id),
+    INDEX idx_admin_notices_status_scheduled (status, scheduled_at),
+    CONSTRAINT fk_admin_notices_created_by FOREIGN KEY (created_by_user_id) REFERENCES users (id)
+) ENGINE = InnoDB;
+
+CREATE TABLE ai_usage_records (
+    id BIGINT NOT NULL AUTO_INCREMENT,
+    operation VARCHAR(40) NOT NULL,
+    model VARCHAR(120) NOT NULL,
+    outcome VARCHAR(16) NOT NULL,
+    input_tokens BIGINT NULL,
+    output_tokens BIGINT NULL,
+    total_tokens BIGINT NULL,
+    failure_code VARCHAR(100) NULL,
+    occurred_at DATETIME(6) NOT NULL,
+    PRIMARY KEY (id),
+    INDEX idx_ai_usage_records_occurred_at (occurred_at),
+    INDEX idx_ai_usage_records_operation_model (operation, model)
+) ENGINE = InnoDB;
+
+ALTER TABLE refresh_tokens
+    ADD COLUMN mfa_verified BOOLEAN NOT NULL DEFAULT FALSE;

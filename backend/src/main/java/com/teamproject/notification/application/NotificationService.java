@@ -138,6 +138,17 @@ public class NotificationService {
     }
 
     @Transactional
+    public int adminNotice(Collection<User> recipients, String eventKeyPrefix, String title, String message) {
+        int count = 0;
+        for (User recipient : recipients) {
+            insertAndPublish(Notification.security(recipient, Notification.Type.ADMIN_NOTICE,
+                    eventKeyPrefix + ":" + recipient.getId(), title, message));
+            count++;
+        }
+        return count;
+    }
+
+    @Transactional
     public void newDeviceLogin(User user, String deviceName, String eventKey) {
         createSecurity(user, Notification.Type.SECURITY_NEW_DEVICE, eventKey,
                 "새 기기 로그인", deviceName + "에서 새 로그인이 확인되었습니다.");

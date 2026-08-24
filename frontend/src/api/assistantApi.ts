@@ -16,6 +16,9 @@ export type AssistantActionResponse = {
   inviteUrl?: string;
   selectedGroupId?: number;
 };
+export type AssistantIndexResponse = {
+  indexed: number; skipped: number; removed: number; unsupported: number; failures: string[];
+};
 export type AssistantMessageResponse = {
   id: number;
   role: 'user' | 'assistant';
@@ -39,4 +42,6 @@ export const assistantApi = {
     `/assistant/actions/${actionId}/confirm`, { method: 'POST' }, true),
   cancel: (actionId: number) => request<AssistantActionResponse>(
     `/assistant/actions/${actionId}/cancel`, { method: 'POST' }, true),
+  reindex: (groupId: number) => request<AssistantIndexResponse>(
+    `/assistant/reindex?groupId=${groupId}`, { method: 'POST' }, true),
 };

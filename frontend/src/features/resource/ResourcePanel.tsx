@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useId, useState } from 'react';
+import { DragEvent, FormEvent, useEffect, useId, useRef, useState } from 'react';
 import { errorMessage } from '../../api/client';
 import { GroupResource, resourceApi } from '../../api/resourceApi';
 import { useLanguage } from '../../app/LanguageContext';
@@ -14,6 +14,9 @@ export function ResourcePanel({ groupId, taskId }: { groupId: number; taskId?: n
   const [loading, setLoading] = useState(true);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState('');
+  const [dragActive, setDragActive] = useState(false);
+  const [dropUploading, setDropUploading] = useState(false);
+  const dragCounter = useRef(0);
   const fileInputId = useId();
   const load = () => (taskId ? resourceApi.taskList(taskId) : resourceApi.groupList(groupId)).then(setItems);
   useEffect(() => {
@@ -33,9 +36,28 @@ export function ResourcePanel({ groupId, taskId }: { groupId: number; taskId?: n
     try { await resourceApi.remove(item.id); setItems((current) => current.filter((value) => value.id !== item.id)); }
     catch (value) { setError(errorMessage(value)); }
   }
-  return <section className="resource-panel task-action-section" aria-busy={loading}>
+  function onDragEnter(event: DragEvent) {
+    event.preventDefault(); if (!event.dataTransfer.types.includes('Files')) return;
+    dragCounter.current += 1; setDragActive(true);
+  }
+  function onDragOver(event: DragEvent) { event.preventDefault(); }
+  function onDragLeave(event: DragEvent) {
+    event.preventDefault(); dragCounter.current = Math.max(0, dragCounter.current - 1);
+    if (dragCounter.current === 0) setDragActive(false);
+  }
+  async function onDrop(event: DragEvent) {
+    event.preventDefault(); dragCounter.current = 0; setDragActive(false);
+    const dropped = Array.from(event.dataTransfer.files); if (dropped.length === 0) return;
+    setDropUploading(true); setError('');
+    try { for (const value of dropped) await resourceApi.upload(groupId, value, '', taskId); await load(); }
+    catch (value) { setError(errorMessage(value)); }
+    finally { setDropUploading(false); }
+  }
+  return <section className={`resource-panel task-action-section${dragActive ? ' drop-active' : ''}`} aria-busy={loading}
+    onDragEnter={onDragEnter} onDragOver={onDragOver} onDragLeave={onDragLeave} onDrop={onDrop}>
     <div className="task-section-heading"><div><span className="page-eyebrow">RESOURCES</span><h2>{taskId ? t('업무 첨부', 'Task attachments') : t('그룹 자료', 'Group resources')}</h2></div><strong>{items.length}</strong></div>
-    {loading ? <p className="resource-loading">{t('자료를 불러오는 중...', 'Loading resources...')}</p> : items.length === 0 ? <p className="empty-state">{t('등록된 자료가 없습니다.', 'No resources yet.')}</p> :
+    {dropUploading && <p className="project-drop-uploading">{t('업로드 중...', 'Uploading...')}</p>}
+    {loading ? <p className="resource-loading">{t('자료를 불러오는 중...', 'Loading resources...')}</p> : items.length === 0 ? <p className="empty-state">{t('등록된 자료가 없습니다. 파일을 여기로 끌어다 놓아도 업로드됩니다.', 'No resources yet. You can also drag files here to upload.')}</p> :
       <div className="resource-list">{items.map((item) => <article key={item.id}><span className={`resource-type ${item.type.toLowerCase()}`}>{item.type}</span><div><strong>{item.title}</strong><small>{item.createdByNickname} · {new Intl.DateTimeFormat(language === 'ko' ? 'ko-KR' : 'en-US', { dateStyle: 'medium' }).format(new Date(item.createdAt))}{item.sizeBytes ? ` · ${formatBytes(item.sizeBytes)}` : ''}</small></div><div className="resource-item-actions">{item.type === 'LINK' ? <a className="secondary" href={item.url} target="_blank" rel="noreferrer">{t('열기', 'Open')}</a> : <button className="secondary" type="button" onClick={() => resourceApi.download(item).catch((value) => setError(errorMessage(value)))}>{t('다운로드', 'Download')}</button>}{item.canDelete && <button className="danger" type="button" onClick={() => remove(item)}>{t('삭제', 'Delete')}</button>}</div></article>)}</div>}
     <form className="resource-form" onSubmit={submit}>
       <div className="resource-form-heading"><div><strong>{t('새 자료 추가', 'Add a new resource')}</strong><small>{t('업무에 필요한 링크나 파일을 한곳에 정리하세요.', 'Keep useful links and files together.')}</small></div>
@@ -65,6 +87,7 @@ export function ResourcePanel({ groupId, taskId }: { groupId: number; taskId?: n
         <button className="primary" type="submit" disabled={pending || !title.trim() || (mode === 'LINK' ? !url.trim() : !file)}>{pending ? t('등록 중...', 'Adding...') : mode === 'LINK' ? t('링크 등록', 'Add link') : t('파일 첨부', 'Upload file')}</button>
       </div>
     </form>{error && <p className="error resource-error">{error}</p>}
+    {dragActive && <div className="project-drop-overlay">📥 {t('여기에 놓아 업로드', 'Drop to upload')}</div>}
   </section>;
 }
 function formatBytes(value: number) { return value < 1024 * 1024 ? `${Math.ceil(value / 1024)}KB` : `${(value / 1024 / 1024).toFixed(1)}MB`; }

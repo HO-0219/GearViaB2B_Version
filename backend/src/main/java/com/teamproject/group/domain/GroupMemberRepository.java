@@ -1,5 +1,6 @@
 package com.teamproject.group.domain;
 
+import com.teamproject.user.domain.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.Query;
@@ -9,6 +10,12 @@ import java.util.Collection;
 import java.util.Optional;
 
 public interface GroupMemberRepository extends JpaRepository<GroupMember, Long> {
+    @Query("select distinct m.user from GroupMember m "
+            + "where m.role = com.teamproject.group.domain.GroupMember.Role.LEADER "
+            + "and m.status = com.teamproject.group.domain.GroupMember.Status.ACTIVE "
+            + "and m.group.type = com.teamproject.group.domain.Group.Type.TEAM "
+            + "and m.user.status = com.teamproject.user.domain.User.Status.ACTIVE")
+    List<User> findDistinctActiveTeamLeaderUsers();
     List<GroupMember> findAllByUserIdAndStatusOrderByGroupTypeAscGroupNameAsc(
             Long userId, GroupMember.Status status);
     long countByUserIdAndGroupType(Long userId, Group.Type type);

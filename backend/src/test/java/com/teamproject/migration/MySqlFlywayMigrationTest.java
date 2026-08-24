@@ -36,15 +36,19 @@ class MySqlFlywayMigrationTest {
 
         flyway.migrate();
         long adminsBeforeRerun = countRows("users", "role", "ADMIN");
-        long tablesAfterFirstMigration = countSchemaObjects("information_schema.tables", "table_name", List.of("users", "work_groups", "tasks", "push_subscriptions"));
+        long tablesAfterFirstMigration = countSchemaObjects("information_schema.tables", "table_name", List.of("users", "work_groups", "tasks", "push_subscriptions", "ai_usage_records"));
         flyway.migrate();
         assertThat(flyway.info().current().getVersion().getVersion()).isEqualTo("1");
-        assertThat(countSchemaObjects("information_schema.tables", "table_name", List.of("users", "work_groups", "tasks", "push_subscriptions"))).isEqualTo(tablesAfterFirstMigration);
+        assertThat(countSchemaObjects("information_schema.tables", "table_name", List.of("users", "work_groups", "tasks", "push_subscriptions", "ai_usage_records"))).isEqualTo(tablesAfterFirstMigration);
         assertThat(countRows("users", "role", "ADMIN")).isEqualTo(adminsBeforeRerun);
         assertThat(countSchemaObjects("information_schema.tables", "table_name", List.of("payment_methods", "payment_attempts", "group_subscriptions", "subscription_consents", "oauth_signup_requests", "social_accounts"))).isZero();
         assertThat(countColumns("work_groups", List.of("membership_plan", "paid_period_start", "paid_period_end"))).isZero();
 
         assertThat(flyway.info().current().getVersion().getVersion()).isEqualTo("1");
+        assertThat(countColumns(
+                "ai_usage_records",
+                List.of("operation", "model", "outcome", "input_tokens", "output_tokens", "total_tokens", "failure_code", "occurred_at")))
+                .isEqualTo(8);
         assertThat(countSchemaObjects(
                 "information_schema.tables",
                 "table_name",

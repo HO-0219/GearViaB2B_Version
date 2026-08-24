@@ -92,7 +92,9 @@ async function performRequest<T>(path: string, init: RequestInit, authenticated:
     const error = await response.json().catch(() => ({ message: localeText('요청 처리 중 오류가 발생했습니다.', 'An error occurred while processing the request.') }));
     throw error as ApiError;
   }
-  return response.status === 204 ? (undefined as T) : response.json();
+  if (response.status === 204) return undefined as T;
+  const text = await response.text();
+  return text ? JSON.parse(text) : (undefined as T);
 }
 
 async function fetchWithTimeout(input: RequestInfo | URL, init: RequestInit, timeoutMs: number) {

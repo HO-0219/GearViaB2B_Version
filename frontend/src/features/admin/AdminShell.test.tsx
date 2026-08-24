@@ -3,11 +3,14 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
-import { AdminPage } from './AdminPage';
+import { AdminShell } from './AdminShell';
+import { accessToken } from '../../api/client';
+import { adminApi } from '../../api/adminApi';
 
 vi.mock('../../api/client', () => ({
   accessToken: { get: () => 'access-token', clear: vi.fn() },
   errorMessage: (value: unknown) => String(value),
+  request: vi.fn().mockResolvedValue({ organizationName: 'B2BGearVia', hasLogo: false }),
 }));
 
 vi.mock('../../api/adminApi', () => ({
@@ -21,12 +24,12 @@ vi.mock('../../api/adminApi', () => ({
   },
 }));
 
-describe('AdminPage MFA setup', () => {
+describe('AdminShell MFA setup', () => {
   beforeEach(() => localStorage.clear());
   afterEach(() => cleanup());
 
   test('shows a scannable QR code during MFA setup', async () => {
-    render(<MemoryRouter><AdminPage /></MemoryRouter>);
+    render(<MemoryRouter><AdminShell /></MemoryRouter>);
 
     fireEvent.click(await screen.findByRole('button', { name: 'MFA 설정 시작' }));
 
@@ -37,7 +40,7 @@ describe('AdminPage MFA setup', () => {
 
   test('returns to admin login after confirming the authenticator code', async () => {
     render(<MemoryRouter initialEntries={['/admin']}><Routes>
-      <Route path="/admin" element={<AdminPage />} />
+      <Route path="/admin" element={<AdminShell />} />
       <Route path="/login" element={<p>관리자 재로그인</p>} />
     </Routes></MemoryRouter>);
 
@@ -46,5 +49,17 @@ describe('AdminPage MFA setup', () => {
     fireEvent.click(screen.getByRole('button', { name: '확인하고 활성화' }));
 
     expect(await screen.findByText('관리자 재로그인')).toBeTruthy();
+  });
+
+  test('clears the stale token when the admin session needs re-verification, to avoid a redirect loop', async () => {
+    vi.mocked(adminApi.mfaStatus).mockResolvedValueOnce({ enabled: true, sessionVerified: false, encryptionConfigured: true });
+
+    render(<MemoryRouter initialEntries={['/admin']}><Routes>
+      <Route path="/admin" element={<AdminShell />} />
+      <Route path="/login" element={<p>관리자 재로그인</p>} />
+    </Routes></MemoryRouter>);
+
+    expect(await screen.findByText('관리자 재로그인')).toBeTruthy();
+    expect(accessToken.clear).toHaveBeenCalled();
   });
 });
