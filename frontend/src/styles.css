@@ -1504,3 +1504,11 @@ body { background: radial-gradient(circle at 80% -10%, #eeeefe 0, transparent 26
 @media(max-width:760px){.group-file-system>.project-file-layout{min-height:0}}
 .dashboard-two-columns>.dashboard-panel{height:520px;min-height:0;overflow:hidden}.dashboard-two-columns>.dashboard-panel>.period-task-list,.dashboard-two-columns>.dashboard-panel>.group-calendar-preview{max-height:430px;overflow-y:auto;padding-right:4px}
 @media(max-width:760px){.project-list-card{overflow:hidden}.project-table-wrap{margin-inline:-6px}.project-expanded-topics>header{align-items:stretch;flex-direction:column}.project-expanded-topics>header>div:last-child>*{flex:1}.flow-header-actions{width:100%;flex-wrap:wrap}.flow-header-actions>*{flex:1}.dashboard-two-columns>.dashboard-panel{height:480px}}
+/* Runtime SMTP administration */
+.task-filters { display:grid; grid-template-columns:2fr repeat(5,minmax(110px,1fr)) auto auto; gap:8px; margin:14px 0; }
+@media (max-width:1000px) { .task-filters { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+.admin-mail-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px; }
+.admin-mail-wide { grid-column:1/-1; }
+.admin-mail-options { display:flex; flex-wrap:wrap; gap:16px; margin:16px 0; }
+.admin-mail-options label { display:flex; align-items:center; gap:7px; }
+@media (max-width:700px) { .admin-mail-grid { grid-template-columns:1fr; } .admin-mail-wide { grid-column:auto; } }

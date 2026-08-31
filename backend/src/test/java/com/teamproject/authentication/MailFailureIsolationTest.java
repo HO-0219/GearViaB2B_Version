@@ -7,6 +7,7 @@ import com.teamproject.authentication.application.dto.SignupDtos.SignupRequest;
 import com.teamproject.authentication.application.token.OneTimeTokenService;
 import com.teamproject.authentication.domain.token.OneTimeToken;
 import com.teamproject.authentication.domain.token.OneTimeTokenRepository;
+import com.teamproject.authentication.infrastructure.mail.MailSenderFactory;
 import com.teamproject.group.application.GroupInvitationService;
 import com.teamproject.group.application.GroupService;
 import com.teamproject.group.application.dto.GroupDtos.CreateGroupRequest;
@@ -17,9 +18,6 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.mail.MailSendException;
-import org.springframework.mail.SimpleMailMessage;
-import org.springframework.mail.javamail.JavaMailSender;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -30,7 +28,7 @@ import static org.mockito.Mockito.verify;
 
 @SpringBootTest(classes = B2BGearViaApplication.class, properties = "app.mail.enabled=true")
 class MailFailureIsolationTest {
-    @MockBean JavaMailSender sender;
+    @MockBean MailSenderFactory senderFactory;
     @Autowired SignupService signup;
     @Autowired RecoveryService recovery;
     @Autowired OneTimeTokenService oneTimeTokens;
@@ -41,9 +39,8 @@ class MailFailureIsolationTest {
 
     @BeforeEach
     void failEveryMailDelivery() {
-        reset(sender);
-        doThrow(new MailSendException("SMTP unavailable"))
-                .when(sender).send(any(SimpleMailMessage.class));
+        reset(senderFactory);
+        doThrow(new RuntimeException("SMTP unavailable")).when(senderFactory).createSender();
     }
 
     @Test
@@ -70,6 +67,6 @@ class MailFailureIsolationTest {
         assertThat(invitations.findFirstByGroupIdAndEmailIgnoreCaseAndStatusOrderByCreatedAtDesc(
                 groupId, invitation.email(), GroupInvitation.Status.PENDING)).isPresent();
 
-        verify(sender, times(4)).send(any(SimpleMailMessage.class));
+        verify(senderFactory, times(4)).createSender();
     }
 }

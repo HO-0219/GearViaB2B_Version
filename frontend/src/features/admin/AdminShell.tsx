@@ -15,6 +15,7 @@ import { AdminBrandingPage } from './pages/AdminBrandingPage';
 import { AdminNoticesPage } from './pages/AdminNoticesPage';
 import { AdminLoginHistoryPage } from './pages/AdminLoginHistoryPage';
 import { AdminAuditLogPage } from './pages/AdminAuditLogPage';
+import { AdminMailSettingsPage } from './pages/AdminMailSettingsPage';
 
 const tabs: { to: string; end?: boolean; label: [string, string] }[] = [
   { to: '/admin', end: true, label: ['운영 현황', 'Overview'] },
@@ -23,6 +24,7 @@ const tabs: { to: string; end?: boolean; label: [string, string] }[] = [
   { to: '/admin/reports', label: ['리포트', 'Reports'] },
   { to: '/admin/monitoring', label: ['모니터링', 'Monitoring'] },
   { to: '/admin/ai-settings', label: ['AI 설정', 'AI settings'] },
+  { to: '/admin/mail-settings', label: ['SMTP 설정', 'SMTP settings'] },
   { to: '/admin/branding', label: ['브랜딩', 'Branding'] },
   { to: '/admin/notices', label: ['공지 발송', 'Notices'] },
   { to: '/admin/login-history', label: ['로그인 이력', 'Login history'] },
@@ -36,6 +38,7 @@ const sections: { anchor: string; label: [string, string]; render: () => JSX.Ele
   { anchor: 'admin-section-reports', label: ['리포트', 'Reports'], render: () => <AdminReportsPage /> },
   { anchor: 'admin-section-monitoring', label: ['모니터링', 'Monitoring'], render: () => <AdminMonitoringPage /> },
   { anchor: 'admin-section-ai-settings', label: ['AI 설정', 'AI settings'], render: () => <AdminAiSettingsPage /> },
+  { anchor: 'admin-section-mail-settings', label: ['SMTP 설정', 'SMTP settings'], render: () => <AdminMailSettingsPage /> },
   { anchor: 'admin-section-branding', label: ['브랜딩', 'Branding'], render: () => <AdminBrandingPage /> },
   { anchor: 'admin-section-notices', label: ['공지 발송', 'Notices'], render: () => <AdminNoticesPage /> },
   { anchor: 'admin-section-login-history', label: ['로그인 이력', 'Login history'], render: () => <AdminLoginHistoryPage /> },

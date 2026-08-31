@@ -9,6 +9,8 @@ import com.teamproject.notification.application.dto.PushDtos.PushConfigResponse;
 import com.teamproject.notification.application.dto.PushDtos.PushSubscriptionRequest;
 import com.teamproject.notification.application.dto.PushDtos.PushUnsubscribeRequest;
 import jakarta.validation.Valid;
+import com.teamproject.notification.application.dto.NotificationListFilter;
+import com.teamproject.notification.domain.Notification;
 import org.springframework.security.core.Authentication;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
@@ -43,8 +45,13 @@ public class NotificationController {
     @GetMapping
     NotificationPageResponse list(Authentication authentication,
             @RequestParam(required = false) Long cursor,
-            @RequestParam(defaultValue = "20") int size) {
-        return notifications.list((Long) authentication.getPrincipal(), cursor, size);
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(defaultValue = "ALL") NotificationListFilter.Read read,
+            @RequestParam(required = false) Long groupId,
+            @RequestParam(required = false) Notification.Type type,
+            @RequestParam(defaultValue = "ALL") NotificationListFilter.Period period) {
+        return notifications.list((Long) authentication.getPrincipal(), cursor, size,
+                new NotificationListFilter(read, groupId, type, period));
     }
 
     @PatchMapping("/{notificationId}/read")

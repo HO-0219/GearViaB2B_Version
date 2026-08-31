@@ -32,9 +32,7 @@ export type PushConfigResponse = { enabled: boolean; publicKey: string; consentA
 export type PushSubscriptionRequest = { endpoint: string; p256dh: string; auth: string };
 
 export const notificationApi = {
-  list: (size = 20, cursor?: number) => request<NotificationPageResponse>(
-    `/notifications?size=${size}${cursor ? `&cursor=${cursor}` : ''}`, {}, true,
-  ),
+  list: (size = 20, cursor?: number, filters: { read?: string; groupId?: string; type?: string; period?: string } = {}) => { const params = new URLSearchParams({ size: String(size) }); if (cursor) params.set('cursor', String(cursor)); Object.entries(filters).forEach(([key, value]) => { if (value) params.set(key, value); }); return request<NotificationPageResponse>(`/notifications?${params}`, {}, true); },
   read: (notificationId: number) => request<NotificationResponse>(`/notifications/${notificationId}/read`, {
     method: 'PATCH',
   }, true),

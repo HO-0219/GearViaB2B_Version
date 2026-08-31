@@ -1,33 +1,26 @@
 package com.teamproject.authentication.infrastructure.mail;
 
 import org.slf4j.*;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.SimpleMailMessage;
-import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
 
 @Service
 public class MailService {
     private static final Logger log = LoggerFactory.getLogger(MailService.class);
-    private final JavaMailSender sender;
-    private final String from;
-    private final boolean enabled;
-    public MailService(JavaMailSender sender, @Value("${app.mail.from}") String from, @Value("${app.mail.enabled}") boolean enabled) {
-        this.sender = sender;
-        this.from = from;
-        this.enabled = enabled;
-    }
+    private final MailSenderFactory factory;
+    public MailService(MailSenderFactory factory) { this.factory = factory; }
     public void sendBestEffort(String to, String subject, String body) {
-        if (!enabled) {
+        try {
+        var configured = factory.createSender();
+        if (!configured.enabled()) {
             log.info("[LOCAL MAIL] recipient={} subject={} bodyLength={} (content redacted)",
                     maskRecipient(to), subject, body == null ? 0 : body.length());
             return;
         }
         var message = new SimpleMailMessage();
-        message.setFrom(from); message.setTo(to); message.setSubject(subject); message.setText(body);
-        try {
-            sender.send(message);
+        message.setFrom(configured.fromAddress()); message.setTo(to); message.setSubject(subject); message.setText(body);
+            configured.sender().send(message);
         } catch (RuntimeException exception) {
             log.error("Mail delivery failed. recipient={} subject={} error={} message={}",
                     maskRecipient(to), subject, exception.getClass().getSimpleName(), exception.getMessage());
@@ -36,16 +29,17 @@ public class MailService {
     }
 
     public boolean sendHtmlBestEffort(String to, String subject, String html) {
-        if (!enabled) {
+        try {
+        var configured = factory.createSender();
+        if (!configured.enabled()) {
             log.info("[LOCAL MAIL] recipient={} subject={} bodyLength={} contentType=text/html (content redacted)",
                     maskRecipient(to), subject, html == null ? 0 : html.length());
             return true;
         }
-        try {
-            var message = sender.createMimeMessage();
+            var message = configured.sender().createMimeMessage();
             var helper = new MimeMessageHelper(message, false, java.nio.charset.StandardCharsets.UTF_8.name());
-            helper.setFrom(from); helper.setTo(to); helper.setSubject(subject); helper.setText(html, true);
-            sender.send(message);
+            helper.setFrom(configured.fromAddress()); helper.setTo(to); helper.setSubject(subject); helper.setText(html, true);
+            configured.sender().send(message);
             return true;
         } catch (RuntimeException | jakarta.mail.MessagingException exception) {
             log.error("HTML mail delivery failed. recipient={} subject={} error={}",

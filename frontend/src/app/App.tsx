@@ -31,6 +31,7 @@ import { AdminLoginHistoryPage } from '../features/admin/pages/AdminLoginHistory
 import { AdminAiSettingsPage } from '../features/admin/pages/AdminAiSettingsPage';
 import { AdminBrandingPage } from '../features/admin/pages/AdminBrandingPage';
 import { AdminNoticesPage } from '../features/admin/pages/AdminNoticesPage';
+import { AdminMailSettingsPage } from '../features/admin/pages/AdminMailSettingsPage';
 import { AiAssistantPage } from '../features/assistant/AiAssistantPage';
 import { ProjectsPage } from '../features/project/pages/ProjectsPage';
 import { ProjectFlowPage } from '../features/project/pages/ProjectFlowPage';
@@ -57,6 +58,7 @@ export default function App() {
       <Route path="reports" element={<AdminReportsPage />} />
       <Route path="monitoring" element={<AdminMonitoringPage />} />
       <Route path="ai-settings" element={<AdminAiSettingsPage />} />
+      <Route path="mail-settings" element={<AdminMailSettingsPage />} />
       <Route path="branding" element={<AdminBrandingPage />} />
       <Route path="notices" element={<AdminNoticesPage />} />
       <Route path="login-history" element={<AdminLoginHistoryPage />} />
@@ -110,6 +112,7 @@ function pageLabel(pathname: string, language: 'ko' | 'en') {
     if (pathname === '/admin/reports') return 'Admin reports';
     if (pathname === '/admin/monitoring') return 'Admin monitoring';
     if (pathname === '/admin/ai-settings') return 'Admin AI settings';
+    if (pathname === '/admin/mail-settings') return 'Admin SMTP settings';
     if (pathname === '/admin/branding') return 'Admin branding';
     if (pathname === '/admin/notices') return 'Admin notices';
     if (pathname === '/admin/login-history') return 'Admin login history';
@@ -141,6 +144,7 @@ function pageLabel(pathname: string, language: 'ko' | 'en') {
   if (pathname === '/admin/reports') return '운영자 · 리포트';
   if (pathname === '/admin/monitoring') return '운영자 · 모니터링';
   if (pathname === '/admin/ai-settings') return '운영자 · AI 설정';
+  if (pathname === '/admin/mail-settings') return '운영자 · SMTP 설정';
   if (pathname === '/admin/branding') return '운영자 · 브랜딩';
   if (pathname === '/admin/notices') return '운영자 · 공지 발송';
   if (pathname === '/admin/login-history') return '운영자 · 로그인 이력';

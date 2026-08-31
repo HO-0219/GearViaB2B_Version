@@ -39,6 +39,14 @@ export function TasksPage() {
   const [error, setError] = useState('');
   const [showCreate, setShowCreate] = useState(false);
   const [claimingId, setClaimingId] = useState<number>();
+  const [filters, setFilters] = useState({ query: '', status: '', priority: '', projectId: '', assignment: 'ALL', due: 'ALL' });
+  const [filtering, setFiltering] = useState(false);
+
+  async function applyFilters(next = filters) {
+    setFilters(next); setFiltering(true);
+    try { setTasks(await taskApi.list(groupId, { ...next, projectId: next.projectId ? Number(next.projectId) : undefined })); setError(''); }
+    catch (caught) { setError(errorMessage(caught)); } finally { setFiltering(false); }
+  }
 
   useEffect(() => {
     if (!Number.isInteger(groupId) || groupId < 1) {
@@ -130,6 +138,7 @@ export function TasksPage() {
     <section className="tasks-layout tasks-layout-single">
       <section className="task-list-card">
         <h2>{t('업무 목록', 'Task list')} <small>{tasks.length}</small></h2>
+        <form className="task-filters" onSubmit={event => { event.preventDefault(); void applyFilters(); }}><input aria-label={t('업무 검색', 'Search tasks')} placeholder={t('제목·설명 검색', 'Search title or description')} value={filters.query} onChange={e => setFilters(v => ({ ...v, query: e.target.value }))} /><select aria-label={t('상태', 'Status')} value={filters.status} onChange={e => void applyFilters({ ...filters, status: e.target.value })}><option value="">{t('모든 상태', 'All statuses')}</option>{Object.entries(statusLabels).map(([value, text]) => <option key={value} value={value}>{label(text)}</option>)}</select><select aria-label={t('우선순위', 'Priority')} value={filters.priority} onChange={e => void applyFilters({ ...filters, priority: e.target.value })}><option value="">{t('모든 우선순위', 'All priorities')}</option>{Object.entries(priorityLabels).map(([value, text]) => <option key={value} value={value}>{label(text)}</option>)}</select><select aria-label={t('프로젝트', 'Project')} value={filters.projectId} onChange={e => void applyFilters({ ...filters, projectId: e.target.value })}><option value="">{t('모든 프로젝트', 'All projects')}</option>{projects.map(project => <option key={project.id} value={project.id}>{project.name}</option>)}</select><select aria-label={t('담당', 'Assignment')} value={filters.assignment} onChange={e => void applyFilters({ ...filters, assignment: e.target.value })}><option value="ALL">{t('전체 담당', 'All assignments')}</option><option value="MINE">{t('내 업무', 'My tasks')}</option><option value="UNASSIGNED">{t('미배정', 'Unassigned')}</option></select><select aria-label={t('마감', 'Due')} value={filters.due} onChange={e => void applyFilters({ ...filters, due: e.target.value })}><option value="ALL">{t('모든 마감', 'All due dates')}</option><option value="OVERDUE">{t('지연', 'Overdue')}</option><option value="DUE_SOON">{t('7일 이내', 'Due in 7 days')}</option></select><button className="secondary" disabled={filtering}>{t('검색', 'Search')}</button><button type="button" className="secondary" onClick={() => void applyFilters({ query: '', status: '', priority: '', projectId: '', assignment: 'ALL', due: 'ALL' })}>{t('초기화', 'Reset')}</button></form>
         {tasks.length === 0 && <p className="empty-state">{t('첫 업무를 등록해 보세요.', 'Create your first task.')}</p>}
         <div className="task-list">{sortedTasks.map((task) => <article className="task-item" key={task.id}>
           <Link className="task-item-main" to={`/tasks/${task.id}`}>

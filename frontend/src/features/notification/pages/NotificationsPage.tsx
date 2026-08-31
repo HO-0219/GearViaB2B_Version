@@ -18,11 +18,14 @@ export function NotificationsPage() {
   const [error, setError] = useState('');
   const [readFilter, setReadFilter] = useState<'ALL' | 'UNREAD' | 'READ'>('ALL');
   const [groupFilter, setGroupFilter] = useState('');
+  const [typeFilter, setTypeFilter] = useState('');
+  const [periodFilter, setPeriodFilter] = useState('ALL');
 
   const reload = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
     try {
-      const page = await notificationApi.list(Math.min(Math.max(items.length, 20), 50));
+      const page = await notificationApi.list(Math.min(Math.max(items.length, 20), 50), undefined,
+        { read: readFilter, groupId: groupFilter, type: typeFilter, period: periodFilter });
       setItems(page.items);
       setNextCursor(page.nextCursor);
       setHasNext(page.hasNext);
@@ -33,9 +36,9 @@ export function NotificationsPage() {
     } finally {
       if (!silent) setLoading(false);
     }
-  }, [items.length]);
+  }, [items.length, readFilter, groupFilter, typeFilter, periodFilter]);
 
-  useEffect(() => { reload(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { setItems([]); setNextCursor(undefined); void reload(); }, [readFilter, groupFilter, typeFilter, periodFilter]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => subscribeToLiveUpdates(() => { void reload(true); }), [reload]);
   useEffect(() => {
     const interval = window.setInterval(() => {
@@ -48,7 +51,7 @@ export function NotificationsPage() {
     if (!nextCursor) return;
     setPending(true);
     try {
-      const page = await notificationApi.list(20, nextCursor);
+      const page = await notificationApi.list(20, nextCursor, { read: readFilter, groupId: groupFilter, type: typeFilter, period: periodFilter });
       setItems((current) => [...current, ...page.items]);
       setNextCursor(page.nextCursor);
       setHasNext(page.hasNext);
@@ -111,7 +114,7 @@ export function NotificationsPage() {
       <div className="notification-header-actions"><button className="secondary" type="button" disabled={pending || unreadCount === 0} onClick={readAll}>✓ {t('모두 읽음', 'Mark all read')}</button></div>
     </header>
     {error && <p className="error">{error}</p>}
-    <section className="notification-filters"><div className="notification-tabs" role="group" aria-label={t('읽음 상태', 'Read status')}><button aria-pressed={readFilter === 'ALL'} className={readFilter === 'ALL' ? 'active' : ''} type="button" onClick={() => setReadFilter('ALL')}>{t('전체', 'All')} <b>{items.length}</b></button><button aria-pressed={readFilter === 'UNREAD'} className={readFilter === 'UNREAD' ? 'active' : ''} type="button" onClick={() => setReadFilter('UNREAD')}>{t('안 읽음', 'Unread')} <b>{unreadCount}</b></button><button aria-pressed={readFilter === 'READ'} className={readFilter === 'READ' ? 'active' : ''} type="button" onClick={() => setReadFilter('READ')}>{t('읽음', 'Read')}</button></div><label><span>{t('그룹', 'Group')}</span><select value={groupFilter} onChange={(event) => setGroupFilter(event.target.value)}><option value="">{t('모든 그룹', 'All groups')}</option>{groupOptions.map(([id, name]) => <option value={id} key={id}>{name}</option>)}</select></label></section>
+    <section className="notification-filters"><div className="notification-tabs" role="group" aria-label={t('읽음 상태', 'Read status')}><button aria-pressed={readFilter === 'ALL'} className={readFilter === 'ALL' ? 'active' : ''} type="button" onClick={() => setReadFilter('ALL')}>{t('전체', 'All')} <b>{items.length}</b></button><button aria-pressed={readFilter === 'UNREAD'} className={readFilter === 'UNREAD' ? 'active' : ''} type="button" onClick={() => setReadFilter('UNREAD')}>{t('안 읽음', 'Unread')} <b>{unreadCount}</b></button><button aria-pressed={readFilter === 'READ'} className={readFilter === 'READ' ? 'active' : ''} type="button" onClick={() => setReadFilter('READ')}>{t('읽음', 'Read')}</button></div><label><span>{t('그룹', 'Group')}</span><select value={groupFilter} onChange={(event) => setGroupFilter(event.target.value)}><option value="">{t('모든 그룹', 'All groups')}</option>{groupOptions.map(([id, name]) => <option value={id} key={id}>{name}</option>)}</select></label><label><span>{t('유형', 'Type')}</span><select value={typeFilter} onChange={e => setTypeFilter(e.target.value)}><option value="">{t('모든 유형', 'All types')}</option><option value="TASK_REQUESTED">{t('업무 요청', 'Task requests')}</option><option value="TASK_ASSIGNED">{t('업무 배정', 'Assignments')}</option><option value="TASK_STATUS_CHANGED">{t('상태 변경', 'Status changes')}</option><option value="TASK_DUE_SOON">{t('마감 임박', 'Due soon')}</option><option value="COMMENT_MENTIONED">{t('멘션', 'Mentions')}</option><option value="CHAT_MESSAGE">{t('채팅', 'Chat')}</option><option value="SECURITY_NEW_DEVICE">{t('보안', 'Security')}</option></select></label><label><span>{t('기간', 'Period')}</span><select value={periodFilter} onChange={e => setPeriodFilter(e.target.value)}><option value="ALL">{t('전체 기간', 'All time')}</option><option value="TODAY">{t('오늘', 'Today')}</option><option value="LAST_7_DAYS">{t('최근 7일', 'Last 7 days')}</option><option value="LAST_30_DAYS">{t('최근 30일', 'Last 30 days')}</option></select></label></section>
     <section className="notification-card" aria-live="polite">
       <div className="notification-summary"><h2>{t('최근 알림', 'Recent notifications')}</h2><span>{t(`읽지 않음 ${unreadCount}개`, `${unreadCount} unread`)}</span></div>
       {loading && <p className="muted">{t('알림을 불러오는 중...', 'Loading notifications...')}</p>}

@@ -112,7 +112,10 @@ export type TransitionOptions = {
 };
 
 export const taskApi = {
-  list: (groupId: number) => request<TaskResponse[]>(`/groups/${groupId}/tasks`, {}, true),
+  list: (groupId: number, filters: { query?: string; status?: string; priority?: string; projectId?: number; assignment?: string; due?: string } = {}) => {
+    const params = new URLSearchParams(); Object.entries(filters).forEach(([key, value]) => { if (value !== undefined && value !== '') params.set(key, String(value)); });
+    return request<TaskResponse[]>(`/groups/${groupId}/tasks${params.size ? `?${params}` : ''}`, {}, true);
+  },
   create: (groupId: number, body: CreateTaskRequest) => request<TaskResponse>(`/groups/${groupId}/tasks`, {
     method: 'POST', body: JSON.stringify(body),
   }, true),

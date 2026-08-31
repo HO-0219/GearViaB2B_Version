@@ -9,6 +9,8 @@ import com.teamproject.task.application.dto.TaskDtos.TaskResponse;
 import com.teamproject.task.application.dto.TaskDtos.TransitionTaskRequest;
 import com.teamproject.task.application.dto.TaskDtos.UpdateTaskRequest;
 import com.teamproject.task.application.dto.TaskDtos.LinkProjectRequest;
+import com.teamproject.task.application.dto.TaskListFilter;
+import com.teamproject.task.domain.Task;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
@@ -22,8 +24,13 @@ public class TaskController {
     public TaskController(TaskService tasks) { this.tasks = tasks; }
 
     @GetMapping("/groups/{groupId}/tasks")
-    List<TaskResponse> list(Authentication authentication, @PathVariable Long groupId) {
-        return tasks.list((Long) authentication.getPrincipal(), groupId);
+    List<TaskResponse> list(Authentication authentication, @PathVariable Long groupId,
+            @RequestParam(required = false) String query, @RequestParam(required = false) Task.Status status,
+            @RequestParam(required = false) Task.Priority priority, @RequestParam(required = false) Long projectId,
+            @RequestParam(defaultValue = "ALL") TaskListFilter.Assignment assignment,
+            @RequestParam(defaultValue = "ALL") TaskListFilter.Due due) {
+        return tasks.list((Long) authentication.getPrincipal(), groupId,
+                new TaskListFilter(query, status, priority, projectId, assignment, due));
     }
 
     @PostMapping("/groups/{groupId}/tasks")

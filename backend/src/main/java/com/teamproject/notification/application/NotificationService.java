@@ -17,6 +17,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
+import com.teamproject.notification.application.dto.NotificationListFilter;
 import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -162,10 +163,18 @@ public class NotificationService {
 
     @Transactional(readOnly = true)
     public NotificationPageResponse list(Long userId, Long cursor, int requestedSize) {
+        return list(userId, cursor, requestedSize, new NotificationListFilter(null, null, null, null));
+    }
+
+    @Transactional(readOnly = true)
+    public NotificationPageResponse list(Long userId, Long cursor, int requestedSize, NotificationListFilter filter) {
         int size = Math.min(Math.max(requestedSize, 1), 50);
-        var page = cursor == null
-                ? notifications.findByRecipientIdOrderByIdDesc(userId, PageRequest.of(0, size))
-                : notifications.findByRecipientIdAndIdLessThanOrderByIdDesc(userId, cursor, PageRequest.of(0, size));
+        LocalDateTime createdAfter = switch (filter.period()) {
+            case ALL -> null; case TODAY -> LocalDateTime.now().toLocalDate().atStartOfDay();
+            case LAST_7_DAYS -> LocalDateTime.now().minusDays(7); case LAST_30_DAYS -> LocalDateTime.now().minusDays(30);
+        };
+        var page = notifications.findFiltered(userId, cursor, filter.groupId(), filter.type(), createdAfter,
+                filter.readValue(), PageRequest.of(0, size));
         var items = page.getContent().stream().map(this::response).toList();
         Long nextCursor = page.hasNext() && !items.isEmpty() ? items.get(items.size() - 1).id() : null;
         return new NotificationPageResponse(items, nextCursor, page.hasNext(),

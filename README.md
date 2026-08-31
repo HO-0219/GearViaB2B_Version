@@ -51,6 +51,8 @@ installer/     Optional integration configuration scripts
 
 설치 준비, 시스템 구성, 환경설정, 관리자 온보딩과 운영 점검은 [B2BGearVia 온프레미스 구축 및 관리자 가이드](./B2BGearVia_B2B_설치운영_매뉴얼.pdf)를 참고하세요.
 
+SMTP는 관리자 콘솔의 `SMTP 설정`에서 호스트, 포트, 인증, STARTTLS, 발신 주소와 활성화 여부를 저장하고 연결 테스트할 수 있습니다. 관리자가 저장하기 전에는 `MAIL_*` 배포 설정을 사용하지만, 한 번 저장한 뒤에는 DB 설정이 우선하며 비활성화 상태도 그대로 적용됩니다. SMTP 비밀번호는 `ADMIN_MFA_ENCRYPTION_KEY_BASE64`로 암호화되므로 운영 중 이 키를 변경하거나 분실하지 마세요.
+
 ## VirtualBox 테스트 빠른 시작
 
 1. Ubuntu Server 24.04 VM을 만들고 네트워크 어댑터 1은 NAT, 어댑터 2는 Host-Only로 설정합니다.

@@ -12,6 +12,13 @@ import java.util.Optional;
 public interface NotificationRepository extends JpaRepository<Notification, Long> {
     Slice<Notification> findByRecipientIdOrderByIdDesc(Long recipientId, Pageable pageable);
     Slice<Notification> findByRecipientIdAndIdLessThanOrderByIdDesc(Long recipientId, Long id, Pageable pageable);
+    @Query("select n from Notification n where n.recipient.id = :recipientId "
+            + "and (:cursor is null or n.id < :cursor) and (:groupId is null or n.group.id = :groupId) "
+            + "and (:type is null or n.type = :type) and (:createdAfter is null or n.createdAt >= :createdAfter) "
+            + "and (:read is null or (:read = true and n.readAt is not null) or (:read = false and n.readAt is null)) "
+            + "order by n.id desc")
+    Slice<Notification> findFiltered(Long recipientId, Long cursor, Long groupId, Notification.Type type,
+            LocalDateTime createdAfter, Boolean read, Pageable pageable);
     Slice<Notification> findByRecipientIdAndReadAtIsNullOrderByIdDesc(Long recipientId, Pageable pageable);
     Optional<Notification> findByIdAndRecipientId(Long id, Long recipientId);
     long countByRecipientIdAndReadAtIsNull(Long recipientId);
