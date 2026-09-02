@@ -134,7 +134,7 @@ public class InfrastructureChangeJob {
     public LocalDateTime getStartedAt() { return startedAt; }
     public LocalDateTime getCompletedAt() { return completedAt; }
 
-    public enum Type { MYSQL, STORAGE }
+    public enum Type { MYSQL, STORAGE, DOMAIN_TLS }
 
     public enum Status {
         DRAFT,
