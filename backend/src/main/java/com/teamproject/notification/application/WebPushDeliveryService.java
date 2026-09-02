@@ -70,7 +70,7 @@ public class WebPushDeliveryService {
         httpClient.close();
     }
 
-    @Async
+    @Async("notificationExecutor")
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void deliver(PushNotificationEvent event) {
         if (pushService == null) {

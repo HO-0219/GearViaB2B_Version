@@ -26,7 +26,7 @@ public class AiDocumentAutoIndexListener {
         this.indexService = indexService;
     }
 
-    @Async
+    @Async("documentIndexExecutor")
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void onResourceUploaded(ResourceUploadedEvent event) {
         try {
@@ -36,7 +36,7 @@ public class AiDocumentAutoIndexListener {
         }
     }
 
-    @Async
+    @Async("documentIndexExecutor")
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void onProjectDocumentUploaded(ProjectDocumentUploadedEvent event) {
         try {

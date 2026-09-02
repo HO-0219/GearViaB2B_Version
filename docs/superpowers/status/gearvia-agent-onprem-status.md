@@ -13,7 +13,7 @@ Last updated: 2026-09-02
 |---|---|---|---|
 | 1 | Operational configuration and job foundations | Implemented; MySQL verification pending | Tasks 1-2 focused tests passed |
 | 2 | API, database, pool, and concurrency optimization | In progress; MySQL EXPLAIN pending | Task 3 bounded queries verified locally |
-| 3 | Executor isolation, health, telemetry, and alerts | Planned | - |
+| 3 | Executor isolation, health, telemetry, and alerts | In progress | Task 4 executor isolation verified |
 | A | Checkpoint A integration verification | Planned | - |
 | 4 | Organization-wide notices and maintenance mode | Not started | - |
 | 5 | External MySQL preflight | Not started | - |
@@ -33,7 +33,8 @@ Last updated: 2026-09-02
 - `7a442df` - remove calendar test date dependency
 - `f81e7fe` - validated runtime tuning limits and instance identity
 - `f52ab75` - persistent infrastructure-change state machine
-- Task 3 branch commit - bounded database-side task filtering and MySQL index-plan gate
+- `96f2d8b` - bounded database-side task filtering and MySQL index-plan gate
+- Task 4 branch commit - bounded named executors and saturation telemetry
 
 ## Verification Evidence
 
@@ -48,6 +49,8 @@ Last updated: 2026-09-02
 - Task 1-3 backend regression suite: 457 tests, 0 failures, 0 errors, 2 Docker-dependent skips.
 - V4 intentionally adds no speculative index. `MySqlOperationalIndexTest` seeds 10,000 tasks
   and requires MySQL to select the four existing operational indexes before Checkpoint A can close.
+- Task 4 focused suite: 5 tests, 0 failures/errors. Document-index saturation did not
+  consume notification capacity; queue/rejection metrics and explicit async routing were verified.
 
 ## Known Issues
 
@@ -57,5 +60,5 @@ Last updated: 2026-09-02
 
 ## Next Action
 
-Begin Task 4 (bounded named executors) after the Task 3 commit. Run the MySQL 8.4
-migration and EXPLAIN tests as soon as a Docker-enabled integration host is available.
+Begin Task 5 dependency readiness and internal metrics. Run the MySQL 8.4 migration
+and EXPLAIN tests as soon as a Docker-enabled integration host is available.
