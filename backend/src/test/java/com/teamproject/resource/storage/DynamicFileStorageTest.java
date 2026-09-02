@@ -30,6 +30,25 @@ class DynamicFileStorageTest {
     }
 
     @Test
+    void activeLocalHealthIgnoresAnUnavailableInactiveNas() {
+        when(settings.findById(StorageSettings.SINGLETON_ID)).thenReturn(Optional.empty());
+        DynamicFileStorage storage = new DynamicFileStorage("local", localRoot.toString(),
+                nasRoot.resolve("missing").toString(), settings);
+
+        assertThat(storage.activeHealth()).isEqualTo(new DynamicFileStorage.ActiveHealth("local", true));
+    }
+
+    @Test
+    void activeNasHealthFailsWhenThePersistedMountIsUnavailable() {
+        when(settings.findById(StorageSettings.SINGLETON_ID))
+                .thenReturn(Optional.of(new StorageSettings("nas_mount")));
+        DynamicFileStorage storage = new DynamicFileStorage("local", localRoot.toString(),
+                nasRoot.resolve("missing").toString(), settings);
+
+        assertThat(storage.activeHealth()).isEqualTo(new DynamicFileStorage.ActiveHealth("nas_mount", false));
+    }
+
+    @Test
     void testNasReportsFailureWhenTheMountIsUnreachableWithoutSwitchingAnything() {
         when(settings.findById(StorageSettings.SINGLETON_ID)).thenReturn(Optional.empty());
         Path unmounted = nasRoot.resolve("not-mounted");

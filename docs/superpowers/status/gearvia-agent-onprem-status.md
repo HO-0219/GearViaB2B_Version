@@ -34,7 +34,8 @@ Last updated: 2026-09-02
 - `f81e7fe` - validated runtime tuning limits and instance identity
 - `f52ab75` - persistent infrastructure-change state machine
 - `96f2d8b` - bounded database-side task filtering and MySQL index-plan gate
-- Task 4 branch commit - bounded named executors and saturation telemetry
+- `4520da2` - bounded named executors and saturation telemetry
+- Task 5 branch commit - dependency readiness and internal metrics
 
 ## Verification Evidence
 
@@ -51,6 +52,9 @@ Last updated: 2026-09-02
   and requires MySQL to select the four existing operational indexes before Checkpoint A can close.
 - Task 4 focused suite: 5 tests, 0 failures/errors. Document-index saturation did not
   consume notification capacity; queue/rejection metrics and explicit async routing were verified.
+- Task 5 focused/security suite: 29 tests, 0 failures/errors. Public readiness stayed
+  redacted, only the active storage provider affected readiness, and Actuator MVC mappings
+  remained isolated from the application API mapping tests.
 
 ## Known Issues
 
@@ -60,5 +64,5 @@ Last updated: 2026-09-02
 
 ## Next Action
 
-Begin Task 5 dependency readiness and internal metrics. Run the MySQL 8.4 migration
-and EXPLAIN tests as soon as a Docker-enabled integration host is available.
+Begin Task 6 administrator operational telemetry and alerts. Run the MySQL 8.4
+migration and EXPLAIN tests as soon as a Docker-enabled integration host is available.

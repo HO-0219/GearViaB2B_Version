@@ -15,6 +15,7 @@ import io.jsonwebtoken.ExpiredJwtException;
 import jakarta.servlet.http.Cookie;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.HttpHeaders;
@@ -40,7 +41,7 @@ class AuthSecurityApiTest {
     @Autowired SignupService signupService;
     @Autowired OneTimeTokenService oneTimeTokens;
     @Autowired UserRepository users;
-    @Autowired RequestMappingHandlerMapping mappings;
+    @Autowired @Qualifier("requestMappingHandlerMapping") RequestMappingHandlerMapping mappings;
     @Autowired ObjectMapper objectMapper;
 
     @Test

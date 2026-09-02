@@ -73,6 +73,17 @@ public class DynamicFileStorage implements FileStorage {
                 nasRoot, nasReachable);
     }
 
+    /** Non-mutating readiness check for only the provider currently selected by the administrator. */
+    public ActiveHealth activeHealth() {
+        String provider = active;
+        Path root = Path.of(NAS_MOUNT.equals(provider) ? nasRoot : localRoot).toAbsolutePath().normalize();
+        boolean available = Files.isDirectory(root) && Files.isReadable(root) && Files.isWritable(root);
+        if (NAS_MOUNT.equals(provider)) {
+            available = available && nas != null;
+        }
+        return new ActiveHealth(provider, available);
+    }
+
     /** Checks reachability and writability without switching anything. */
     public TestResult testNas() {
         Path root = Path.of(nasRoot).toAbsolutePath().normalize();
@@ -130,6 +141,8 @@ public class DynamicFileStorage implements FileStorage {
 
     public record Status(String provider, List<String> supportedProviders, String localRootPath,
             boolean localMounted, String nasRootPath, boolean nasMounted) {}
+
+    public record ActiveHealth(String provider, boolean up) {}
 
     public record TestResult(boolean success, String message) {}
 }
