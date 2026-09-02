@@ -11,7 +11,7 @@ Last updated: 2026-09-02
 
 | Stage | Scope | Status | Evidence |
 |---|---|---|---|
-| 1 | Operational configuration and job foundations | Planned | - |
+| 1 | Operational configuration and job foundations | In progress | Task 1 runtime limits verified |
 | 2 | API, database, pool, and concurrency optimization | Planned | - |
 | 3 | Executor isolation, health, telemetry, and alerts | Planned | - |
 | A | Checkpoint A integration verification | Planned | - |
@@ -30,10 +30,15 @@ Last updated: 2026-09-02
 
 - `875909c` - architecture design
 - `9b6edbf` - design formatting correction
+- `7a442df` - remove calendar test date dependency
+- Task 1 branch commit - validated runtime tuning limits and instance identity
 
 ## Verification Evidence
 
-No implementation verification has run yet.
+- Baseline backend suite: 446 tests, 0 failures, 0 errors, 1 Docker-dependent skip.
+- Task 1 focused suite: `B2BGearViaApplicationTest`, `RuntimeTuningPropertiesTest`, and
+  `B2bConfigurationValidatorTest` passed (19 tests, 0 failures/errors).
+- `infra/b2b/test-virtualbox-config.sh`: passed; generated Compose configuration is valid.
 
 ## Known Issues
 
@@ -42,4 +47,5 @@ No implementation verification has run yet.
 
 ## Next Action
 
-Execute Task 1 of the Checkpoint A plan using test-driven development, then update this file with the commit and focused test result.
+Execute Task 2 of the Checkpoint A plan using test-driven development, then verify the
+infrastructure job state machine and MySQL migration behavior.
