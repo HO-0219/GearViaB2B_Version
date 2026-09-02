@@ -1,6 +1,6 @@
 # GearVia Agent and On-Premise Operations Design
 
-Date: 2026-09-02  
+Date: 2026-09-02
 Status: Approved
 
 ## 1. Objective
