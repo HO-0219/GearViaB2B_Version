@@ -39,6 +39,13 @@ if [[ "$dry_run" == true ]]; then
   exit 0
 fi
 
+if [[ "${GEARVIA_SKIP_RUNTIME:-0}" != "1" ]]; then
+  command -v docker >/dev/null 2>&1 || gearvia_die "Docker Engine with Compose v2 is required"
+  docker compose version >/dev/null 2>&1 || gearvia_die "Docker Compose v2 is required"
+  command -v curl >/dev/null 2>&1 || gearvia_die "curl is required for readiness verification"
+  docker compose --env-file "$config" -f "$script_dir/infra/b2b/compose.yml" config --quiet
+fi
+
 if [[ -n "${GEARVIA_TEST_ROOT:-}" ]]; then
   mkdir -p "$install_root/data/uploads" "$install_root/data/nas" "$install_root/config" "$config_root" "$state_root/recovery"
 else
@@ -46,8 +53,10 @@ install -d -m 0755 "$install_root" "$install_root/data/uploads" "$install_root/d
   install -d -m 0700 "$config_root" "$state_root" "$state_root/recovery"
 fi
 install -m 0644 "$script_dir/infra/b2b/compose.yml" "$install_root/compose.yml"
+if [[ -f "$config_root/runtime.env" ]]; then
+  install -m 0600 "$config_root/runtime.env" "$state_root/recovery/runtime.env.previous"
+fi
 install -m 0600 "$config" "$config_root/runtime.env"
-install -m 0600 "$config" "$state_root/recovery/runtime.env.last-known-good"
 if [[ -n "$tls_cert" ]]; then install -m 0644 "$tls_cert" "$install_root/tls/fullchain.pem"; fi
 if [[ -n "$tls_key" ]]; then install -m 0600 "$tls_key" "$install_root/tls/privkey.pem"; fi
 install -D -m 0644 "$script_dir/infra/b2b/systemd/b2bgearvia.service" "$unit_path"
@@ -55,10 +64,22 @@ printf 'INSTALL_VERSION=1\nINSTALLED_AT=%s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" >
 chmod 0600 "$state_root/install-state.env"
 
 if [[ "${GEARVIA_SKIP_RUNTIME:-0}" != "1" ]]; then
-  command -v docker >/dev/null 2>&1 || gearvia_die "Docker Engine with Compose v2 is required"
-  docker compose version >/dev/null 2>&1 || gearvia_die "Docker Compose v2 is required"
   docker compose --env-file "$config_root/runtime.env" -f "$install_root/compose.yml" config --quiet
   systemctl daemon-reload
-  systemctl enable --now b2bgearvia.service
+  if ! systemctl enable --now b2bgearvia.service; then
+    [[ ! -f "$state_root/recovery/runtime.env.previous" ]] || install -m 0600 "$state_root/recovery/runtime.env.previous" "$config_root/runtime.env"
+    gearvia_die "Service startup failed; previous runtime configuration was restored"
+  fi
+  ready=false
+  for _ in {1..60}; do
+    if curl --insecure --fail --silent --max-time 5 https://127.0.0.1/healthz >/dev/null 2>&1; then ready=true; break; fi
+    sleep 2
+  done
+  if [[ "$ready" != true ]]; then
+    [[ ! -f "$state_root/recovery/runtime.env.previous" ]] || install -m 0600 "$state_root/recovery/runtime.env.previous" "$config_root/runtime.env"
+    systemctl restart b2bgearvia.service >/dev/null 2>&1 || true
+    gearvia_die "Readiness failed; previous runtime configuration was restored"
+  fi
 fi
+install -m 0600 "$config_root/runtime.env" "$state_root/recovery/runtime.env.last-known-good"
 gearvia_log "Installation completed. Runtime data and database volumes are preserved across reruns."

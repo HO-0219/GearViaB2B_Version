@@ -2,6 +2,7 @@ package com.teamproject.aiprovider.application;
 
 import com.teamproject.common.exception.ApplicationException;
 import java.net.URI;
+import java.net.InetAddress;
 import java.util.Locale;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
@@ -37,23 +38,24 @@ public class AiProviderPolicy {
             if (!"https".equalsIgnoreCase(uri.getScheme()) || !"api.openai.com".equals(host)) {
                 throw invalid("OpenAI 공급자는 https://api.openai.com 주소만 허용합니다.");
             }
-        } else if (!isPrivateHost(host)) {
-            throw invalid("사내 LLM 주소는 로컬·사설망 또는 .internal/.local 호스트여야 합니다.");
+        } else if (!resolvesOnlyToPrivateAddresses(host)) {
+            throw invalid("사내 LLM 주소는 DNS 확인 결과가 모두 로컬·사설망 주소여야 합니다.");
         }
         return new AiProviderProfile(provider, baseUrl, model, embeddingModel, timeoutSeconds, externalAllowed);
     }
 
-    private boolean isPrivateHost(String host) {
-        if (host.equals("localhost") || host.equals("::1") || host.endsWith(".internal") || host.endsWith(".local")) return true;
-        if (!host.contains(".")) return true;
-        String[] parts = host.split("\\.");
+    private boolean resolvesOnlyToPrivateAddresses(String host) {
         try {
-            int first = Integer.parseInt(parts[0]);
-            int second = parts.length > 1 ? Integer.parseInt(parts[1]) : -1;
-            return first == 10 || first == 127 || (first == 192 && second == 168)
-                    || (first == 172 && second >= 16 && second <= 31)
-                    || host.startsWith("fc") || host.startsWith("fd");
-        } catch (NumberFormatException exception) {
+            InetAddress[] addresses = InetAddress.getAllByName(host);
+            if (addresses.length == 0) return false;
+            for (InetAddress address : addresses) {
+                byte[] bytes = address.getAddress();
+                boolean ula = bytes.length == 16 && (bytes[0] & 0xfe) == 0xfc;
+                if (!(address.isAnyLocalAddress() || address.isLoopbackAddress() || address.isSiteLocalAddress()
+                        || address.isLinkLocalAddress() || ula)) return false;
+            }
+            return true;
+        } catch (java.net.UnknownHostException exception) {
             return false;
         }
     }

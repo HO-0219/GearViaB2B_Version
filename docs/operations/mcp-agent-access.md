@@ -4,10 +4,17 @@
 
 Expose `https://<internal-gearvia-host>/mcp` only through the GearVia HTTPS reverse proxy on
 configured intranet or VPN networks. Set `MCP_ENABLED=true`, list those CIDRs in
-`MCP_ALLOWED_CIDRS`, and never forward the backend port or MCP endpoint directly to the Internet.
+`MCP_ALLOWED_CIDRS`, set `MCP_TRUSTED_PROXIES` only to the reverse-proxy container/network, and
+never forward the backend port or MCP endpoint directly to the Internet. Nginx overwrites rather
+than appends `X-Forwarded-For`, and GearVia trusts that header only from the configured proxy CIDR.
 
 Each user issues a personal read-only token from My Profile. The plaintext is shown once; GearVia
 stores only its SHA-256 hash. Revoking it or suspending the account blocks the next request.
+
+Tool responses are item/byte bounded and every terminal tool outcome is audited. Rate and
+concurrency limits are JVM-local in the current single-node release. Before adding a second
+backend node, replace the limiter with a shared implementation (for example Redis or MySQL lease
+counters); otherwise clients can consume the configured allowance once per node.
 
 ## Codex CLI
 

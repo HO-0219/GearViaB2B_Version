@@ -1,6 +1,8 @@
 package com.teamproject.admin.application;
 
 import com.openai.client.OpenAIClient;
+import com.openai.models.responses.ResponseCreateParams;
+import com.openai.models.embeddings.EmbeddingCreateParams;
 import com.teamproject.aiprovider.infrastructure.openai.DynamicOpenAiSettings;
 import com.teamproject.assistant.infrastructure.openai.OpenAiAssistantProperties;
 import com.teamproject.report.infrastructure.openai.OpenAiReportProperties;
@@ -43,8 +45,8 @@ public class AdminAiSettingsService {
 
     public ConnectionTestResponse testConnections() {
         return new ConnectionTestResponse(
-                testVertical(openAi.reportClient(), openAi.reportEnabled(), openAi.chatModel()),
-                testVertical(openAi.assistantClient(), openAi.assistantEnabled(), openAi.chatModel()));
+                testChat(openAi.reportClient(), openAi.reportEnabled() || openAi.assistantEnabled(), openAi.chatModel()),
+                testEmbedding(openAi.assistantClient(), openAi.assistantEnabled(), openAi.embeddingModel()));
     }
 
     /** apiKeyOrNull: null keeps the existing key, blank clears it, non-blank replaces it. */
@@ -64,15 +66,34 @@ public class AdminAiSettingsService {
         return new VerticalStatus(enabled, openAi.hasApiKey(), openAi.maskedApiKey(), openAi.chatModel(), openAi.baseUrl());
     }
 
-    private VerticalTestResult testVertical(OpenAIClient client, boolean enabled, String model) {
+    private VerticalTestResult validateTest(boolean enabled, String model) {
         if (!enabled) return new VerticalTestResult(false, "AI 기능이 비활성화되어 있습니다.");
         if (!openAi.ready()) return new VerticalTestResult(false, "API 키가 설정되지 않았습니다.");
         if (model == null || model.isBlank()) return new VerticalTestResult(false, "모델이 설정되지 않았습니다.");
+        return null;
+    }
+
+    private VerticalTestResult testChat(OpenAIClient client, boolean enabled, String model) {
+        VerticalTestResult invalid = validateTest(enabled, model);
+        if (invalid != null) return invalid;
         try {
-            client.models().retrieve(model);
-            return new VerticalTestResult(true, "연결에 성공했습니다.");
+            client.responses().create(ResponseCreateParams.builder().model(model).input("Reply with OK.")
+                    .maxOutputTokens(8).store(false).build());
+            return new VerticalTestResult(true, "채팅/Responses 연결에 성공했습니다.");
         } catch (Exception exception) {
-            return new VerticalTestResult(false, "연결에 실패했습니다: " + exception.getClass().getSimpleName());
+            return new VerticalTestResult(false, "채팅 연결에 실패했습니다: " + exception.getClass().getSimpleName());
+        }
+    }
+
+    private VerticalTestResult testEmbedding(OpenAIClient client, boolean enabled, String model) {
+        VerticalTestResult invalid = validateTest(enabled, model);
+        if (invalid != null) return invalid;
+        try {
+            client.embeddings().create(EmbeddingCreateParams.builder().model(model)
+                    .inputOfArrayOfStrings(List.of("GearVia connection test")).build());
+            return new VerticalTestResult(true, "임베딩 연결에 성공했습니다.");
+        } catch (Exception exception) {
+            return new VerticalTestResult(false, "임베딩 연결에 실패했습니다: " + exception.getClass().getSimpleName());
         }
     }
 
@@ -80,5 +101,5 @@ public class AdminAiSettingsService {
     public record StatusResponse(VerticalStatus report, VerticalStatus assistant, List<String> supportedModels,
             String provider, String baseUrl, String chatModel, String embeddingModel, int requestTimeoutSeconds, boolean externalAllowed) {}
     public record VerticalTestResult(boolean success, String message) {}
-    public record ConnectionTestResponse(VerticalTestResult report, VerticalTestResult assistant) {}
+    public record ConnectionTestResponse(VerticalTestResult chat, VerticalTestResult embedding) {}
 }

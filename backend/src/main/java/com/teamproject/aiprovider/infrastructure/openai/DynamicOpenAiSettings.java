@@ -16,6 +16,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 /**
  * Owns the OpenAI API key and per-vertical enabled flags as admin-editable, runtime-
@@ -38,12 +40,7 @@ public class DynamicOpenAiSettings {
     private final AiProviderPolicy policy;
 
     private volatile boolean loaded;
-    private volatile String apiKey;
-    private volatile boolean reportEnabled;
-    private volatile boolean assistantEnabled;
-    private volatile OpenAIClient reportClient;
-    private volatile OpenAIClient assistantClient;
-    private volatile AiProviderProfile profile;
+    private volatile RuntimeState runtime;
 
     DynamicOpenAiSettings(AiProviderSettingsRepository settings, AdminMfaCipher cipher,
             OpenAiReportProperties reportDefaults, OpenAiAssistantProperties assistantDefaults) {
@@ -70,41 +67,38 @@ public class DynamicOpenAiSettings {
     private synchronized void ensureLoaded() {
         if (loaded) return;
         settings.findById(AiProviderSettings.SINGLETON_ID).ifPresentOrElse(value -> {
-            this.apiKey = value.getApiKeyEncrypted() == null ? "" : safeDecrypt(value.getApiKeyEncrypted());
-            this.reportEnabled = value.isReportEnabled();
-            this.assistantEnabled = value.isAssistantEnabled();
-            this.profile = persistedProfile(value);
+            String key = value.getApiKeyEncrypted() == null ? "" : safeDecrypt(value.getApiKeyEncrypted());
+            AiProviderProfile profile = persistedProfile(value);
+            validateCredentialTransport(profile, key);
+            this.runtime = buildRuntime(key, value.isReportEnabled(), value.isAssistantEnabled(), profile);
         }, () -> {
-            this.apiKey = reportDefaults.apiKey();
-            this.reportEnabled = reportDefaults.enabled();
-            this.assistantEnabled = assistantDefaults.enabled();
-            this.profile = policy.validate("OPENAI", reportDefaults.baseUrl(), assistantDefaults.model(), assistantDefaults.embeddingModel(),
+            AiProviderProfile profile = policy.validate("OPENAI", reportDefaults.baseUrl(), assistantDefaults.model(), assistantDefaults.embeddingModel(),
                     (int) assistantDefaults.requestTimeout().toSeconds(), true);
+            this.runtime = buildRuntime(reportDefaults.apiKey(), reportDefaults.enabled(), assistantDefaults.enabled(), profile);
         });
-        rebuildClients();
         loaded = true;
     }
 
-    public OpenAIClient reportClient() { ensureLoaded(); return reportClient; }
-    public OpenAIClient assistantClient() { ensureLoaded(); return assistantClient; }
-    public boolean hasApiKey() { ensureLoaded(); return apiKey != null && !apiKey.isBlank(); }
-    public boolean reportEnabled() { ensureLoaded(); return reportEnabled; }
-    public boolean assistantEnabled() { ensureLoaded(); return assistantEnabled; }
-    public String provider() { ensureLoaded(); return profile.provider().name(); }
-    public String baseUrl() { ensureLoaded(); return profile.baseUrl(); }
-    public String chatModel() { ensureLoaded(); return profile.chatModel(); }
-    public String embeddingModel() { ensureLoaded(); return profile.embeddingModel(); }
-    public int requestTimeoutSeconds() { ensureLoaded(); return profile.requestTimeoutSeconds(); }
-    public boolean externalAllowed() { ensureLoaded(); return profile.externalAllowed(); }
+    private RuntimeState state() { ensureLoaded(); return runtime; }
+    public OpenAIClient reportClient() { return state().reportClient(); }
+    public OpenAIClient assistantClient() { return state().assistantClient(); }
+    public boolean hasApiKey() { return !state().apiKey().isBlank(); }
+    public boolean reportEnabled() { return state().reportEnabled(); }
+    public boolean assistantEnabled() { return state().assistantEnabled(); }
+    public String provider() { return state().profile().provider().name(); }
+    public String baseUrl() { return state().profile().baseUrl(); }
+    public String chatModel() { return state().profile().chatModel(); }
+    public String embeddingModel() { return state().profile().embeddingModel(); }
+    public int requestTimeoutSeconds() { return state().profile().requestTimeoutSeconds(); }
+    public boolean externalAllowed() { return state().profile().externalAllowed(); }
     public boolean ready() {
-        ensureLoaded();
-        return profile.provider() == AiProviderProfile.Provider.INTERNAL_OPENAI_COMPATIBLE || hasApiKey();
+        RuntimeState value = state();
+        return value.profile().provider() == AiProviderProfile.Provider.INTERNAL_OPENAI_COMPATIBLE || !value.apiKey().isBlank();
     }
 
     public String maskedApiKey() {
-        ensureLoaded();
-        if (!hasApiKey()) return null;
-        String trimmed = apiKey.trim();
+        String trimmed = state().apiKey().trim();
+        if (trimmed.isBlank()) return null;
         return "****" + trimmed.substring(Math.max(0, trimmed.length() - 4));
     }
 
@@ -126,7 +120,8 @@ public class DynamicOpenAiSettings {
         ensureLoaded();
         AiProviderProfile resolvedProfile = policy.validate(providerValue, baseUrl, chatModel, embeddingModel,
                 timeoutSeconds, externalAllowed);
-        String resolvedKey = apiKeyOrNull == null ? apiKey : apiKeyOrNull.trim();
+        String resolvedKey = apiKeyOrNull == null ? state().apiKey() : apiKeyOrNull.trim();
+        validateCredentialTransport(resolvedProfile, resolvedKey);
         if (resolvedKey != null && !resolvedKey.isEmpty() && !cipher.configured()) {
             throw new ApplicationException("AI_KEY_ENCRYPTION_NOT_CONFIGURED", HttpStatus.SERVICE_UNAVAILABLE,
                     "관리자 암호화 키(ADMIN_MFA_ENCRYPTION_KEY_BASE64)가 설정되지 않아 API 키를 저장할 수 없습니다.");
@@ -137,19 +132,19 @@ public class DynamicOpenAiSettings {
                 .orElseGet(() -> new AiProviderSettings(encrypted, newReportEnabled, newAssistantEnabled));
         value.updateProvider(resolvedProfile.provider().name(), resolvedProfile.baseUrl(), resolvedProfile.chatModel(), resolvedProfile.embeddingModel(),
                 resolvedProfile.requestTimeoutSeconds(), resolvedProfile.externalAllowed());
-        settings.save(value);
+        settings.saveAndFlush(value);
 
-        this.apiKey = resolvedKey == null ? "" : resolvedKey;
-        this.reportEnabled = newReportEnabled;
-        this.assistantEnabled = newAssistantEnabled;
-        this.profile = resolvedProfile;
-        rebuildClients();
+        RuntimeState next = buildRuntime(resolvedKey == null ? "" : resolvedKey,
+                newReportEnabled, newAssistantEnabled, resolvedProfile);
+        publishAfterCommit(next);
     }
 
-    private void rebuildClients() {
+    private RuntimeState buildRuntime(String apiKey, boolean reportEnabled, boolean assistantEnabled,
+            AiProviderProfile profile) {
         java.time.Duration timeout = java.time.Duration.ofSeconds(profile.requestTimeoutSeconds());
-        this.reportClient = buildClient(profile.baseUrl(), timeout, reportDefaults.maxRetries());
-        this.assistantClient = buildClient(profile.baseUrl(), timeout, 1);
+        return new RuntimeState(apiKey, reportEnabled, assistantEnabled, profile,
+                buildClient(apiKey, profile.baseUrl(), timeout, reportDefaults.maxRetries()),
+                buildClient(apiKey, profile.baseUrl(), timeout, 1));
     }
 
     private AiProviderProfile persistedProfile(AiProviderSettings value) {
@@ -163,7 +158,7 @@ public class DynamicOpenAiSettings {
         return policy.validate(provider, baseUrl, model, embeddingModel, timeout, external);
     }
 
-    private OpenAIClient buildClient(String baseUrl, java.time.Duration timeout, int maxRetries) {
+    private OpenAIClient buildClient(String apiKey, String baseUrl, java.time.Duration timeout, int maxRetries) {
         boolean hasKey = apiKey != null && !apiKey.isBlank();
         return OpenAIOkHttpClient.builder()
                 .apiKey(hasKey ? apiKey : UNCONFIGURED_API_KEY)
@@ -183,4 +178,25 @@ public class DynamicOpenAiSettings {
             return "";
         }
     }
+
+    private void publishAfterCommit(RuntimeState next) {
+        if (TransactionSynchronizationManager.isActualTransactionActive()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override public void afterCommit() { runtime = next; }
+            });
+        } else {
+            runtime = next;
+        }
+    }
+
+    private void validateCredentialTransport(AiProviderProfile value, String credential) {
+        if (value.provider() == AiProviderProfile.Provider.INTERNAL_OPENAI_COMPATIBLE
+                && credential != null && !credential.isBlank() && value.baseUrl().startsWith("http://")) {
+            throw new ApplicationException("AI_PROVIDER_TLS_REQUIRED", HttpStatus.BAD_REQUEST,
+                    "API 키를 사용하는 사내 LLM은 HTTPS 연결이 필요합니다.");
+        }
+    }
+
+    private record RuntimeState(String apiKey, boolean reportEnabled, boolean assistantEnabled,
+            AiProviderProfile profile, OpenAIClient reportClient, OpenAIClient assistantClient) {}
 }

@@ -10,7 +10,7 @@ export function AdminAiSettingsPage() {
   const [error, setError] = useState('');
   const [testing, setTesting] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [results, setResults] = useState<{ report: AdminAiConnectionResult; assistant: AdminAiConnectionResult }>();
+  const [results, setResults] = useState<{ chat: AdminAiConnectionResult; embedding: AdminAiConnectionResult }>();
   const [apiKeyInput, setApiKeyInput] = useState('');
   const [clearKey, setClearKey] = useState(false);
   const [reportEnabled, setReportEnabled] = useState(false);
@@ -70,9 +70,12 @@ export function AdminAiSettingsPage() {
     <section className="admin-panel admin-notice-panel">
       <div className="admin-panel-heading"><div><h2>{t('AI 연동 상태', 'AI integration status')}</h2><p>{t('OpenAI 또는 사내 OpenAI 호환 LLM을 선택할 수 있습니다.', 'Choose OpenAI or an internal OpenAI-compatible LLM.')}</p></div></div>
       {status && <div className="ai-settings-grid">
-        <VerticalCard title={t('AI 비서', 'AI assistant')} status={status.assistant} testResult={results?.assistant} />
-        <VerticalCard title={t('AI 주간 리포트', 'AI weekly report')} status={status.report} testResult={results?.report} />
+        <VerticalCard title={t('AI 비서', 'AI assistant')} status={status.assistant} testResult={results?.chat} />
+        <VerticalCard title={t('AI 주간 리포트', 'AI weekly report')} status={status.report} testResult={results?.chat} />
       </div>}
+      {results?.embedding && <p className={results.embedding.success ? 'success-message' : 'error'}>
+        {t('문서 임베딩', 'Document embedding')}: {results.embedding.message}
+      </p>}
       <button className="primary" type="button" disabled={testing} onClick={runTest}>{testing ? t('연결 테스트 중...', 'Testing connection...') : t('연결 테스트', 'Test connection')}</button>
       {status && status.supportedModels.length > 0 && <p className="admin-notice-panel-footnote">{t('지원 모델 목록', 'Supported models')}: {status.supportedModels.join(', ')}</p>}
     </section>

@@ -23,6 +23,7 @@ public class McpRequestLimiter {
     }
 
     public Lease enter(Long tokenId) {
+        evictIdleStates();
         State state = states.computeIfAbsent(tokenId, ignored -> new State());
         long minute = System.currentTimeMillis() / 60_000;
         synchronized (state) {
@@ -31,16 +32,26 @@ public class McpRequestLimiter {
             if (state.active >= maxConcurrent) throw limited("MCP_CONCURRENCY_LIMITED", "MCP concurrency limit exceeded.");
             state.requests++;
             state.active++;
+            state.lastTouchedMillis = System.currentTimeMillis();
         }
         return () -> {
-            synchronized (state) { state.active = Math.max(0, state.active - 1); }
+            synchronized (state) { state.active = Math.max(0, state.active - 1); state.lastTouchedMillis = System.currentTimeMillis(); }
         };
+    }
+
+    private void evictIdleStates() {
+        if (states.size() < 10_000) return;
+        long cutoff = System.currentTimeMillis() - 120_000;
+        states.entrySet().removeIf(entry -> {
+            State state = entry.getValue();
+            synchronized (state) { return state.active == 0 && state.lastTouchedMillis < cutoff; }
+        });
     }
 
     private ApplicationException limited(String code, String message) {
         return new ApplicationException(code, HttpStatus.TOO_MANY_REQUESTS, message);
     }
 
-    private static final class State { long minute = -1; int requests; int active; }
+    private static final class State { long minute = -1; int requests; int active; long lastTouchedMillis = System.currentTimeMillis(); }
     public interface Lease extends AutoCloseable { @Override void close(); }
 }

@@ -21,6 +21,9 @@ if GEARVIA_TEST_ROOT="$tmp_root" "$installer" --dry-run --config "$repo_root/inf
 fi
 
 printf 'ID=ubuntu\nVERSION_ID="24.04"\n' > "$tmp_root/etc/os-release"
+if GEARVIA_TEST_ROOT="$tmp_root" GEARVIA_TEST_ARCH="aarch64" "$installer" --dry-run --config "$repo_root/infra/b2b/runtime.env.example" >/dev/null 2>&1; then
+  fail "unsupported architecture was accepted"
+fi
 GEARVIA_TEST_ROOT="$tmp_root" GEARVIA_SKIP_RUNTIME=1 "$installer" --dry-run --config "$repo_root/infra/b2b/runtime.env.example" >/dev/null
 assert_absent "$tmp_root/opt/b2bgearvia"
 

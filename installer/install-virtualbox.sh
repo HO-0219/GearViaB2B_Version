@@ -116,6 +116,7 @@ if [[ ! -f "$INSTALL_ROOT/runtime.env" ]]; then
   mysql_password="$(openssl rand -hex 24)"
   cat > "$INSTALL_ROOT/runtime.env" <<EOF
 APP_ENVIRONMENT=b2b-production
+COMPOSE_PROFILES=bundled-db
 DOMAIN_NAME=$VM_IP
 JWT_SECRET=$jwt_secret
 AUTH_SECURE_COOKIE=true

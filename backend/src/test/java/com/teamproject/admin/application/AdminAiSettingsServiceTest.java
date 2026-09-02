@@ -2,6 +2,8 @@ package com.teamproject.admin.application;
 
 import com.openai.client.OpenAIClient;
 import com.openai.services.blocking.ModelService;
+import com.openai.services.blocking.ResponseService;
+import com.openai.services.blocking.EmbeddingService;
 import com.teamproject.aiprovider.infrastructure.openai.DynamicOpenAiSettings;
 import com.teamproject.assistant.infrastructure.openai.OpenAiAssistantProperties;
 import com.teamproject.report.infrastructure.openai.OpenAiReportProperties;
@@ -28,6 +30,10 @@ class AdminAiSettingsServiceTest {
     private OpenAIClient clientReturning(ModelService models) {
         OpenAIClient client = mock(OpenAIClient.class);
         when(client.models()).thenReturn(models);
+        ResponseService responses = mock(ResponseService.class);
+        EmbeddingService embeddings = mock(EmbeddingService.class);
+        when(client.responses()).thenReturn(responses);
+        when(client.embeddings()).thenReturn(embeddings);
         return client;
     }
 
@@ -80,8 +86,8 @@ class AdminAiSettingsServiceTest {
 
         var result = service.testConnections();
 
-        assertThat(result.report().success()).isTrue();
-        assertThat(result.assistant().success()).isTrue();
+        assertThat(result.chat().success()).isTrue();
+        assertThat(result.embedding().success()).isTrue();
     }
 
     @Test
@@ -94,15 +100,17 @@ class AdminAiSettingsServiceTest {
 
         var result = service.testConnections();
 
-        assertThat(result.report().success()).isFalse();
-        assertThat(result.report().message()).contains("API 키");
+        assertThat(result.chat().success()).isFalse();
+        assertThat(result.chat().message()).contains("API 키");
     }
 
     @Test
     void connectionTestFailsWhenTheModelCallThrows() {
         ModelService models = mock(ModelService.class);
-        when(models.retrieve(anyString())).thenThrow(new RuntimeException("401 Unauthorized"));
         OpenAIClient client = clientReturning(models);
+        when(client.responses().create(org.mockito.ArgumentMatchers.any(
+                com.openai.models.responses.ResponseCreateParams.class)))
+                .thenThrow(new RuntimeException("401 Unauthorized"));
 
         AdminAiSettingsService service = new AdminAiSettingsService(
                 reportProperties("gpt-5.6-luna"), assistantProperties("gpt-5.6-sol"),
@@ -111,8 +119,8 @@ class AdminAiSettingsServiceTest {
 
         var result = service.testConnections();
 
-        assertThat(result.report().success()).isFalse();
-        assertThat(result.report().message()).contains("연결에 실패");
+        assertThat(result.chat().success()).isFalse();
+        assertThat(result.chat().message()).contains("연결에 실패");
     }
 
     @Test

@@ -5,6 +5,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import org.springframework.data.domain.Pageable;
 import java.util.List;
 import java.util.Collection;
 import java.util.Optional;
@@ -18,6 +19,9 @@ public interface GroupMemberRepository extends JpaRepository<GroupMember, Long> 
     List<User> findDistinctActiveTeamLeaderUsers();
     List<GroupMember> findAllByUserIdAndStatusOrderByGroupTypeAscGroupNameAsc(
             Long userId, GroupMember.Status status);
+    @EntityGraph(attributePaths = "group")
+    List<GroupMember> findByUserIdAndStatusOrderByGroupTypeAscGroupNameAsc(
+            Long userId, GroupMember.Status status, Pageable pageable);
     long countByUserIdAndGroupType(Long userId, Group.Type type);
     @EntityGraph(attributePaths = "group")
     Optional<GroupMember> findByGroupIdAndUserIdAndStatus(Long groupId, Long userId, GroupMember.Status status);

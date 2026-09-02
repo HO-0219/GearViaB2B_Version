@@ -22,6 +22,7 @@ import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.data.domain.PageRequest;
 
 @Service
 public class GroupService {
@@ -59,6 +60,13 @@ public class GroupService {
     public List<GroupResponse> list(Long userId) {
         return members.findAllByUserIdAndStatusOrderByGroupTypeAscGroupNameAsc(userId, GroupMember.Status.ACTIVE)
                 .stream().map(this::response).toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<GroupResponse> listBounded(Long userId, int maximum) {
+        if (maximum < 1 || maximum > 200) throw new IllegalArgumentException("maximum must be 1..200");
+        return members.findByUserIdAndStatusOrderByGroupTypeAscGroupNameAsc(
+                userId, GroupMember.Status.ACTIVE, PageRequest.of(0, maximum)).stream().map(this::response).toList();
     }
 
     @Transactional

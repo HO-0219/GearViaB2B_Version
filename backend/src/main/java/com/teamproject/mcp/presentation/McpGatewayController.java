@@ -36,19 +36,25 @@ public class McpGatewayController {
             @RequestHeader(name = "Origin", required = false) String origin,
             @RequestHeader(name = "MCP-Protocol-Version", required = false) String protocolVersion,
             @RequestHeader(name = "X-MCP-Client", required = false) String clientLabel) {
-        networks.requireAllowed(request.getRemoteAddr(), origin);
+        String sourceIp = networks.requireAllowed(request.getRemoteAddr(), request.getHeader("X-Forwarded-For"), origin);
         McpTokenService.AuthenticatedToken auth = tokens.authenticate(bearer(authorization),
-                request.getRemoteAddr(), clientLabel);
+                sourceIp, clientLabel);
         JsonNode id = message.get("id");
         String method = message.path("method").asText("");
-        if (id == null) return ResponseEntity.accepted().build();
-        if (!"initialize".equals(method)) requireProtocol(protocolVersion);
         try {
+            if (!"2.0".equals(message.path("jsonrpc").asText())) throw new IllegalArgumentException("jsonrpc must be 2.0.");
+            if (method.isBlank()) throw new IllegalArgumentException("method is required.");
+            if (id == null) {
+                if (!"notifications/initialized".equals(method)) return ResponseEntity.accepted().build();
+                requireProtocol(protocolVersion);
+                return ResponseEntity.accepted().build();
+            }
+            if (!"initialize".equals(method)) requireProtocol(protocolVersion);
             Object result = switch (method) {
                 case "initialize" -> initialize(message.path("params").path("protocolVersion").asText());
                 case "ping" -> Map.of();
                 case "tools/list" -> Map.of("tools", tools.tools());
-                case "tools/call" -> callTool(auth, message, request);
+                case "tools/call" -> callTool(auth, message, sourceIp, request);
                 default -> null;
             };
             return result == null ? ResponseEntity.ok(error(id, -32601, "Method not found."))
@@ -59,10 +65,10 @@ public class McpGatewayController {
     }
 
     private McpToolCatalog.ToolResult callTool(McpTokenService.AuthenticatedToken auth, JsonNode message,
-            HttpServletRequest request) {
+            String sourceIp, HttpServletRequest request) {
         try (McpRequestLimiter.Lease ignored = limiter.enter(auth.tokenId())) {
             return tools.call(auth, message.path("params").path("name").asText(),
-                    message.path("params").path("arguments"), request.getRemoteAddr(), correlation(request));
+                    message.path("params").path("arguments"), sourceIp, correlation(request));
         }
     }
 

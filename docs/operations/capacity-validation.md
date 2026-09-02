@@ -8,9 +8,10 @@ blocked and run from an internal load-generator host that is not the GearVia ser
 3. Run `infra/capacity/run-capacity-smoke.sh --config /absolute/workload.env --output-dir /absolute/evidence`.
 4. Repeat at increasing concurrency only after reviewing GearVia monitoring, MySQL pool wait,
    executor queues, host CPU/memory, NAS latency, and error logs.
-5. Set `INTEGRITY_VERIFIED=true` only after comparing created/read records and file checksums.
+5. Set `INTEGRITY_VERIFIED=true` only after comparing created/read records and file checksums, and
+   set `INTEGRITY_EVIDENCE` to the non-empty evidence file.
 6. Set `RECOVERY_VERIFIED=true` only after stopping load and proving queues, pool, readiness, and
-   latency return to baseline.
+   latency return to baseline; set `RECOVERY_EVIDENCE` to that non-empty capture.
 
 The runner writes JSON and CSV, and deliberately reports `supported=false` unless p95 latency,
 error percentage, integrity, and recovery gates all pass. CPU, memory, DB-pool, and executor fields

@@ -14,24 +14,36 @@ import java.util.List;
 public class McpNetworkPolicy {
     private final boolean enabled;
     private final List<Cidr> allowedNetworks;
+    private final List<Cidr> trustedProxies;
     private final List<String> allowedOrigins;
 
     public McpNetworkPolicy(@Value("${app.mcp.enabled:false}") boolean enabled,
             @Value("${app.mcp.allowed-cidrs:127.0.0.1/32,::1/128}") String cidrs,
+            @Value("${app.mcp.trusted-proxies:127.0.0.1/32,::1/128}") String proxies,
             @Value("${app.mcp.allowed-origins:}") String origins) {
         this.enabled = enabled;
         this.allowedNetworks = values(cidrs).stream().map(Cidr::parse).toList();
+        this.trustedProxies = values(proxies).stream().map(Cidr::parse).toList();
         this.allowedOrigins = values(origins);
     }
 
-    public void requireAllowed(String sourceIp, String origin) {
+    public String requireAllowed(String peerIp, String forwardedFor, String origin) {
         if (!enabled) throw failure("MCP_DISABLED", HttpStatus.SERVICE_UNAVAILABLE, "MCP gateway is disabled.");
+        String sourceIp = effectiveSource(peerIp, forwardedFor);
         if (allowedNetworks.stream().noneMatch(cidr -> cidr.contains(sourceIp))) {
             throw failure("MCP_NETWORK_DENIED", HttpStatus.FORBIDDEN, "MCP source network is not allowed.");
         }
         if (origin != null && !origin.isBlank() && !allowedOrigins.contains(stripSlash(origin))) {
             throw failure("MCP_ORIGIN_DENIED", HttpStatus.FORBIDDEN, "MCP request origin is not allowed.");
         }
+        return sourceIp;
+    }
+
+    private String effectiveSource(String peerIp, String forwardedFor) {
+        if (forwardedFor == null || forwardedFor.isBlank()
+                || trustedProxies.stream().noneMatch(cidr -> cidr.contains(peerIp))) return peerIp;
+        String first = forwardedFor.split(",", 2)[0].trim();
+        return first.length() <= 64 ? first : "invalid";
     }
 
     private List<String> values(String raw) {

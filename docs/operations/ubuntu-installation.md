@@ -2,11 +2,16 @@
 
 ## Supported host
 
-- Ubuntu Server 22.04 or 24.04 on x86_64 or ARM64
+- Ubuntu Server 24.04 LTS on x86_64
 - Docker Engine and Docker Compose v2 installed from the approved corporate repository
 - A complete GearVia release bundle, TLS certificate/key, fixed IP or internal DNS, and outbound
   internet blocked by default
 - NAS mounted at `/opt/b2bgearvia/data/nas` before selecting NAS storage
+
+The default `COMPOSE_PROFILES=bundled-db` starts the packaged MySQL server. For an external MySQL
+8.x-compatible server, clear `COMPOSE_PROFILES` and set `DB_URL`, `DB_USERNAME`, and `DB_PASSWORD`;
+the URL must require certificate and hostname verification. Complete the in-product preflight,
+notice, migration, and rollback workflow before changing the production runtime file.
 
 ## Install or upgrade
 

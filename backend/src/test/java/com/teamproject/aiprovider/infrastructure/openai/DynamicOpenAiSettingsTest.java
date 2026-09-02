@@ -66,7 +66,7 @@ class DynamicOpenAiSettingsTest {
     @Test
     void updateEncryptsAndPersistsANewKeyAndRebuildsClients() {
         when(settings.findById(AiProviderSettings.SINGLETON_ID)).thenReturn(Optional.empty());
-        when(settings.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+        when(settings.saveAndFlush(any())).thenAnswer(invocation -> invocation.getArgument(0));
         DynamicOpenAiSettings value = new DynamicOpenAiSettings(settings, cipher, reportDefaults, assistantDefaults);
         var clientBefore = value.reportClient();
 
@@ -77,7 +77,7 @@ class DynamicOpenAiSettingsTest {
         assertThat(value.reportEnabled()).isTrue();
         assertThat(value.assistantEnabled()).isFalse();
         assertThat(value.reportClient()).isNotSameAs(clientBefore);
-        verify(settings).save(any());
+        verify(settings).saveAndFlush(any());
     }
 
     @Test
@@ -118,7 +118,7 @@ class DynamicOpenAiSettingsTest {
     @Test
     void internalProviderDoesNotRequireAnApiKeyAndPersistsRuntimeRouting() {
         when(settings.findById(AiProviderSettings.SINGLETON_ID)).thenReturn(Optional.empty());
-        when(settings.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+        when(settings.saveAndFlush(any())).thenAnswer(invocation -> invocation.getArgument(0));
         DynamicOpenAiSettings value = new DynamicOpenAiSettings(settings, cipher, reportDefaults, assistantDefaults);
 
         value.update("", true, true, "INTERNAL_OPENAI_COMPATIBLE", "http://10.0.0.8:8000/v1",
@@ -131,5 +131,16 @@ class DynamicOpenAiSettingsTest {
         assertThat(value.embeddingModel()).isEqualTo("company-embed");
         assertThat(value.requestTimeoutSeconds()).isEqualTo(20);
         assertThat(value.externalAllowed()).isFalse();
+    }
+
+    @Test
+    void internalProviderRejectsSendingCredentialsOverPlainHttp() {
+        when(settings.findById(AiProviderSettings.SINGLETON_ID)).thenReturn(Optional.empty());
+        DynamicOpenAiSettings value = new DynamicOpenAiSettings(settings, cipher, reportDefaults, assistantDefaults);
+
+        assertThatThrownBy(() -> value.update("internal-secret", true, true,
+                "INTERNAL_OPENAI_COMPATIBLE", "http://10.0.0.8:8000/v1", "chat", "embed", 20, false))
+                .isInstanceOf(ApplicationException.class)
+                .hasMessageContaining("HTTPS");
     }
 }

@@ -25,6 +25,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest(classes = B2BGearViaApplication.class, properties = {
         "app.mcp.enabled=true",
         "app.mcp.allowed-cidrs=127.0.0.1/32,10.0.0.0/8",
+        "app.mcp.trusted-proxies=172.16.0.0/12",
         "app.mcp.allowed-origins=https://gearvia.internal",
         "app.mcp.max-tool-calls-per-minute=1",
         "app.mcp.max-concurrent-calls=2"
@@ -110,6 +111,25 @@ class McpGatewayApiTest {
                         .contentType(MediaType.APPLICATION_JSON).content(body))
                 .andExpect(status().isForbidden());
         assertThat(audits.count()).isZero();
+    }
+
+    @Test
+    void trustsForwardedSourceOnlyFromTheConfiguredReverseProxyNetwork() throws Exception {
+        Account account = account("mcp_proxy_source");
+        String body = "{\"jsonrpc\":\"2.0\",\"id\":10,\"method\":\"tools/list\",\"params\":{}}";
+
+        mvc.perform(post("/mcp").with(request -> { request.setRemoteAddr("172.20.0.2"); return request; })
+                        .header("X-Forwarded-For", "203.0.113.8")
+                        .header("Authorization", "Bearer " + account.token())
+                        .header("MCP-Protocol-Version", "2025-11-25")
+                        .contentType(MediaType.APPLICATION_JSON).content(body))
+                .andExpect(status().isForbidden());
+        mvc.perform(post("/mcp").with(request -> { request.setRemoteAddr("172.20.0.2"); return request; })
+                        .header("X-Forwarded-For", "10.20.30.40")
+                        .header("Authorization", "Bearer " + account.token())
+                        .header("MCP-Protocol-Version", "2025-11-25")
+                        .contentType(MediaType.APPLICATION_JSON).content(body))
+                .andExpect(status().isOk());
     }
 
     private Account account(String username) {

@@ -25,8 +25,9 @@ gearvia_validate_ubuntu() {
   # shellcheck disable=SC1090
   . "$release_file"
   [[ "$ID" == "ubuntu" ]] || gearvia_die "Only Ubuntu Server is supported"
-  case "$VERSION_ID" in 22.04|24.04) ;; *) gearvia_die "Supported Ubuntu releases are 22.04 and 24.04" ;; esac
-  case "$(uname -m)" in x86_64|aarch64|arm64) ;; *) gearvia_die "Unsupported architecture: $(uname -m)" ;; esac
+  [[ "$VERSION_ID" == "24.04" ]] || gearvia_die "Only Ubuntu Server 24.04 LTS is supported"
+  local architecture="${GEARVIA_TEST_ARCH:-$(uname -m)}"
+  [[ "$architecture" == "x86_64" ]] || gearvia_die "Only x86_64 architecture is supported"
 }
 
 gearvia_safe_purge_path() {

@@ -6,11 +6,13 @@ OpenAI or an internal server that implements the OpenAI-compatible `/v1` API.
 ## Network policy
 
 - `OPENAI` is accepted only with `https://api.openai.com` and an explicit external-access switch.
-- `INTERNAL_OPENAI_COMPATIBLE` accepts loopback, RFC1918 addresses, single-label intranet DNS,
-  and `.internal` or `.local` host names.
+- `INTERNAL_OPENAI_COMPATIBLE` resolves the configured host during validation and accepts it only
+  when every resolved address is loopback, link-local, RFC1918, or IPv6 unique-local.
 - URLs containing credentials, query strings, or fragments are rejected.
 - Internet egress should remain blocked at the host firewall. If OpenAI is required, route the
   approved destination through the corporate VPN/firewall and enable the switch in GearVia.
+- Credential-bearing internal endpoints require HTTPS. Their certificate chain must be trusted by
+  the backend JVM/container trust store.
 
 ## Configure and verify
 

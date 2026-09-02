@@ -16,7 +16,7 @@ done
 
 while IFS='=' read -r key value; do
   [[ "$key" =~ ^[A-Z][A-Z0-9_]*$ ]] || continue
-  case "$key" in BASE_URL|ACCESS_TOKEN|ENDPOINT|CONCURRENCY|REQUESTS|P95_LIMIT_MS|MAX_ERROR_PERCENT|INTEGRITY_VERIFIED|RECOVERY_VERIFIED|TOPOLOGY)
+  case "$key" in BASE_URL|ACCESS_TOKEN|ENDPOINT|CONCURRENCY|REQUESTS|P95_LIMIT_MS|MAX_ERROR_PERCENT|INTEGRITY_VERIFIED|RECOVERY_VERIFIED|INTEGRITY_EVIDENCE|RECOVERY_EVIDENCE|TOPOLOGY)
     printf -v "$key" '%s' "$value" ;;
   esac
 done < "$config"
@@ -37,15 +37,20 @@ done
 if [[ "$validate_only" == true ]]; then echo "Capacity workload configuration is valid"; exit 0; fi
 command -v curl >/dev/null 2>&1 || die "curl is required"
 [[ -n "${ACCESS_TOKEN:-}" && "$ACCESS_TOKEN" != replace-* ]] || die "a short-lived ACCESS_TOKEN is required"
+[[ "$ACCESS_TOKEN" =~ ^[A-Za-z0-9._~-]+$ ]] || die "ACCESS_TOKEN contains unsupported characters"
 [[ "$output_dir" = /* ]] || die "--output-dir must be absolute"
+if [[ "${INTEGRITY_VERIFIED:-false}" == true ]]; then [[ -s "${INTEGRITY_EVIDENCE:-}" ]] || die "INTEGRITY_EVIDENCE is required"; fi
+if [[ "${RECOVERY_VERIFIED:-false}" == true ]]; then [[ -s "${RECOVERY_EVIDENCE:-}" ]] || die "RECOVERY_EVIDENCE is required"; fi
 
 tmp_dir="$(mktemp -d)"
 trap 'rm -rf -- "$tmp_dir"' EXIT
+umask 077
+printf 'header = "Authorization: Bearer %s"\n' "$ACCESS_TOKEN" > "$tmp_dir/curl.conf"
 started_ns="$(date +%s%N)"
 for ((i=1; i<=REQUESTS; i++)); do
   (
     curl --silent --show-error --output /dev/null --connect-timeout 5 --max-time 120 \
-      --header "Authorization: Bearer $ACCESS_TOKEN" \
+      --config "$tmp_dir/curl.conf" \
       --write-out '%{http_code},%{time_total}\n' "$BASE_URL$ENDPOINT" > "$tmp_dir/$i.csv" 2>/dev/null \
       || printf '000,120.000\n' > "$tmp_dir/$i.csv"
   ) &
@@ -63,10 +68,10 @@ p99="$(sed -n "${p99_index}p" "$tmp_dir/latencies")"
 average="$(awk '{ total += $1 } END { printf "%.0f", total/NR }' "$tmp_dir/latencies")"
 duration_ms="$(( (ended_ns - started_ns) / 1000000 ))"
 throughput="$(awk -v count="$REQUESTS" -v millis="$duration_ms" 'BEGIN { if (millis == 0) print 0; else printf "%.2f", count*1000/millis }')"
-error_percent="$(( errors * 100 / REQUESTS ))"
+error_percent="$(awk -v errors="$errors" -v count="$REQUESTS" 'BEGIN { printf "%.3f", errors*100/count }')"
 
 supported=false
-if (( p95 <= P95_LIMIT_MS && error_percent <= MAX_ERROR_PERCENT )) \
+if (( p95 <= P95_LIMIT_MS && errors * 100 <= MAX_ERROR_PERCENT * REQUESTS )) \
     && [[ "${INTEGRITY_VERIFIED:-false}" == true && "${RECOVERY_VERIFIED:-false}" == true ]]; then
   supported=true
 fi

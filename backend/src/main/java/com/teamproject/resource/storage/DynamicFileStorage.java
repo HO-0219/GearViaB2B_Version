@@ -6,11 +6,13 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.List;
+import java.util.UUID;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.function.Supplier;
 
 /**
  * The single {@link FileStorage} bean the rest of the app injects. Delegates to a
@@ -25,7 +27,7 @@ public class DynamicFileStorage implements FileStorage {
     public static final String LOCAL = "local";
     public static final String NAS_MOUNT = "nas_mount";
     public static final List<String> SUPPORTED_PROVIDERS = List.of(LOCAL, NAS_MOUNT);
-    private static final String PROBE_FILE_NAME = ".b2bgearvia-storage-probe";
+    private static final String PROBE_FILE_PREFIX = ".b2bgearvia-storage-probe-";
 
     private final LocalFileStorage local;
     private final String localRoot;
@@ -34,6 +36,7 @@ public class DynamicFileStorage implements FileStorage {
     private final NasMigrationService migrations = new NasMigrationService();
     private volatile NasFileStorage nas;
     private volatile String active;
+    private final ReentrantReadWriteLock migrationLock = new ReentrantReadWriteLock(true);
 
     public DynamicFileStorage(
             @Value("${app.storage.provider:local}") String defaultProvider,
@@ -58,10 +61,10 @@ public class DynamicFileStorage implements FileStorage {
         }
     }
 
-    @Override public void put(String key, byte[] content, String contentType) { delegate().put(key, content, contentType); }
-    @Override public StoredFile get(String key) { return delegate().get(key); }
-    @Override public void delete(String key) { delegate().delete(key); }
-    @Override public List<String> listKeys() { return delegate().listKeys(); }
+    @Override public void put(String key, byte[] content, String contentType) { withStorage(() -> { delegate().put(key, content, contentType); return null; }); }
+    @Override public StoredFile get(String key) { return withStorage(() -> delegate().get(key)); }
+    @Override public void delete(String key) { withStorage(() -> { delegate().delete(key); return null; }); }
+    @Override public List<String> listKeys() { return withStorage(() -> delegate().listKeys()); }
 
     private FileStorage delegate() {
         return NAS_MOUNT.equals(active) && nas != null ? nas : local;
@@ -90,15 +93,21 @@ public class DynamicFileStorage implements FileStorage {
         if (!Files.isDirectory(root)) {
             return new TestResult(false, "NAS 마운트 경로에 접근할 수 없습니다: " + root);
         }
-        Path probe = root.resolve(PROBE_FILE_NAME);
+        Path probe = root.resolve(PROBE_FILE_PREFIX + UUID.randomUUID());
         try {
-            Files.write(probe, "b2bgearvia".getBytes(StandardCharsets.UTF_8), StandardOpenOption.CREATE,
-                    StandardOpenOption.TRUNCATE_EXISTING);
-            Files.readAllBytes(probe);
+            byte[] expected = UUID.randomUUID().toString().getBytes(java.nio.charset.StandardCharsets.UTF_8);
+            Files.write(probe, expected, StandardOpenOption.CREATE_NEW, StandardOpenOption.WRITE,
+                    StandardOpenOption.SYNC);
+            if (!java.util.Arrays.equals(expected, Files.readAllBytes(probe))) {
+                return new TestResult(false, "NAS 경로 읽기 검증에 실패했습니다: " + root);
+            }
             Files.delete(probe);
             return new TestResult(true, "연결 확인됨: " + root);
         } catch (IOException exception) {
             return new TestResult(false, "NAS 경로에 쓰기 권한이 없습니다: " + root);
+        } finally {
+            try { Files.deleteIfExists(probe); }
+            catch (IOException exception) { log.warn("NAS probe cleanup failed at {}", root); }
         }
     }
 
@@ -119,10 +128,12 @@ public class DynamicFileStorage implements FileStorage {
     }
 
     public NasMigrationService.NasPreflight preflightNas() {
-        return migrations.preflight(Path.of(localRoot), Path.of(nasRoot), delegate());
+        return withStorage(() -> migrations.preflight(Path.of(localRoot), Path.of(nasRoot), delegate()));
     }
 
     public NasMigrationService.MigrationResult migrateToNas() {
+        migrationLock.writeLock().lock();
+        try {
         if (NAS_MOUNT.equals(active) && nas != null) {
             return new NasMigrationService.MigrationResult(true, 0, 0, null);
         }
@@ -136,14 +147,28 @@ public class DynamicFileStorage implements FileStorage {
             this.nas = target;
             this.active = NAS_MOUNT;
         });
+        } finally {
+            migrationLock.writeLock().unlock();
+        }
     }
 
     public NasMigrationService.MigrationResult rollbackToLocal() {
+        migrationLock.writeLock().lock();
+        try {
         if (LOCAL.equals(active)) return new NasMigrationService.MigrationResult(true, 0, 0, null);
         return migrations.rollback(delegate(), local, () -> {
             persist(LOCAL);
             this.active = LOCAL;
         });
+        } finally {
+            migrationLock.writeLock().unlock();
+        }
+    }
+
+    private <T> T withStorage(Supplier<T> operation) {
+        migrationLock.readLock().lock();
+        try { return operation.get(); }
+        finally { migrationLock.readLock().unlock(); }
     }
 
     private void persist(String provider) {

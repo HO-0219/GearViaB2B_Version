@@ -29,8 +29,8 @@ class AiProviderPolicyTest {
     void acceptsPrivateOpenAiCompatibleEndpointsWithoutExternalAccess() {
         assertThat(policy.validate("INTERNAL_OPENAI_COMPATIBLE", "http://10.20.0.15:8000/v1",
                 "company-chat", "company-embed", 30, false).baseUrl()).isEqualTo("http://10.20.0.15:8000/v1");
-        assertThat(policy.validate("INTERNAL_OPENAI_COMPATIBLE", "https://llm.corp.internal/v1",
-                "company-chat", "company-embed", 30, false).baseUrl()).isEqualTo("https://llm.corp.internal/v1");
+        assertThat(policy.validate("INTERNAL_OPENAI_COMPATIBLE", "https://192.168.10.20/v1",
+                "company-chat", "company-embed", 30, false).baseUrl()).isEqualTo("https://192.168.10.20/v1");
     }
 
     @Test

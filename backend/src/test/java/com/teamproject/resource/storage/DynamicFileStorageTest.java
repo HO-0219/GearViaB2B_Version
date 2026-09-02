@@ -101,6 +101,18 @@ class DynamicFileStorageTest {
     }
 
     @Test
+    void testNasNeverOverwritesALegacyProbeNamedUserFile() throws Exception {
+        when(settings.findById(StorageSettings.SINGLETON_ID)).thenReturn(Optional.empty());
+        Path userFile = nasRoot.resolve(".b2bgearvia-storage-probe");
+        java.nio.file.Files.writeString(userFile, "user-data");
+        DynamicFileStorage storage = new DynamicFileStorage("local", localRoot.toString(), nasRoot.toString(), settings);
+
+        assertThat(storage.testNas().success()).isTrue();
+
+        assertThat(java.nio.file.Files.readString(userFile)).isEqualTo("user-data");
+    }
+
+    @Test
     void verifiedMigrationReportsPreflightAndCopyEvidence() {
         when(settings.findById(StorageSettings.SINGLETON_ID)).thenReturn(Optional.empty());
         DynamicFileStorage storage = new DynamicFileStorage("local", localRoot.toString(), nasRoot.toString(), settings);
