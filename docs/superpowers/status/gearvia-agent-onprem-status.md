@@ -20,7 +20,7 @@ Last updated: 2026-09-02
 | 6 | MySQL migration and rollback | Not started | - |
 | B | Checkpoint B integration verification | Not started | - |
 | 7 | NAS migration and rollback | Implemented locally | Verified copy, switch, and non-destructive rollback tests |
-| 8 | Personal MCP tokens and Agent Gateway | Not started | - |
+| 8 | Personal MCP tokens and Agent Gateway | Implemented; MySQL verification pending | Hashed tokens, intranet policy, read tools, audit, limits, and My Page UI |
 | 9 | Internal LLM provider | Not started | - |
 | C | Checkpoint C integration verification | Not started | - |
 | 10 | Ubuntu lifecycle scripts and capacity validation | Not started | - |
@@ -73,6 +73,11 @@ Last updated: 2026-09-02
 - Stage 7 NAS workflow preflights source size, reserved target capacity, and mount identity;
   verifies copied bytes and content types before switching; and retains both copies on rollback.
 - Stage 7 focused storage suite: 17 tests, 0 failures/errors.
+- Stage 8 MCP backend suite: 5 tests, 0 failures/errors. It verifies one-time token issuance,
+  hash-only storage, immediate revocation, protocol initialization, bounded read tools,
+  CIDR/Origin rejection, audit creation, and per-token rate limiting.
+- Stage 8 My Page UI test passed and the production frontend build completed. Registration
+  guidance is in `docs/operations/mcp-agent-access.md`.
 
 ## Known Issues
 
@@ -82,5 +87,5 @@ Last updated: 2026-09-02
 
 ## Next Action
 
-Implement Stage 8 personal MCP tokens and the intranet/VPN Agent Gateway. MySQL 8.4
-migration and EXPLAIN verification remains gated on a Docker-enabled integration host.
+Implement Stage 9 OpenAI-compatible internal LLM provider policy and administration.
+MySQL 8.4 migration verification remains gated on a Docker-enabled integration host.

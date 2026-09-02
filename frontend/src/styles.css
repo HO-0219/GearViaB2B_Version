@@ -1512,3 +1512,9 @@ body { background: radial-gradient(circle at 80% -10%, #eeeefe 0, transparent 26
 .admin-mail-options { display:flex; flex-wrap:wrap; gap:16px; margin:16px 0; }
 .admin-mail-options label { display:flex; align-items:center; gap:7px; }
 @media (max-width:700px) { .admin-mail-grid { grid-template-columns:1fr; } .admin-mail-wide { grid-column:auto; } }
+.mcp-token-panel { margin-top: 20px; display: grid; gap: 16px; }
+.mcp-token-panel code { overflow-wrap: anywhere; }
+.mcp-token-secret { display: grid; gap: 8px; padding: 14px; border: 1px solid var(--color-warning, #b7791f); border-radius: 10px; }
+.mcp-token-list { display: grid; gap: 8px; }
+.mcp-token-list article { display: flex; justify-content: space-between; gap: 12px; align-items: center; }
+.mcp-token-list article div { display: grid; gap: 3px; }

@@ -7,6 +7,7 @@ import { authApi } from '../../../api/authApi';
 import { useLanguage } from '../../../app/LanguageContext';
 import { AuthenticatedImage } from '../../../app/AuthenticatedImage';
 import { disablePushForCurrentDevice } from '../../../app/pushNotifications';
+import { McpTokenPanel } from '../components/McpTokenPanel';
 
 export function ProfilePage() {
   const { t } = useLanguage();
@@ -71,5 +72,5 @@ export function ProfilePage() {
       <button className="primary" disabled={saving}>{saving ? t('저장 중...', 'Saving...') : t('저장', 'Save')}</button>
     </form>
     <div className="profile-secondary-actions"><Link className="account-link" to="/account">{t('계정 및 보안 설정', 'Account & security')} →</Link><button className="profile-logout" type="button" onClick={logout}>{t('로그아웃', 'Log out')}</button></div>
-  </section></main></>;
+  </section><McpTokenPanel /></main></>;
 }

@@ -49,6 +49,7 @@ public class SecurityConfig {
                                 "/api/v1/auth/logout",
                                 "/api/v1/auth/logout").permitAll()
                         .requestMatchers(HttpMethod.GET, "/ws/chat").permitAll()
+                        .requestMatchers("/mcp").permitAll()
                         .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
                         .anyRequest().authenticated())
                 .addFilterBefore(rateLimitFilter, UsernamePasswordAuthenticationFilter.class)
