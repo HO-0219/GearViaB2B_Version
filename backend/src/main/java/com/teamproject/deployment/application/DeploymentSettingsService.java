@@ -1,5 +1,7 @@
 package com.teamproject.deployment.application;
 
+import com.teamproject.admin.application.AdminNoticeService;
+import com.teamproject.admin.application.dto.AdminDtos.CreateAdminNoticeRequest;
 import com.teamproject.common.exception.ApplicationException;
 import com.teamproject.deployment.application.dto.DeploymentSettingsDtos.JobView;
 import com.teamproject.deployment.application.dto.DeploymentSettingsDtos.SettingsView;
@@ -48,11 +50,12 @@ public class DeploymentSettingsService {
     private final UserRepository users;
     private final HostApplyGateway hostApply;
     private final PublicUrlProvider publicUrls;
+    private final AdminNoticeService notices;
     private final Path controlRoot;
 
     public DeploymentSettingsService(DeploymentSettingsRepository settings,
             InfrastructureChangeJobRepository jobs, UserRepository users, HostApplyGateway hostApply,
-            PublicUrlProvider publicUrls,
+            PublicUrlProvider publicUrls, AdminNoticeService notices,
             @org.springframework.beans.factory.annotation.Value(
                     "${app.host-apply.control-root:/var/lib/gearvia/control}") String controlRoot) {
         this.settings = settings;
@@ -60,6 +63,7 @@ public class DeploymentSettingsService {
         this.users = users;
         this.hostApply = hostApply;
         this.publicUrls = publicUrls;
+        this.notices = notices;
         this.controlRoot = Path.of(controlRoot);
     }
 
@@ -110,12 +114,16 @@ public class DeploymentSettingsService {
     }
 
     @Transactional
-    public JobView apply(Long jobId) {
+    public JobView apply(Long jobId, Long actorId) {
         InfrastructureChangeJob job = requireJob(jobId);
         if (job.getStatus() != Status.TEST_SUCCEEDED) {
             throw error("DEPLOYMENT_JOB_NOT_TESTED", HttpStatus.CONFLICT,
                     "테스트가 성공한 작업만 적용할 수 있습니다.");
         }
+        notices.create(actorId, new CreateAdminNoticeRequest(
+                abbreviate("도메인/SSL 적용 예정: " + job.getRedactedTarget(), 160),
+                "도메인/SSL 인증서를 적용합니다. 적용 중 웹 접속이 수십 초간 중단될 수 있습니다.",
+                java.time.LocalDateTime.now()));
         job.transitionTo(Status.NOTIFYING, 20, "전체 사용자 공지를 완료했습니다.");
         String requestId = requestId(job.getId());
         hostApply.submit(requestId, job.getRedactedTarget(), CANDIDATE_MODE);
@@ -265,6 +273,10 @@ public class DeploymentSettingsService {
 
     private static String requestId(long jobId) {
         return "tls-" + jobId;
+    }
+
+    private static String abbreviate(String value, int maxLength) {
+        return value.length() <= maxLength ? value : value.substring(0, maxLength);
     }
 
     private static String string(java.time.LocalDateTime value) {

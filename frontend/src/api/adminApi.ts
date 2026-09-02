@@ -85,4 +85,36 @@ export const adminApi = {
   deleteTask: (id: number) => request<void>(`/admin/tasks/${id}`, { method: 'DELETE' }, true),
   restoreTask: (id: number) => request<AdminTask>(`/admin/tasks/${id}/restore`, { method: 'POST' }, true),
   loginHistory: () => request<Page<AdminLoginHistoryEntry>>('/admin/login-history?size=50', {}, true),
+  deploymentSettings: () =>
+    request<DeploymentSettingsStatusRaw>('/admin/deployment-settings', {}, true).then((raw) => ({
+      ...raw,
+      certificateSans: (raw.certificateSans ?? '').split(',').map((value) => value.trim()).filter(Boolean),
+    }) as DeploymentSettingsStatus),
+  createDeploymentDraft: (publicUrl: string, certificate: File, privateKey: File) => {
+    const body = new FormData();
+    body.append('publicUrl', publicUrl);
+    body.append('certificate', certificate);
+    body.append('privateKey', privateKey);
+    return request<DeploymentJob>('/admin/deployment-settings/drafts', { method: 'POST', body }, true);
+  },
+  testDeploymentJob: (jobId: number) =>
+    request<DeploymentJob>(`/admin/deployment-settings/${jobId}/test`, { method: 'POST' }, true),
+  applyDeploymentJob: (jobId: number) =>
+    request<DeploymentJob>(`/admin/deployment-settings/${jobId}/apply`, { method: 'POST' }, true),
+  deploymentJob: (jobId: number) =>
+    request<DeploymentJob>(`/admin/deployment-settings/jobs/${jobId}`, {}, true),
+};
+
+type DeploymentSettingsStatusRaw = {
+  publicUrl: string; certificateIssuer: string | null; certificateNotAfter: string | null;
+  certificateSans: string | null; status: string; applyVersion: number;
+};
+export type DeploymentSettingsStatus = {
+  publicUrl: string; certificateIssuer: string | null; certificateNotAfter: string | null;
+  certificateSans: string[]; status: string; applyVersion: number;
+};
+export type DeploymentJob = {
+  jobId: number; type: string; status: string; publicUrl: string; progressPercent: number;
+  verificationSummary: string | null; failureCode: string | null; rollbackSummary: string | null;
+  version: number;
 };

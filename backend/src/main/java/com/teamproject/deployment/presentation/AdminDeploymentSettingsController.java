@@ -41,8 +41,8 @@ public class AdminDeploymentSettingsController {
     }
 
     @PostMapping("/{jobId}/apply")
-    JobView apply(@PathVariable Long jobId) {
-        return service.apply(jobId);
+    JobView apply(Authentication auth, @PathVariable Long jobId) {
+        return service.apply(jobId, (Long) auth.getPrincipal());
     }
 
     @GetMapping("/jobs/{jobId}")

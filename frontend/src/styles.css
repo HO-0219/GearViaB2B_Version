@@ -1518,3 +1518,11 @@ body { background: radial-gradient(circle at 80% -10%, #eeeefe 0, transparent 26
 .mcp-token-list { display: grid; gap: 8px; }
 .mcp-token-list article { display: flex; justify-content: space-between; gap: 12px; align-items: center; }
 .mcp-token-list article div { display: grid; gap: 3px; }
+
+.admin-deployment-settings { display: grid; gap: 14px; }
+.admin-deployment-settings label { display: grid; gap: 4px; }
+.admin-deployment-current { display: grid; grid-template-columns: max-content 1fr; gap: 4px 16px; margin: 0; }
+.admin-deployment-current dt { font-weight: 600; }
+.admin-deployment-current dd { margin: 0; overflow-wrap: anywhere; }
+.admin-deployment-apply-plan { padding: 12px; border: 1px solid var(--color-warning, #b7791f); border-radius: 10px; }
+.admin-deployment-job strong { font-variant-numeric: tabular-nums; }

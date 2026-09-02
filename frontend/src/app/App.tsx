@@ -32,6 +32,7 @@ import { AdminAiSettingsPage } from '../features/admin/pages/AdminAiSettingsPage
 import { AdminBrandingPage } from '../features/admin/pages/AdminBrandingPage';
 import { AdminNoticesPage } from '../features/admin/pages/AdminNoticesPage';
 import { AdminMailSettingsPage } from '../features/admin/pages/AdminMailSettingsPage';
+import { AdminDeploymentSettingsPage } from '../features/admin/pages/AdminDeploymentSettingsPage';
 import { AiAssistantPage } from '../features/assistant/AiAssistantPage';
 import { ProjectsPage } from '../features/project/pages/ProjectsPage';
 import { ProjectFlowPage } from '../features/project/pages/ProjectFlowPage';
@@ -59,6 +60,7 @@ export default function App() {
       <Route path="monitoring" element={<AdminMonitoringPage />} />
       <Route path="ai-settings" element={<AdminAiSettingsPage />} />
       <Route path="mail-settings" element={<AdminMailSettingsPage />} />
+      <Route path="deployment-settings" element={<AdminDeploymentSettingsPage />} />
       <Route path="branding" element={<AdminBrandingPage />} />
       <Route path="notices" element={<AdminNoticesPage />} />
       <Route path="login-history" element={<AdminLoginHistoryPage />} />

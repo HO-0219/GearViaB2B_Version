@@ -2,6 +2,7 @@ package com.teamproject.deployment;
 
 import com.teamproject.B2BGearViaApplication;
 import com.teamproject.authentication.application.AccessSessionIssuer;
+import com.teamproject.admin.domain.AdminNoticeRepository;
 import com.teamproject.authentication.domain.token.RefreshToken.ClientMode;
 import com.teamproject.authentication.domain.token.SessionDevice;
 import com.teamproject.deployment.domain.DeploymentSettings;
@@ -49,6 +50,7 @@ class AdminDeploymentSettingsApiTest {
     @Autowired UserRepository users;
     @Autowired AccessSessionIssuer sessions;
     @Autowired DeploymentSettingsRepository settings;
+    @Autowired AdminNoticeRepository notices;
 
     @BeforeAll
     static void generateMaterial() throws Exception {
@@ -158,5 +160,7 @@ class AdminDeploymentSettingsApiTest {
 
         assertThat(settings.findById(DeploymentSettings.SINGLETON_ID))
                 .get().extracting(DeploymentSettings::getPublicUrl).isEqualTo("https://gearvia.corp");
+        assertThat(notices.findAll())
+                .anyMatch(notice -> notice.getTitle().contains("gearvia.corp"));
     }
 }
