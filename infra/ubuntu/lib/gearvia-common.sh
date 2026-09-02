@@ -65,7 +65,7 @@ gearvia_write_kv() { printf '%s=%s\n' "$1" "$2" >> "$3"; }
 
 gearvia_write_runtime_env() {
   local target="$1" public_url="$2" db_password="$3"
-  local active_runtime recovery_database secret_source jwt_secret mfa_secret mysql_root_password domain existing
+  local active_runtime recovery_database secret_source jwt_secret mfa_secret mysql_root_password host_apply_key domain existing
   active_runtime="$(gearvia_root /etc/gearvia/runtime.env)"
   recovery_database="$(gearvia_root /var/lib/gearvia/recovery/database.env)"
   secret_source="$active_runtime"
@@ -89,6 +89,11 @@ gearvia_write_runtime_env() {
   else
     mysql_root_password="$(gearvia_generate_secret 32)"
   fi
+  if existing="$(gearvia_read_runtime_value "$secret_source" HOST_APPLY_REQUEST_HMAC_KEY)" && [[ -n "$existing" ]]; then
+    host_apply_key="$existing"
+  else
+    host_apply_key="$(gearvia_generate_secret 32)"
+  fi
 
   domain="${public_url#https://}"
   domain="${domain%%/*}"
@@ -104,7 +109,7 @@ gearvia_write_runtime_env() {
     AI_ASSISTANT_EMBEDDING_MODEL MCP_ENABLED MCP_ALLOWED_CIDRS MCP_TRUSTED_PROXIES
     MCP_ALLOWED_ORIGINS MCP_MAX_TOOL_CALLS_PER_MINUTE MCP_MAX_CONCURRENT_CALLS
     MYSQL_APP_PASSWORD MYSQL_ROOT_PASSWORD MYSQL_IMAGE INIT_DATA_IMAGE BACKEND_IMAGE WEB_IMAGE
-    TLS_CERT_FILE TLS_KEY_FILE
+    TLS_CERT_FILE TLS_KEY_FILE HOST_APPLY_REQUEST_HMAC_KEY
   )
   local values=(
     b2b-production bundled-db "$domain" "$jwt_secret" true validate false true "$mfa_secret"
@@ -115,6 +120,7 @@ gearvia_write_runtime_env() {
     "$db_password" "$mysql_root_password" "${GEARVIA_MYSQL_IMAGE:-mysql:8.4}"
     "${GEARVIA_INIT_DATA_IMAGE:-busybox:1.37}" "${GEARVIA_BACKEND_IMAGE:-b2bgearvia-backend:onprem}"
     "${GEARVIA_WEB_IMAGE:-b2bgearvia-web:onprem}" /etc/gearvia/tls/fullchain.pem /etc/gearvia/tls/privkey.pem
+    "$host_apply_key"
   )
 
   (

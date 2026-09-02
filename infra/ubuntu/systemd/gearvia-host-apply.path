@@ -1,0 +1,10 @@
+[Unit]
+Description=Watch for GearVia domain/TLS change requests
+After=b2bgearvia.service
+
+[Path]
+PathExistsGlob=/var/lib/gearvia/control/requests/*.env
+Unit=gearvia-host-apply.service
+
+[Install]
+WantedBy=multi-user.target

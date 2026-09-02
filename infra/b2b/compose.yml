@@ -97,6 +97,9 @@ services:
     volumes:
       - uploads:/opt/b2bgearvia/data/uploads
       - /opt/b2bgearvia/data/nas:/opt/b2bgearvia/data/nas
+      # Domain/TLS change requests are written here; the root-owned
+      # gearvia-host-apply.path unit on the host consumes them.
+      - /var/lib/gearvia/control:/var/lib/gearvia/control
     networks: [internal]
     depends_on:
       init-data: {condition: service_completed_successfully}

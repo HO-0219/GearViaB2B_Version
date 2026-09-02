@@ -4,3 +4,6 @@
 # On-prem installer entry points.
 install_gearvia_ai_agent_ubuntu.sh text eol=lf
 uninstall_gearvia_ai_agent_ubuntu.sh text eol=lf
+
+# systemd unit files are read on Linux hosts only.
+infra/ubuntu/systemd/* text eol=lf

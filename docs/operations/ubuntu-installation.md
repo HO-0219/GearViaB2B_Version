@@ -67,5 +67,7 @@ sudo ./uninstall_gearvia_ai_agent_ubuntu.sh --purge-data --confirm-purge GEARVIA
 bash infra/ubuntu/test-lifecycle-scripts.sh
 bash infra/ubuntu/test-tls-automation.sh
 bash infra/ubuntu/test-image-selection.sh
+bash infra/ubuntu/test-host-apply.sh
+bash infra/ubuntu/test-line-endings.sh
 bash infra/b2b/test-virtualbox-config.sh
 ```

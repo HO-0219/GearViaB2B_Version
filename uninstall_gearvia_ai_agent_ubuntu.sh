@@ -23,6 +23,8 @@ install_root="$(gearvia_root /opt/b2bgearvia)"
 config_root="$(gearvia_root /etc/gearvia)"
 state_root="$(gearvia_root /var/lib/gearvia)"
 unit_path="$(gearvia_root /etc/systemd/system/b2bgearvia.service)"
+host_apply_unit="$(gearvia_root /etc/systemd/system/gearvia-host-apply.service)"
+host_apply_path_unit="$(gearvia_root /etc/systemd/system/gearvia-host-apply.path)"
 
 if [[ -r "$config_root/runtime.env" ]]; then
   mkdir -p "$state_root/recovery"
@@ -38,14 +40,17 @@ if [[ -r "$config_root/runtime.env" ]]; then
 fi
 
 if [[ "${GEARVIA_SKIP_RUNTIME:-0}" != "1" ]]; then
+  systemctl disable --now gearvia-host-apply.path >/dev/null 2>&1 || true
   systemctl disable --now b2bgearvia.service >/dev/null 2>&1 || true
   if command -v docker >/dev/null 2>&1 && [[ -f "$install_root/compose.yml" && -f "$config_root/runtime.env" ]]; then
     docker compose --env-file "$config_root/runtime.env" -f "$install_root/compose.yml" down || true
   fi
 fi
 
-rm -f -- "$install_root/compose.yml" "$unit_path" "$config_root/runtime.env"
-rm -rf -- "$config_root/tls"
+rm -f -- "$install_root/compose.yml" "$unit_path" "$host_apply_unit" "$host_apply_path_unit" \
+  "$config_root/runtime.env" "$config_root/host-apply.key"
+rm -rf -- "$config_root/tls" "$install_root/host-apply" "$state_root/control" \
+  "$state_root/recovery/tls.host-apply"
 rm -f -- "$state_root/recovery/runtime.env.previous" "$state_root/recovery/runtime.env.last-known-good"
 rm -rf -- "$state_root/recovery/tls.previous" "$state_root/recovery/tls.last-known-good"
 rmdir "$config_root" 2>/dev/null || true
