@@ -1,5 +1,6 @@
 package com.teamproject.authorization.config;
 
+import com.teamproject.deployment.application.PublicUrlProvider;
 import com.teamproject.jwt.JwtAuthenticationFilter;
 import com.teamproject.admin.config.AdminAccessFilter;
 import com.teamproject.admin.config.AdminMfaAuthorizationFilter;
@@ -27,11 +28,11 @@ public class SecurityConfig {
             SameOriginMutationFilter sameOriginFilter, AdminAccessFilter adminAccessFilter,
             AdminMfaAuthorizationFilter adminMfaFilter, AdminAuditFilter adminAuditFilter,
             ForcedPasswordChangeFilter forcedPasswordChangeFilter,
-            @Value("${app.frontend-url}") String frontendUrl,
+            PublicUrlProvider publicUrls,
             @Value("${app.admin.frontend-url:}") String adminFrontendUrl) throws Exception {
         return http
                 .csrf(AbstractHttpConfigurer::disable)
-                .cors(cors -> cors.configurationSource(corsConfiguration(frontendUrl, adminFrontendUrl)))
+                .cors(cors -> cors.configurationSource(corsConfiguration(publicUrls, adminFrontendUrl)))
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
                 .exceptionHandling(exceptions -> exceptions.defaultAuthenticationEntryPointFor((request, response, exception) -> {
                     response.setStatus(org.springframework.http.HttpStatus.UNAUTHORIZED.value());
@@ -100,18 +101,20 @@ public class SecurityConfig {
         registration.setEnabled(false);
         return registration;
     }
-    private CorsConfigurationSource corsConfiguration(String frontendUrl, String adminFrontendUrl) {
-        var config = new CorsConfiguration();
-        var origins = new java.util.ArrayList<String>();
-        origins.add(frontendUrl);
-        if (adminFrontendUrl != null && !adminFrontendUrl.isBlank()) origins.add(adminFrontendUrl);
-        config.setAllowedOrigins(origins);
-        config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
-        config.setAllowedHeaders(List.of("Authorization", "Content-Type", "X-Client-Mode",
-                "X-Device-Id", "X-Device-Name"));
-        config.setAllowCredentials(true);
-        var source = new UrlBasedCorsConfigurationSource();
-        source.registerCorsConfiguration("/**", config);
-        return source;
+    private CorsConfigurationSource corsConfiguration(PublicUrlProvider publicUrls, String adminFrontendUrl) {
+        // Resolve the allowed origins per request so an administrator public-URL
+        // change takes effect without an application restart.
+        return request -> {
+            var config = new CorsConfiguration();
+            var origins = new java.util.ArrayList<String>();
+            origins.add(publicUrls.current().toString());
+            if (adminFrontendUrl != null && !adminFrontendUrl.isBlank()) origins.add(adminFrontendUrl);
+            config.setAllowedOrigins(origins);
+            config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
+            config.setAllowedHeaders(List.of("Authorization", "Content-Type", "X-Client-Mode",
+                    "X-Device-Id", "X-Device-Name"));
+            config.setAllowCredentials(true);
+            return config;
+        };
     }
 }

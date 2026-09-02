@@ -1,5 +1,6 @@
 package com.teamproject.authorization.config;
 
+import com.teamproject.deployment.application.PublicUrlProvider;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -11,12 +12,12 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 @Component
 public class SameOriginMutationFilter extends OncePerRequestFilter {
-    private final String frontendOrigin;
+    private final PublicUrlProvider publicUrls;
     private final String adminFrontendOrigin;
 
-    public SameOriginMutationFilter(@Value("${app.frontend-url}") String frontendOrigin,
+    public SameOriginMutationFilter(PublicUrlProvider publicUrls,
             @Value("${app.admin.frontend-url:}") String adminFrontendOrigin) {
-        this.frontendOrigin = stripTrailingSlash(frontendOrigin);
+        this.publicUrls = publicUrls;
         this.adminFrontendOrigin = stripTrailingSlash(adminFrontendOrigin);
     }
 
@@ -46,8 +47,9 @@ public class SameOriginMutationFilter extends OncePerRequestFilter {
         String requestOrigin = request.getScheme() + "://" + request.getServerName()
                 + (defaultPort(request) ? "" : ":" + request.getServerPort());
         String normalized = stripTrailingSlash(origin);
-        return normalized.equals(frontendOrigin)
-                || (!adminFrontendOrigin.isBlank() && normalized.equals(adminFrontendOrigin))
+        return publicUrls.isAllowedOrigin(origin)
+                || (adminFrontendOrigin != null && !adminFrontendOrigin.isBlank()
+                        && normalized.equals(adminFrontendOrigin))
                 || normalized.equals(requestOrigin);
     }
 
