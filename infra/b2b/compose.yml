@@ -6,7 +6,7 @@ x-logging: &logging
 
 services:
   init-data:
-    image: ${INIT_DATA_IMAGE:?set INIT_DATA_IMAGE}
+    image: ${INIT_DATA_IMAGE:-busybox:1.37}
     user: "0:0"
     command: ["sh", "-c", "mkdir -p /opt/b2bgearvia/data/uploads && chown -R 10001:10001 /opt/b2bgearvia/data/uploads"]
     volumes: [uploads:/opt/b2bgearvia/data/uploads]
@@ -14,7 +14,7 @@ services:
     logging: *logging
 
   mysql:
-    image: ${MYSQL_IMAGE:?set MYSQL_IMAGE}
+    image: ${MYSQL_IMAGE:-mysql:8.4}
     profiles: ["bundled-db"]
     restart: unless-stopped
     environment:
@@ -35,7 +35,7 @@ services:
     logging: *logging
 
   backend:
-    image: ${BACKEND_IMAGE:?set BACKEND_IMAGE}
+    image: ${BACKEND_IMAGE:-b2bgearvia-backend:onprem}
     restart: unless-stopped
     env_file:
       - path: /opt/b2bgearvia/config/ai.env
@@ -111,7 +111,7 @@ services:
     logging: *logging
 
   web:
-    image: ${WEB_IMAGE:?set WEB_IMAGE}
+    image: ${WEB_IMAGE:-b2bgearvia-web:onprem}
     restart: unless-stopped
     environment:
       BACKEND_NORMAL: backend:8081

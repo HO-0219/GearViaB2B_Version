@@ -24,6 +24,19 @@ config_root="$(gearvia_root /etc/gearvia)"
 state_root="$(gearvia_root /var/lib/gearvia)"
 unit_path="$(gearvia_root /etc/systemd/system/b2bgearvia.service)"
 
+if [[ -r "$config_root/runtime.env" ]]; then
+  mkdir -p "$state_root/recovery"
+  recovery_candidate="$(mktemp "${TMPDIR:-/tmp}/gearvia-database.XXXXXX")"
+  trap 'rm -f -- "${recovery_candidate:-}"' EXIT
+  : > "$recovery_candidate"
+  for key in MYSQL_APP_PASSWORD MYSQL_ROOT_PASSWORD; do
+    if value="$(gearvia_read_runtime_value "$config_root/runtime.env" "$key")" && [[ -n "$value" ]]; then
+      gearvia_write_kv "$key" "$value" "$recovery_candidate"
+    fi
+  done
+  install -m 0600 "$recovery_candidate" "$state_root/recovery/database.env"
+fi
+
 if [[ "${GEARVIA_SKIP_RUNTIME:-0}" != "1" ]]; then
   systemctl disable --now b2bgearvia.service >/dev/null 2>&1 || true
   if command -v docker >/dev/null 2>&1 && [[ -f "$install_root/compose.yml" && -f "$config_root/runtime.env" ]]; then
@@ -32,6 +45,9 @@ if [[ "${GEARVIA_SKIP_RUNTIME:-0}" != "1" ]]; then
 fi
 
 rm -f -- "$install_root/compose.yml" "$unit_path" "$config_root/runtime.env"
+rm -rf -- "$config_root/tls"
+rm -f -- "$state_root/recovery/runtime.env.previous" "$state_root/recovery/runtime.env.last-known-good"
+rm -rf -- "$state_root/recovery/tls.previous" "$state_root/recovery/tls.last-known-good"
 rmdir "$config_root" 2>/dev/null || true
 if [[ "$purge" == true ]]; then
   data_path="$install_root/data"

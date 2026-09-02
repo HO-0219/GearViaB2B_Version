@@ -6,6 +6,8 @@ script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 . "$script_dir/infra/ubuntu/lib/gearvia-common.sh"
 # shellcheck source=infra/ubuntu/lib/gearvia-tls.sh
 . "$script_dir/infra/ubuntu/lib/gearvia-tls.sh"
+# shellcheck source=infra/ubuntu/lib/gearvia-images.sh
+. "$script_dir/infra/ubuntu/lib/gearvia-images.sh"
 
 dry_run=false
 db_password_file=""
@@ -34,7 +36,10 @@ provided_db_password=""
 if [[ -n "$db_password_file" ]]; then
   provided_db_password="$(gearvia_read_db_password "$db_password_file")"
 fi
-if existing_db_password="$(gearvia_read_runtime_value "$active_runtime" MYSQL_APP_PASSWORD)" && [[ -n "$existing_db_password" ]]; then
+recovery_database="$state_root/recovery/database.env"
+db_password_source="$active_runtime"
+if [[ ! -r "$db_password_source" && -r "$recovery_database" ]]; then db_password_source="$recovery_database"; fi
+if existing_db_password="$(gearvia_read_runtime_value "$db_password_source" MYSQL_APP_PASSWORD)" && [[ -n "$existing_db_password" ]]; then
   db_password="$existing_db_password"
 elif [[ -n "$provided_db_password" ]]; then
   db_password="$provided_db_password"
@@ -56,6 +61,19 @@ if [[ "${GEARVIA_SKIP_RUNTIME:-0}" != "1" ]]; then
   command -v docker >/dev/null 2>&1 || gearvia_die "Docker Engine with Compose v2 is required"
   docker compose version >/dev/null 2>&1 || gearvia_die "Docker Compose v2 is required"
   command -v curl >/dev/null 2>&1 || gearvia_die "curl is required for readiness verification"
+fi
+
+release_tag="${GEARVIA_RELEASE_TAG:-$(git -C "$script_dir" rev-parse --short=12 HEAD 2>/dev/null || printf 'bundle')}"
+GEARVIA_BACKEND_IMAGE="b2bgearvia-backend:$release_tag"
+GEARVIA_WEB_IMAGE="b2bgearvia-web:$release_tag"
+GEARVIA_MYSQL_IMAGE="mysql:8.4"
+GEARVIA_INIT_DATA_IMAGE="busybox:1.37"
+export GEARVIA_REPO_ROOT="$script_dir" GEARVIA_BACKEND_IMAGE GEARVIA_WEB_IMAGE GEARVIA_MYSQL_IMAGE GEARVIA_INIT_DATA_IMAGE
+if [[ "${GEARVIA_SKIP_RUNTIME:-0}" != "1" ]]; then
+  gearvia_prepare_image backend "$GEARVIA_BACKEND_IMAGE" backend/Dockerfile >/dev/null
+  gearvia_prepare_image web "$GEARVIA_WEB_IMAGE" frontend/Dockerfile >/dev/null
+  gearvia_prepare_image mysql "$GEARVIA_MYSQL_IMAGE" '' >/dev/null
+  gearvia_prepare_image init-data "$GEARVIA_INIT_DATA_IMAGE" '' >/dev/null
 fi
 
 runtime_candidate="$(mktemp "${TMPDIR:-/tmp}/gearvia-runtime.XXXXXX")"
@@ -85,6 +103,7 @@ install -m 0600 "$tls_candidate/privkey.pem" "$tls_root/privkey.pem"
 install -m 0644 "$tls_candidate/fullchain.pem" "$tls_root/fullchain.pem"
 install -D -m 0644 "$script_dir/infra/b2b/systemd/b2bgearvia.service" "$unit_path"
 printf 'INSTALL_VERSION=1\nINSTALLED_AT=%s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > "$state_root/install-state.env"
+if [[ "${GEARVIA_SKIP_RUNTIME:-0}" != "1" ]]; then gearvia_record_image_state "$state_root/install-state.env"; fi
 chmod 0600 "$state_root/install-state.env"
 
 if [[ "${GEARVIA_SKIP_RUNTIME:-0}" != "1" ]]; then

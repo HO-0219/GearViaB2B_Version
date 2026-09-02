@@ -65,23 +65,26 @@ gearvia_write_kv() { printf '%s=%s\n' "$1" "$2" >> "$3"; }
 
 gearvia_write_runtime_env() {
   local target="$1" public_url="$2" db_password="$3"
-  local active_runtime jwt_secret mfa_secret mysql_root_password domain existing
+  local active_runtime recovery_database secret_source jwt_secret mfa_secret mysql_root_password domain existing
   active_runtime="$(gearvia_root /etc/gearvia/runtime.env)"
+  recovery_database="$(gearvia_root /var/lib/gearvia/recovery/database.env)"
+  secret_source="$active_runtime"
+  if [[ ! -r "$secret_source" && -r "$recovery_database" ]]; then secret_source="$recovery_database"; fi
 
-  if existing="$(gearvia_read_runtime_value "$active_runtime" MYSQL_APP_PASSWORD)" && [[ -n "$existing" ]]; then
+  if existing="$(gearvia_read_runtime_value "$secret_source" MYSQL_APP_PASSWORD)" && [[ -n "$existing" ]]; then
     db_password="$existing"
   fi
-  if existing="$(gearvia_read_runtime_value "$active_runtime" JWT_SECRET)" && [[ -n "$existing" ]]; then
+  if existing="$(gearvia_read_runtime_value "$secret_source" JWT_SECRET)" && [[ -n "$existing" ]]; then
     jwt_secret="$existing"
   else
     jwt_secret="$(gearvia_generate_secret 48)"
   fi
-  if existing="$(gearvia_read_runtime_value "$active_runtime" ADMIN_MFA_ENCRYPTION_KEY_BASE64)" && [[ -n "$existing" ]]; then
+  if existing="$(gearvia_read_runtime_value "$secret_source" ADMIN_MFA_ENCRYPTION_KEY_BASE64)" && [[ -n "$existing" ]]; then
     mfa_secret="$existing"
   else
     mfa_secret="$(gearvia_generate_secret 32)"
   fi
-  if existing="$(gearvia_read_runtime_value "$active_runtime" MYSQL_ROOT_PASSWORD)" && [[ -n "$existing" ]]; then
+  if existing="$(gearvia_read_runtime_value "$secret_source" MYSQL_ROOT_PASSWORD)" && [[ -n "$existing" ]]; then
     mysql_root_password="$existing"
   else
     mysql_root_password="$(gearvia_generate_secret 32)"
@@ -109,9 +112,9 @@ gearvia_write_runtime_env() {
     20 5 30000 100 100 1000 1 2 100 60 2 4 500 60 75 90 local
     /opt/b2bgearvia/data/nas 'gpt-5.6-sol,gpt-5.6-luna' text-embedding-3-small false
     '10.0.0.0/8,172.16.0.0/12,192.168.0.0/16' 172.16.0.0/12 "$public_url" 120 2
-    "$db_password" "$mysql_root_password" 'mysql:8.4@sha256:<release-digest>'
-    'busybox:1.37@sha256:<release-digest>' 'b2bgearvia-backend@sha256:<release-digest>'
-    'b2bgearvia-web@sha256:<release-digest>' ./tls/fullchain.pem ./tls/privkey.pem
+    "$db_password" "$mysql_root_password" "${GEARVIA_MYSQL_IMAGE:-mysql:8.4}"
+    "${GEARVIA_INIT_DATA_IMAGE:-busybox:1.37}" "${GEARVIA_BACKEND_IMAGE:-b2bgearvia-backend:onprem}"
+    "${GEARVIA_WEB_IMAGE:-b2bgearvia-web:onprem}" /etc/gearvia/tls/fullchain.pem /etc/gearvia/tls/privkey.pem
   )
 
   (

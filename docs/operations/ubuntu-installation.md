@@ -4,7 +4,7 @@
 
 - x86_64 기반 Ubuntu Server 24.04 LTS
 - 승인된 사내 저장소에서 설치한 Docker Engine 및 Docker Compose v2
-- 완전한 GearVia 릴리스 번들, TLS 인증서/개인 키, 고정 IP 또는 사내 DNS
+- 완전한 GearVia 릴리스 번들 및 고정 사설 IPv4 네트워크
 - 기본적으로 차단된 인터넷 아웃바운드 연결
 - NAS 스토리지를 사용할 경우 `/opt/b2bgearvia/data/nas`에 NAS를 먼저 마운트
 
@@ -16,32 +16,39 @@
 
 ## 설치 또는 업그레이드
 
-`infra/b2b/runtime.env.example`을 복사해 `runtime.env`를 준비합니다. 모든 자리표시자 값을
-실제 운영 값으로 교체하고 파일 권한을 `0600`으로 유지하십시오. 호스트를 변경하지 않고
-설정만 검증하려면 다음 명령을 실행합니다.
+설치기는 기본 경로의 사설 IPv4 주소와 호스트 이름을 감지하고 root 전용 런타임 설정,
+로컬 CA와 HTTPS 서버 인증서를 자동 생성합니다. 대화형 설치에서 필요한 입력은 번들 MySQL
+애플리케이션 비밀번호 하나뿐입니다. 호스트를 변경하지 않고 사전 점검하려면 실행합니다.
 
 ```bash
-sudo ./install_gearvia_ai_agent_ubuntu.sh --dry-run \
-  --config /secure/gearvia/runtime.env
+sudo ./install_gearvia_ai_agent_ubuntu.sh --dry-run
 ```
 
 systemd가 관리하는 Compose 스택을 설치하고 시작하려면 다음 명령을 실행합니다.
 
 ```bash
-sudo ./install_gearvia_ai_agent_ubuntu.sh \
-  --config /secure/gearvia/runtime.env \
-  --tls-cert /secure/gearvia/fullchain.pem \
-  --tls-key /secure/gearvia/privkey.pem
+sudo ./install_gearvia_ai_agent_ubuntu.sh
+```
+
+무인 설치에서는 root만 읽을 수 있는 절대 경로의 비밀번호 파일을 사용합니다.
+
+```bash
+sudo ./install_gearvia_ai_agent_ubuntu.sh --db-password-file /secure/mysql-app-password
 ```
 
 설치 작업은 안전하게 재실행할 수 있습니다. 설정은 `/etc/gearvia/runtime.env`, 배포 파일은
-`/opt/b2bgearvia`, 복구 상태는 `/var/lib/gearvia`에 복사됩니다. 설치 프로그램은 원본 설정
-파일을 셸 코드로 평가하거나 실행하지 않습니다.
+`/opt/b2bgearvia`, 인증서는 `/etc/gearvia/tls`, 복구 상태는 `/var/lib/gearvia`에 저장됩니다.
+접속 주소는 감지된 사설 IP의 `https://<사설-IP>`이며, 클라이언트에는
+`/etc/gearvia/tls/ca.crt`를 신뢰할 수 있는 CA로 배포해야 합니다.
+
+이미지는 `infra/images/<이름>.tar` 번들 로드, 로컬 이미지 재사용, 애플리케이션 소스 빌드
+순서로 준비합니다. MySQL 8.4와 BusyBox 1.37은 로컬에 없을 때만 가져오므로 폐쇄망에서는
+해당 tar 번들을 릴리스에 포함하십시오.
 
 ## 제거
 
-기본 제거는 서비스를 중지하고 애플리케이션 설정을 삭제하지만 Docker 데이터베이스 볼륨,
-로컬/NAS 파일 및 복구 상태는 보존합니다.
+기본 제거는 서비스를 중지하고 활성 설정과 TLS 키/인증서를 삭제하지만 Docker 데이터베이스
+볼륨, 로컬/NAS 파일 및 DB 비밀번호 전용 복구 상태는 보존합니다.
 
 ```bash
 sudo ./uninstall_gearvia_ai_agent_ubuntu.sh

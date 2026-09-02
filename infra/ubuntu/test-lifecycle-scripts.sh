@@ -17,6 +17,8 @@ assert_absent() { [[ ! -e "$1" ]] || fail "path should be absent: $1"; }
 mkdir -p "$tmp_root/etc"
 password_file="$tmp_root/db-password"
 printf '%s' 'LocalDbPassword-2026!' > "$password_file"
+export GEARVIA_TEST_IP_CANDIDATES='192.168.56.101'
+export GEARVIA_TEST_HOSTNAME='gearvia-test'
 
 printf 'ID=debian\nVERSION_ID="12"\n' > "$tmp_root/etc/os-release"
 if GEARVIA_TEST_ROOT="$tmp_root" "$installer" --dry-run --db-password-file "$password_file" >/dev/null 2>&1; then
@@ -57,6 +59,9 @@ printf 'preserve-me' > "$tmp_root/opt/b2bgearvia/data/local/file.bin"
 GEARVIA_TEST_ROOT="$tmp_root" GEARVIA_SKIP_RUNTIME=1 "$uninstaller" >/dev/null
 assert_file "$tmp_root/opt/b2bgearvia/data/local/file.bin"
 assert_absent "$tmp_root/etc/gearvia/runtime.env"
+assert_absent "$tmp_root/etc/gearvia/tls"
+assert_file "$tmp_root/var/lib/gearvia/recovery/database.env"
+grep -Fq 'MYSQL_APP_PASSWORD=LocalDbPassword-2026!' "$tmp_root/var/lib/gearvia/recovery/database.env"
 
 if GEARVIA_TEST_ROOT="$tmp_root" GEARVIA_SKIP_RUNTIME=1 "$uninstaller" --purge-data --confirm-purge WRONG >/dev/null 2>&1; then
   fail "purge accepted an invalid confirmation"
