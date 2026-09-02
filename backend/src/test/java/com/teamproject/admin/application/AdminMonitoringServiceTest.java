@@ -1,6 +1,8 @@
 package com.teamproject.admin.application;
 
 import com.teamproject.admin.application.dto.AdminDtos.AdminMonitoringResponse;
+import com.teamproject.common.config.RuntimeTuningProperties;
+import com.teamproject.common.execution.ExecutorTelemetry;
 import com.teamproject.aiusage.domain.AiUsageOperation;
 import com.teamproject.aiusage.domain.AiUsageRecord;
 import com.teamproject.aiusage.domain.AiUsageRecordRepository;
@@ -50,7 +52,8 @@ class AdminMonitoringServiceTest {
         SystemUsageProbe probe = new FixedProbe(OptionalDouble.empty(), OptionalLong.of(800L),
                 OptionalLong.of(200L), Optional.empty());
         AdminMonitoringResponse response = new AdminMonitoringService(records,
-                new SystemUsageSnapshotReader(probe, storageWithProvider("nas_mount")))
+                new SystemUsageSnapshotReader(probe, storageWithProvider("nas_mount")),
+                operationalTelemetry(), runtimeTuning())
                 .overviewAt(Instant.parse("2026-08-23T00:30:00Z"));
 
         assertThat(response.system().cpu().available()).isFalse();
@@ -59,10 +62,56 @@ class AdminMonitoringServiceTest {
         assertThat(response.system().storage().provider()).isEqualTo("nas_mount");
     }
 
+    @Test
+    void overviewIncludesBoundedRuntimeAndAlerts() {
+        OperationalTelemetryReader telemetry = mock(OperationalTelemetryReader.class);
+        when(telemetry.read()).thenReturn(new OperationalTelemetryReader.Snapshot(
+                "backend-1", 1000,
+                new OperationalTelemetryReader.DatabasePoolSnapshot(true, 18, 2, 20, 20),
+                List.of(new OperationalTelemetryReader.DependencySnapshot("database", true),
+                        new OperationalTelemetryReader.DependencySnapshot("storage", true)),
+                List.of(new ExecutorTelemetry.ExecutorSnapshot("document-index", 2, 2, 1, 2,
+                        95, 100, 50, 3))));
+        SystemUsageProbe probe = new FixedProbe(OptionalDouble.of(0.25), OptionalLong.of(800L),
+                OptionalLong.of(200L), Optional.of(new SystemUsageProbe.Space(1_000L, 400L)));
+
+        AdminMonitoringResponse response = new AdminMonitoringService(records,
+                new SystemUsageSnapshotReader(probe, storageWithProvider("local")), telemetry, runtimeTuning())
+                .overviewAt(Instant.parse("2026-08-23T00:30:00Z"));
+
+        assertThat(response.runtime().instanceId()).isEqualTo("backend-1");
+        assertThat(response.runtime().maxTaskResults()).isEqualTo(1000);
+        assertThat(response.databasePool().active()).isEqualTo(18);
+        assertThat(response.executors()).extracting(value -> value.name())
+                .containsExactly("document-index");
+        assertThat(response.alerts()).extracting(value -> value.code())
+                .contains("DATABASE_POOL_CRITICAL", "EXECUTOR_QUEUE_CRITICAL");
+    }
+
     private AdminMonitoringService service() {
         SystemUsageProbe probe = new FixedProbe(OptionalDouble.of(0.25), OptionalLong.of(800L),
                 OptionalLong.of(200L), Optional.of(new SystemUsageProbe.Space(1_000L, 400L)));
-        return new AdminMonitoringService(records, new SystemUsageSnapshotReader(probe, storageWithProvider("local")));
+        return new AdminMonitoringService(records, new SystemUsageSnapshotReader(probe, storageWithProvider("local")),
+                operationalTelemetry(), runtimeTuning());
+    }
+
+    private OperationalTelemetryReader operationalTelemetry() {
+        OperationalTelemetryReader telemetry = mock(OperationalTelemetryReader.class);
+        when(telemetry.read()).thenReturn(new OperationalTelemetryReader.Snapshot(
+                "test-instance", 1000,
+                new OperationalTelemetryReader.DatabasePoolSnapshot(false, 0, 0, 0, 20),
+                List.of(), List.of()));
+        return telemetry;
+    }
+
+    private RuntimeTuningProperties runtimeTuning() {
+        return new RuntimeTuningProperties(
+                new RuntimeTuningProperties.Database(20, 5, 30000),
+                new RuntimeTuningProperties.Queries(1000),
+                new RuntimeTuningProperties.Executors(
+                        new RuntimeTuningProperties.Executor(1, 2, 100, 60),
+                        new RuntimeTuningProperties.Executor(2, 4, 500, 60)),
+                new RuntimeTuningProperties.Alerts(75, 90));
     }
 
     private DynamicFileStorage storageWithProvider(String provider) {

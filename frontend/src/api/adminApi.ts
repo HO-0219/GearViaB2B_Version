@@ -27,6 +27,11 @@ export type AdminAiUsageBreakdown = AdminAiUsageTotals & { operation: string; mo
 export type AdminMonitoring = {
   system: { cpu: AdminMetric; memory: AdminCapacity; storage: AdminCapacity & { provider: string } };
   aiUsage: { timeZone: string; periods: { today: AdminAiUsageTotals; thisMonth: AdminAiUsageTotals; allTime: AdminAiUsageTotals }; breakdown: AdminAiUsageBreakdown[] };
+  runtime: { instanceId: string; maxTaskResults: number };
+  databasePool: { available: boolean; active: number; idle: number; total: number; maximum: number; usedPercent?: number | null };
+  dependencies: { name: string; status: 'UP' | 'DOWN' }[];
+  executors: { name: string; active: number; poolSize: number; maxSize: number; queueSize: number; queueCapacity: number; queueUsedPercent?: number | null; completed: number; rejected: number }[];
+  alerts: { code: string; severity: 'WARNING' | 'CRITICAL'; usedPercent?: number | null; subject?: string }[];
 };
 export type Page<T> = { items: T[]; page: number; size: number; totalElements: number; totalPages: number };
 export const adminApi = {

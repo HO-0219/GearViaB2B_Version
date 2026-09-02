@@ -48,6 +48,9 @@ describe('AdminMonitoringPage', () => {
         periods: { today: totals(2), thisMonth: totals(5), allTime: totals(8) },
         breakdown: [{ operation: 'ASSISTANT_RESPONSE', model: 'gpt-5.6-luna', ...totals(8) }],
       },
+      runtime: { instanceId: 'test-instance', maxTaskResults: 1000 },
+      databasePool: { available: false, active: 0, idle: 0, total: 0, maximum: 20 },
+      dependencies: [], executors: [], alerts: [],
     });
 
     render(<LanguageProvider><AdminMonitoringPage /></LanguageProvider>);
@@ -64,5 +67,33 @@ describe('AdminMonitoringPage', () => {
     render(<LanguageProvider><AdminMonitoringPage /></LanguageProvider>);
 
     expect(await screen.findByText('Monitoring data failed')).toBeTruthy();
+  });
+
+  test('renders instance dependency pool executor and critical alert telemetry', async () => {
+    vi.mocked(adminApi.monitoring).mockResolvedValueOnce({
+      system: {
+        cpu: { available: true, usedPercent: 25 },
+        memory: { available: true, usedBytes: 600, totalBytes: 800, usedPercent: 75 },
+        storage: { available: true, usedBytes: 400, totalBytes: 1000, usedPercent: 40, provider: 'local' },
+      },
+      aiUsage: {
+        timeZone: 'Asia/Seoul',
+        periods: { today: totals(2), thisMonth: totals(5), allTime: totals(8) },
+        breakdown: [],
+      },
+      runtime: { instanceId: 'backend-1', maxTaskResults: 1000 },
+      databasePool: { available: true, active: 18, idle: 2, total: 20, maximum: 20, usedPercent: 90 },
+      dependencies: [{ name: 'database', status: 'UP' }, { name: 'storage', status: 'UP' }],
+      executors: [{ name: 'document-index', active: 2, poolSize: 2, maxSize: 2,
+        queueSize: 95, queueCapacity: 100, queueUsedPercent: 95, completed: 50, rejected: 3 }],
+      alerts: [{ code: 'DATABASE_POOL_CRITICAL', severity: 'CRITICAL', usedPercent: 90 }],
+    });
+
+    render(<LanguageProvider><AdminMonitoringPage /></LanguageProvider>);
+
+    expect(await screen.findByText('backend-1')).toBeTruthy();
+    expect(screen.getByText('DATABASE_POOL_CRITICAL')).toBeTruthy();
+    expect(screen.getByText('document-index')).toBeTruthy();
+    expect(screen.getByText('database')).toBeTruthy();
   });
 });

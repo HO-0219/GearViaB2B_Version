@@ -54,6 +54,14 @@ export function AdminMonitoringPage() {
     {error && <p className="error">{error}</p>}
     {monitoring && <>
       <section className="admin-panel admin-monitoring-panel">
+        <div className="admin-panel-heading"><div><h2>{t('운영 런타임', 'Operational runtime')}</h2><p>{t('현재 인스턴스와 제한된 데이터베이스 풀 상태입니다.', 'Current instance and bounded database-pool status.')}</p></div></div>
+        <div className="admin-monitoring-cards">
+          <article className="admin-monitoring-card"><span>{t('인스턴스', 'Instance')}</span><strong>{monitoring.runtime.instanceId}</strong><small>{t('업무 조회 상한', 'Task query cap')}: {monitoring.runtime.maxTaskResults}</small></article>
+          <article className="admin-monitoring-card"><span>{t('데이터베이스 풀', 'Database pool')}</span><strong>{monitoring.databasePool.available ? `${monitoring.databasePool.active} / ${monitoring.databasePool.maximum}` : t('사용할 수 없음', 'Unavailable')}</strong><small>{percent(monitoring.databasePool.usedPercent)} · {t('유휴', 'idle')} {monitoring.databasePool.idle}</small></article>
+          <article className="admin-monitoring-card"><span>{t('활성 경보', 'Active alerts')}</span><strong>{monitoring.alerts.length}</strong><small>{monitoring.alerts.filter((value) => value.severity === 'CRITICAL').length} {t('심각', 'critical')}</small></article>
+        </div>
+      </section>
+      <section className="admin-panel admin-monitoring-panel">
         <div className="admin-panel-heading"><div><h2>{t('시스템 사용량', 'System usage')}</h2><p>{t('현재 서버의 CPU, 메모리 및 업로드 저장소 상태입니다.', 'Current CPU, memory, and upload-storage status for this server.')}</p></div></div>
         <div className="admin-monitoring-cards">
           <MetricCard title="CPU" value={monitoring.system.cpu} unavailable={t('CPU를 사용할 수 없습니다.', 'CPU unavailable')} />
@@ -62,6 +70,16 @@ export function AdminMonitoringPage() {
             detail={`${t('저장소 제공자', 'Storage provider')}: ${monitoring.system.storage.provider}`} />
         </div>
       </section>
+      <AdminTable title={t('의존성 준비 상태', 'Dependency readiness')} emptyLabel={t('의존성 정보가 없습니다.', 'No dependency data.')}
+        headers={[t('이름', 'Name'), t('상태', 'Status')]}
+        rows={monitoring.dependencies.map((item) => [item.name, item.status])} />
+      <AdminTable title={t('작업 실행기', 'Workload executors')} emptyLabel={t('실행기 정보가 없습니다.', 'No executor data.')}
+        headers={[t('이름', 'Name'), t('활성', 'Active'), t('풀', 'Pool'), t('큐', 'Queue'), t('거부', 'Rejected'), t('완료', 'Completed')]}
+        rows={monitoring.executors.map((item) => [item.name, item.active, `${item.poolSize} / ${item.maxSize}`,
+          `${item.queueSize} / ${item.queueCapacity} (${percent(item.queueUsedPercent)})`, item.rejected, item.completed])} />
+      <AdminTable title={t('활성 경보', 'Active alerts')} emptyLabel={t('활성 경보가 없습니다.', 'No active alerts.')}
+        headers={[t('코드', 'Code'), t('심각도', 'Severity'), t('대상', 'Subject'), t('사용률', 'Usage')]}
+        rows={monitoring.alerts.map((item) => [item.code, item.severity, item.subject ?? '—', percent(item.usedPercent)])} />
       {storage && <section className="admin-panel admin-notice-panel">
         <div className="admin-panel-heading"><div><h2>{t('스토리지 연동 설정', 'Storage integration')}</h2><p>{t('NAS/사내 스토리지는 호스트에 미리 마운트해 둔 상태여야 합니다. 연결 테스트가 성공해야만 전환되고, 실패하면 현재 방식이 그대로 유지됩니다.', 'The NAS/company storage share must already be mounted on the host. Switching only happens if the connection test succeeds — on failure the current provider stays active.')}</p></div></div>
         <dl className="admin-storage-settings">

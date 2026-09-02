@@ -39,7 +39,17 @@ public final class AdminDtos {
             LocalDateTime createdAt, LocalDateTime updatedAt) {}
     public record AdminLoginHistoryResponse(Long id, String username, Long userId, String outcome,
             String ipAddress, String deviceName, LocalDateTime occurredAt) {}
-    public record AdminMonitoringResponse(SystemUsageResponse system, AiUsageResponse aiUsage) {}
+    public record AdminMonitoringResponse(SystemUsageResponse system, AiUsageResponse aiUsage,
+            RuntimeResponse runtime, DatabasePoolResponse databasePool,
+            List<DependencyResponse> dependencies, List<ExecutorResponse> executors,
+            List<AlertResponse> alerts) {}
+    public record RuntimeResponse(String instanceId, int maxTaskResults) {}
+    public record DatabasePoolResponse(boolean available, int active, int idle, int total, int maximum,
+            Double usedPercent) {}
+    public record DependencyResponse(String name, String status) {}
+    public record ExecutorResponse(String name, int active, int poolSize, int maxSize,
+            int queueSize, int queueCapacity, Double queueUsedPercent, long completed, long rejected) {}
+    public record AlertResponse(String code, String severity, Double usedPercent, String subject) {}
     public record SystemUsageResponse(MetricResponse cpu, CapacityResponse memory, CapacityResponse storage) {}
     public record MetricResponse(boolean available, Double usedPercent) {}
     public record CapacityResponse(boolean available, Long usedBytes, Long totalBytes, Double usedPercent,

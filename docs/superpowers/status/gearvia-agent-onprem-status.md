@@ -13,7 +13,7 @@ Last updated: 2026-09-02
 |---|---|---|---|
 | 1 | Operational configuration and job foundations | Implemented; MySQL verification pending | Tasks 1-2 focused tests passed |
 | 2 | API, database, pool, and concurrency optimization | In progress; MySQL EXPLAIN pending | Task 3 bounded queries verified locally |
-| 3 | Executor isolation, health, telemetry, and alerts | In progress | Task 4 executor isolation verified |
+| 3 | Executor isolation, health, telemetry, and alerts | Implemented | Tasks 4-6 focused tests passed |
 | A | Checkpoint A integration verification | Planned | - |
 | 4 | Organization-wide notices and maintenance mode | Not started | - |
 | 5 | External MySQL preflight | Not started | - |
@@ -35,7 +35,8 @@ Last updated: 2026-09-02
 - `f52ab75` - persistent infrastructure-change state machine
 - `96f2d8b` - bounded database-side task filtering and MySQL index-plan gate
 - `4520da2` - bounded named executors and saturation telemetry
-- Task 5 branch commit - dependency readiness and internal metrics
+- `4e14cc8` - dependency readiness and internal metrics
+- Task 6 branch commit - administrator operational telemetry and alerts
 
 ## Verification Evidence
 
@@ -55,6 +56,9 @@ Last updated: 2026-09-02
 - Task 5 focused/security suite: 29 tests, 0 failures/errors. Public readiness stayed
   redacted, only the active storage provider affected readiness, and Actuator MVC mappings
   remained isolated from the application API mapping tests.
+- Task 6 focused suite: 6 backend tests and 3 frontend tests passed with 0 failures/errors;
+  the production frontend TypeScript/Vite build passed. The admin view now shows instance,
+  bounded query settings, database pool, dependencies, executor queues, and deterministic alerts.
 
 ## Known Issues
 
@@ -64,5 +68,5 @@ Last updated: 2026-09-02
 
 ## Next Action
 
-Begin Task 6 administrator operational telemetry and alerts. Run the MySQL 8.4
-migration and EXPLAIN tests as soon as a Docker-enabled integration host is available.
+Run the Task 4-6 integration checkpoint, then prepare Task 7 Checkpoint A saturation
+verification. MySQL 8.4 migration and EXPLAIN remain gated on a Docker-enabled host.
