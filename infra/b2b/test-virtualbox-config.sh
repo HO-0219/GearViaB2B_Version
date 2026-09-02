@@ -19,6 +19,7 @@ rg -q 'BOOTSTRAP_ADMIN_SECRET_FILE: /run/b2bgearvia-bootstrap/admin.env' "$OUTPU
 rg -q 'target: /run/b2bgearvia-bootstrap' "$OUTPUT_FILE"
 rg -q 'MYSQL_ROOT_PASSWORD: gearvia' "$OUTPUT_FILE"
 rg -q '^      - /etc/nginx/conf.d$' "$OUTPUT_FILE"
+rg -q 'source: /var/lib/gearvia/control' "$OUTPUT_FILE"
 test "$(rg -c 'pull_policy: never' "$OUTPUT_FILE")" -eq 2
 
 git -C "$REPOSITORY_ROOT" check-ignore -q --no-index infra/b2b/bootstrap/admin.env

@@ -20,6 +20,7 @@ scripts=(
   infra/ubuntu/test-tls-automation.sh
   infra/ubuntu/test-image-selection.sh
   infra/ubuntu/test-host-apply.sh
+  infra/ubuntu/test-release-bundle.sh
   infra/ubuntu/test-line-endings.sh
 )
 

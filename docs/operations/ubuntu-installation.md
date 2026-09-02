@@ -43,12 +43,19 @@ sudo ./install_gearvia_ai_agent_ubuntu.sh --db-password-file /secure/mysql-app-p
 
 이미지는 `infra/images/<이름>.tar` 번들 로드, 로컬 이미지 재사용, 애플리케이션 소스 빌드
 순서로 준비합니다. MySQL 8.4와 BusyBox 1.37은 로컬에 없을 때만 가져오므로 폐쇄망에서는
-해당 tar 번들을 릴리스에 포함하십시오.
+해당 tar 번들을 릴리스에 포함하십시오. 적용된 이미지 ID는 `/var/lib/gearvia/install-state.env`에
+기록됩니다.
+
+설치기는 도메인/SSL 변경용 root 소유 `gearvia-host-apply` 유닛과 HMAC 서명 키
+(`/etc/gearvia/host-apply.key`)도 함께 설치합니다. 설치 후 관리자 페이지에서 접속 주소와
+인증서를 변경하는 절차는 `docs/operations/domain-tls-administration.md`를 참고하십시오.
+`runtime.env`, JWT·MFA·MySQL·host-apply 비밀값은 설치기가 생성하며 재실행 시 보존됩니다.
+`infra/b2b/runtime.env.example`은 생성되는 키 목록 확인용이며 직접 복사하지 않습니다.
 
 ## 제거
 
-기본 제거는 서비스를 중지하고 활성 설정과 TLS 키/인증서를 삭제하지만 Docker 데이터베이스
-볼륨, 로컬/NAS 파일 및 DB 비밀번호 전용 복구 상태는 보존합니다.
+기본 제거는 서비스를 중지하고 활성 설정, TLS 키/인증서, host-apply 키·유닛·제어 디렉터리를
+삭제하지만 Docker 데이터베이스 볼륨, 로컬/NAS 파일 및 DB 비밀번호 전용 복구 상태는 보존합니다.
 
 ```bash
 sudo ./uninstall_gearvia_ai_agent_ubuntu.sh
@@ -69,5 +76,6 @@ bash infra/ubuntu/test-tls-automation.sh
 bash infra/ubuntu/test-image-selection.sh
 bash infra/ubuntu/test-host-apply.sh
 bash infra/ubuntu/test-line-endings.sh
+bash infra/ubuntu/test-release-bundle.sh
 bash infra/b2b/test-virtualbox-config.sh
 ```
