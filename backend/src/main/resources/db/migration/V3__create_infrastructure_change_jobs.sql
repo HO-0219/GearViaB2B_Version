@@ -1,0 +1,22 @@
+CREATE TABLE infrastructure_change_jobs (
+    id BIGINT NOT NULL AUTO_INCREMENT,
+    change_type VARCHAR(20) NOT NULL,
+    status VARCHAR(30) NOT NULL,
+    actor_user_id BIGINT NOT NULL,
+    redacted_target VARCHAR(500) NOT NULL,
+    estimated_seconds BIGINT NOT NULL,
+    progress_percent INT NOT NULL DEFAULT 0,
+    verification_summary VARCHAR(2000) NULL,
+    failure_code VARCHAR(100) NULL,
+    rollback_summary VARCHAR(2000) NULL,
+    correlation_id VARCHAR(80) NOT NULL,
+    version BIGINT NOT NULL DEFAULT 0,
+    created_at DATETIME(6) NOT NULL,
+    updated_at DATETIME(6) NOT NULL,
+    started_at DATETIME(6) NULL,
+    completed_at DATETIME(6) NULL,
+    PRIMARY KEY (id),
+    UNIQUE KEY uk_infrastructure_change_correlation (correlation_id),
+    INDEX idx_infrastructure_change_status_updated (status, updated_at, id),
+    CONSTRAINT fk_infrastructure_change_actor FOREIGN KEY (actor_user_id) REFERENCES users (id)
+) ENGINE = InnoDB;

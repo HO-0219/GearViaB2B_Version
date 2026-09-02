@@ -36,15 +36,20 @@ class MySqlFlywayMigrationTest {
 
         flyway.migrate();
         long adminsBeforeRerun = countRows("users", "role", "ADMIN");
-        long tablesAfterFirstMigration = countSchemaObjects("information_schema.tables", "table_name", List.of("users", "work_groups", "tasks", "push_subscriptions", "ai_usage_records"));
+        long tablesAfterFirstMigration = countSchemaObjects("information_schema.tables", "table_name", List.of("users", "work_groups", "tasks", "push_subscriptions", "ai_usage_records", "infrastructure_change_jobs"));
         flyway.migrate();
-        assertThat(flyway.info().current().getVersion().getVersion()).isEqualTo("1");
-        assertThat(countSchemaObjects("information_schema.tables", "table_name", List.of("users", "work_groups", "tasks", "push_subscriptions", "ai_usage_records"))).isEqualTo(tablesAfterFirstMigration);
+        assertThat(flyway.info().current().getVersion().getVersion()).isEqualTo("3");
+        assertThat(countSchemaObjects("information_schema.tables", "table_name", List.of("users", "work_groups", "tasks", "push_subscriptions", "ai_usage_records", "infrastructure_change_jobs"))).isEqualTo(tablesAfterFirstMigration);
         assertThat(countRows("users", "role", "ADMIN")).isEqualTo(adminsBeforeRerun);
         assertThat(countSchemaObjects("information_schema.tables", "table_name", List.of("payment_methods", "payment_attempts", "group_subscriptions", "subscription_consents", "oauth_signup_requests", "social_accounts"))).isZero();
         assertThat(countColumns("work_groups", List.of("membership_plan", "paid_period_start", "paid_period_end"))).isZero();
 
-        assertThat(flyway.info().current().getVersion().getVersion()).isEqualTo("1");
+        assertThat(flyway.info().current().getVersion().getVersion()).isEqualTo("3");
+        assertThat(countColumns(
+                "infrastructure_change_jobs",
+                List.of("change_type", "status", "actor_user_id", "redacted_target", "estimated_seconds",
+                        "progress_percent", "correlation_id", "version", "created_at", "updated_at")))
+                .isEqualTo(10);
         assertThat(countColumns(
                 "ai_usage_records",
                 List.of("operation", "model", "outcome", "input_tokens", "output_tokens", "total_tokens", "failure_code", "occurred_at")))

@@ -11,7 +11,7 @@ Last updated: 2026-09-02
 
 | Stage | Scope | Status | Evidence |
 |---|---|---|---|
-| 1 | Operational configuration and job foundations | In progress | Task 1 runtime limits verified |
+| 1 | Operational configuration and job foundations | Implemented; MySQL verification pending | Tasks 1-2 focused tests passed |
 | 2 | API, database, pool, and concurrency optimization | Planned | - |
 | 3 | Executor isolation, health, telemetry, and alerts | Planned | - |
 | A | Checkpoint A integration verification | Planned | - |
@@ -31,7 +31,8 @@ Last updated: 2026-09-02
 - `875909c` - architecture design
 - `9b6edbf` - design formatting correction
 - `7a442df` - remove calendar test date dependency
-- Task 1 branch commit - validated runtime tuning limits and instance identity
+- `f81e7fe` - validated runtime tuning limits and instance identity
+- Task 2 branch commit - persistent infrastructure-change state machine
 
 ## Verification Evidence
 
@@ -39,13 +40,16 @@ Last updated: 2026-09-02
 - Task 1 focused suite: `B2BGearViaApplicationTest`, `RuntimeTuningPropertiesTest`, and
   `B2bConfigurationValidatorTest` passed (19 tests, 0 failures/errors).
 - `infra/b2b/test-virtualbox-config.sh`: passed; generated Compose configuration is valid.
+- Task 2 focused suite: infrastructure state transitions and application mappings passed
+  (6 tests passed); MySQL 8.4 Testcontainers test was skipped because Docker is unavailable.
 
 ## Known Issues
 
 - The local Windows environment does not currently provide Poppler or the Python `pypdf` package; the existing installation PDF was not used as an implementation source.
-- Docker availability must be checked before MySQL 8.4 Testcontainers verification.
+- Docker Desktop/daemon is not running in the current Windows environment, so MySQL 8.4
+  migration and index-plan verification remains mandatory on an integration host.
 
 ## Next Action
 
-Execute Task 2 of the Checkpoint A plan using test-driven development, then verify the
-infrastructure job state machine and MySQL migration behavior.
+Execute Task 3 of the Checkpoint A plan using test-driven development. Verify bounded
+database-side task filtering locally and retain MySQL EXPLAIN verification as an explicit gate.
