@@ -1,37 +1,46 @@
-# Internal LLM Provider Operations
+# 사내 LLM 공급자 운영 가이드
 
-GearVia can route the AI assistant, weekly reports, and document embeddings to either
-OpenAI or an internal server that implements the OpenAI-compatible `/v1` API.
+GearVia는 AI 비서, 주간 리포트 및 문서 임베딩 요청을 OpenAI 또는 OpenAI 호환 `/v1` API를
+구현한 사내 서버로 전달할 수 있습니다.
 
-## Network policy
+## 네트워크 정책
 
-- `OPENAI` is accepted only with `https://api.openai.com` and an explicit external-access switch.
-- `INTERNAL_OPENAI_COMPATIBLE` accepts only `localhost` or an IP literal whose resolved address is
-  loopback, link-local, RFC1918, or IPv6 unique-local. DNS host names are rejected so a later DNS
-  rebind cannot redirect the SDK to a public address.
-- URLs containing credentials, query strings, or fragments are rejected.
-- Internet egress should remain blocked at the host firewall. If OpenAI is required, route the
-  approved destination through the corporate VPN/firewall and enable the switch in GearVia.
-- Credential-bearing internal endpoints require HTTPS. Their certificate chain must be trusted by
-  the backend JVM/container trust store.
+- `OPENAI` 공급자는 `https://api.openai.com`과 명시적인 외부 접속 허용 스위치가 함께
+  설정된 경우에만 사용할 수 있습니다.
+- `INTERNAL_OPENAI_COMPATIBLE` 공급자는 확인된 주소가 루프백, 링크 로컬, RFC1918 또는 IPv6
+  고유 로컬 범위에 속하는 `localhost`나 IP 리터럴만 허용합니다. 이후 DNS 리바인딩으로 SDK가
+  공인 주소로 우회하는 것을 막기 위해 DNS 호스트 이름은 거부합니다.
+- 인증정보, 쿼리 문자열 또는 프래그먼트가 포함된 URL은 거부합니다.
+- 호스트 방화벽에서 인터넷 아웃바운드는 계속 차단해야 합니다. OpenAI 사용이 필요한 경우에는
+  승인된 목적지만 사내 VPN/방화벽을 통해 연결하고 GearVia에서 외부 접속 스위치를 활성화하십시오.
+- 인증정보를 전송하는 사내 엔드포인트는 HTTPS를 사용해야 합니다. 인증서 체인은 백엔드
+  JVM/컨테이너 신뢰 저장소에서 신뢰할 수 있어야 합니다.
 
-## Configure and verify
+## 설정 및 연결 검증
 
-1. Open **Admin > AI settings**.
-2. Select the provider and enter the `/v1` base URL.
-3. Enter the exact chat and embedding model identifiers exposed by the server.
-4. Set a request timeout between 1 and 120 seconds. Start at 30 seconds for chat and increase
-   only after measuring the internal model queue.
-5. Add a credential if the server requires one. It is encrypted with
-   `ADMIN_MFA_ENCRYPTION_KEY_BASE64`; it is never returned by the API.
-6. Save, then run **Test connection**. A failed test does not silently switch providers.
+1. **관리자 > AI 설정**을 엽니다.
+2. 공급자를 선택하고 `/v1` 기본 URL을 입력합니다.
+3. 서버에서 제공하는 채팅 및 임베딩 모델 식별자를 정확히 입력합니다.
+4. 요청 제한 시간을 1~120초 사이로 설정합니다. 채팅은 30초로 시작하고 사내 모델의 대기열을
+   측정한 뒤에만 늘리십시오.
+5. 서버에서 인증정보를 요구하면 입력합니다. 인증정보는 `ADMIN_MFA_ENCRYPTION_KEY_BASE64`로
+   암호화되며 API 응답으로 다시 반환되지 않습니다.
+6. 저장한 뒤 **연결 테스트**를 실행합니다. 연결 시험이 실패해도 다른 공급자로 자동 전환되지 않습니다.
 
-The same immutable SDK client is rebuilt after a successful settings save, so no application
-restart is required. Existing document vectors remain tagged with their original embedding model;
-documents must be re-indexed when the embedding model changes.
+설정을 성공적으로 저장하면 동일한 불변 SDK 클라이언트가 다시 생성되므로 애플리케이션을
+재시작할 필요가 없습니다. 기존 문서 벡터에는 생성 당시의 임베딩 모델 정보가 유지됩니다.
+임베딩 모델을 변경한 경우에는 해당 문서를 다시 인덱싱해야 합니다.
 
-## Compatibility boundary
+## 호환성 범위
 
-The internal server must support OpenAI-compatible models, Responses API calls, structured
-output/tool calls used by the assistant and reports, and embeddings. A server that only supports
-Chat Completions is not sufficient for all GearVia AI features.
+사내 서버는 OpenAI 호환 모델, Responses API 호출, AI 비서와 리포트에서 사용하는 구조화된
+출력/도구 호출 및 임베딩을 지원해야 합니다. Chat Completions만 지원하는 서버로는 GearVia의
+모든 AI 기능을 사용할 수 없습니다.
+
+운영 전에는 실제 대상 서버에서 다음 항목을 모두 확인하십시오.
+
+- 채팅 요청과 응답
+- Responses API의 구조화된 출력 및 도구 호출
+- 문서 임베딩 생성과 재인덱싱
+- 제한 시간 초과 및 오류 발생 시 사용자 메시지와 감사 로그
+- 방화벽 차단 상태와 승인되지 않은 공인 주소 연결 거부

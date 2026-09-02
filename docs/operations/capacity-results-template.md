@@ -1,20 +1,24 @@
-# GearVia Capacity Result
+# GearVia 용량 및 성능 결과표
 
-Status: **UNMEASURED — no supported concurrent-user number is published yet.**
+상태: **측정 전(UNMEASURED) — 현재 공식 지원 동시 사용자 수는 게시하지 않습니다.**
 
-| Topology | CPU / RAM | MySQL | Storage | Concurrent users | p95 | Error rate | Integrity | Recovery | Decision |
+| 구성 | CPU / 메모리 | MySQL | 스토리지 | 동시 사용자 | p95 응답 시간 | 오류율 | 무결성 | 복구 | 판정 |
 |---|---|---|---|---:|---:|---:|---|---|---|
-| Single node | TBD | MySQL 8.x, TBD host | Local/NAS TBD | TBD | TBD | TBD | TBD | TBD | Not tested |
-| Two app nodes | TBD | External MySQL 8.x | Shared NAS | TBD | TBD | TBD | TBD | TBD | Not tested |
+| 단일 노드 | 미정 | MySQL 8.x, 호스트 미정 | 로컬/NAS 미정 | 미정 | 미정 | 미정 | 미정 | 미정 | 미시험 |
+| 애플리케이션 노드 2대 | 미정 | 외부 MySQL 8.x | 공유 NAS | 미정 | 미정 | 미정 | 미정 | 미정 | 미시험 |
 
-## Release thresholds
+## 통과 기준
 
-- User-facing read p95: at most 1,000 ms (adjust only in an approved test profile)
-- HTTP error rate: at most 1%
-- Database pool wait/rejections: zero sustained saturation
-- Executor rejections: zero for the tested normal workload
-- Data/file integrity: all sampled identifiers and checksums match
-- Recovery: readiness and p95 return to baseline within the recorded recovery window
+- 사용자 조회 요청의 p95 응답 시간: 1,000 ms 이하(승인된 시험 프로필에서만 조정 가능)
+- HTTP 오류율: 1% 이하
+- 데이터베이스 연결 풀 대기/거부: 지속적인 포화 상태 없음
+- 실행기 작업 거부: 시험한 정상 부하에서 0건
+- 데이터/파일 무결성: 표본의 모든 식별자 및 체크섬 일치
+- 복구: 기록된 복구 시간 안에 준비 상태와 p95 응답 시간이 기준선으로 복귀
 
-Record the exact Git commit, images/digests, runtime configuration checksum, dataset size, test
-duration, workload mix, raw JSON/CSV paths, monitoring export, and reviewer sign-off with every row.
+각 결과 행에는 정확한 Git 커밋, 이미지/다이제스트, 런타임 설정 체크섬, 데이터셋 크기,
+시험 시간, 작업 부하 구성, 원본 JSON/CSV 경로, 모니터링 내보내기 파일 및 검토자 승인을
+함께 기록해야 합니다.
+
+실제 측정은 운영 환경과 동등한 장비에서 `infra/capacity/run-capacity-smoke.sh`로 수행하십시오.
+모든 통과 기준을 충족한 결과만 공식 지원 용량으로 사용할 수 있습니다.
