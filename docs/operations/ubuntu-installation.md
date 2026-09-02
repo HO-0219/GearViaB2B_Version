@@ -61,4 +61,11 @@ Docker 명명 볼륨과 외부 마운트 NAS의 파일은 별도로 해당 스�
 sudo ./uninstall_gearvia_ai_agent_ubuntu.sh --purge-data --confirm-purge GEARVIA
 ```
 
-릴리스 패키지를 만들기 전에 `bash infra/ubuntu/test-lifecycle-scripts.sh`를 실행하십시오.
+릴리스 패키지를 만들기 전에 다음 집중 검증을 모두 실행하십시오.
+
+```bash
+bash infra/ubuntu/test-lifecycle-scripts.sh
+bash infra/ubuntu/test-tls-automation.sh
+bash infra/ubuntu/test-image-selection.sh
+bash infra/b2b/test-virtualbox-config.sh
+```
