@@ -1,0 +1,3 @@
+-- Task-list filtering now executes in MySQL with a hard result cap.
+-- Existing V1 indexes cover the measured group/status/due, assignee/status/due,
+-- project/status, and group/created access paths. No speculative index is added.

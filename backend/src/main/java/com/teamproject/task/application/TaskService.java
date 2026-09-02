@@ -1,6 +1,7 @@
 package com.teamproject.task.application;
 
 import com.teamproject.common.exception.ApplicationException;
+import com.teamproject.common.config.RuntimeTuningProperties;
 import com.teamproject.group.application.GroupAuthorization;
 import com.teamproject.group.domain.GroupMember;
 import com.teamproject.task.application.dto.TaskDtos.CreateTaskRequest;
@@ -24,6 +25,7 @@ import com.teamproject.task.domain.TaskRepository;
 import com.teamproject.task.domain.TaskStatusHistory;
 import com.teamproject.task.domain.TaskStatusHistoryRepository;
 import com.teamproject.task.domain.TaskActivityEvent;
+import com.teamproject.task.infrastructure.TaskListQueryRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -32,7 +34,6 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.List;
-import java.time.LocalDateTime;
 import com.teamproject.task.application.dto.TaskListFilter;
 
 @Service
@@ -46,11 +47,14 @@ public class TaskService {
     private final ProjectRepository projects;
     private final ProjectIssueRepository projectIssues;
     private final Clock clock;
+    private final TaskListQueryRepository taskListQueries;
+    private final RuntimeTuningProperties runtimeTuning;
 
     public TaskService(GroupAuthorization authorization, TaskRepository tasks,
             TaskStatusHistoryRepository histories, TaskChecklistItemRepository checklistItems,
             NotificationService notifications, TaskActivityRecorder activity,
-            ProjectRepository projects, ProjectIssueRepository projectIssues, Clock clock) {
+            ProjectRepository projects, ProjectIssueRepository projectIssues, Clock clock,
+            TaskListQueryRepository taskListQueries, RuntimeTuningProperties runtimeTuning) {
         this.authorization = authorization;
         this.tasks = tasks;
         this.histories = histories;
@@ -60,6 +64,8 @@ public class TaskService {
         this.projects = projects;
         this.projectIssues = projectIssues;
         this.clock = clock;
+        this.taskListQueries = taskListQueries;
+        this.runtimeTuning = runtimeTuning;
     }
 
     @Transactional
@@ -86,28 +92,10 @@ public class TaskService {
     @Transactional(readOnly = true)
     public List<TaskResponse> list(Long userId, Long groupId, TaskListFilter filter) {
         authorization.requireActiveMember(groupId, userId);
-        LocalDateTime now = LocalDateTime.now();
-        String query = filter.query() == null ? "" : filter.query().trim().toLowerCase();
-        return tasks.findAllByGroupIdOrderByCreatedAtDesc(groupId).stream()
-                .filter(task -> query.isEmpty() || task.getTitle().toLowerCase().contains(query)
-                        || (task.getDescription() != null && task.getDescription().toLowerCase().contains(query)))
-                .filter(task -> filter.status() == null || task.getStatus() == filter.status())
-                .filter(task -> filter.priority() == null || task.getPriority() == filter.priority())
-                .filter(task -> filter.projectId() == null || task.getProject() != null && task.getProject().getId().equals(filter.projectId()))
-                .filter(task -> filter.assignment() == TaskListFilter.Assignment.ALL
-                        || filter.assignment() == TaskListFilter.Assignment.UNASSIGNED && task.getAssignee() == null
-                        || filter.assignment() == TaskListFilter.Assignment.MINE && task.getAssignee() != null
-                            && task.getAssignee().getUser().getId().equals(userId))
-                .filter(task -> matchesDue(task, filter.due(), now))
-                .map(this::response).toList();
-    }
-
-    private boolean matchesDue(Task task, TaskListFilter.Due due, LocalDateTime now) {
-        if (due == TaskListFilter.Due.ALL) return true;
-        if (task.getDueAt() == null || task.getStatus() == Task.Status.COMPLETED
-                || task.getStatus() == Task.Status.REJECTED || task.getStatus() == Task.Status.CANCELLED) return false;
-        return due == TaskListFilter.Due.OVERDUE ? task.getDueAt().isBefore(now)
-                : !task.getDueAt().isBefore(now) && !task.getDueAt().isAfter(now.plusDays(7));
+        return taskListQueries.find(groupId, userId, filter, LocalDateTime.now(clock),
+                        runtimeTuning.queries().maxTaskResults()).stream()
+                .map(this::response)
+                .toList();
     }
 
     @Transactional(readOnly = true)

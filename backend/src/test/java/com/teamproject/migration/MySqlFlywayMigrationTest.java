@@ -38,13 +38,13 @@ class MySqlFlywayMigrationTest {
         long adminsBeforeRerun = countRows("users", "role", "ADMIN");
         long tablesAfterFirstMigration = countSchemaObjects("information_schema.tables", "table_name", List.of("users", "work_groups", "tasks", "push_subscriptions", "ai_usage_records", "infrastructure_change_jobs"));
         flyway.migrate();
-        assertThat(flyway.info().current().getVersion().getVersion()).isEqualTo("3");
+        assertThat(flyway.info().current().getVersion().getVersion()).isEqualTo("4");
         assertThat(countSchemaObjects("information_schema.tables", "table_name", List.of("users", "work_groups", "tasks", "push_subscriptions", "ai_usage_records", "infrastructure_change_jobs"))).isEqualTo(tablesAfterFirstMigration);
         assertThat(countRows("users", "role", "ADMIN")).isEqualTo(adminsBeforeRerun);
         assertThat(countSchemaObjects("information_schema.tables", "table_name", List.of("payment_methods", "payment_attempts", "group_subscriptions", "subscription_consents", "oauth_signup_requests", "social_accounts"))).isZero();
         assertThat(countColumns("work_groups", List.of("membership_plan", "paid_period_start", "paid_period_end"))).isZero();
 
-        assertThat(flyway.info().current().getVersion().getVersion()).isEqualTo("3");
+        assertThat(flyway.info().current().getVersion().getVersion()).isEqualTo("4");
         assertThat(countColumns(
                 "infrastructure_change_jobs",
                 List.of("change_type", "status", "actor_user_id", "redacted_target", "estimated_seconds",
