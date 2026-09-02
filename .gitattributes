@@ -1,0 +1,6 @@
+# Shell scripts run on Linux hosts; keep them LF regardless of core.autocrlf.
+*.sh text eol=lf
+
+# On-prem installer entry points.
+install_gearvia_ai_agent_ubuntu.sh text eol=lf
+uninstall_gearvia_ai_agent_ubuntu.sh text eol=lf
