@@ -14,7 +14,7 @@ Last updated: 2026-09-02
 | 1 | Operational configuration and job foundations | Implemented; MySQL verification pending | Tasks 1-2 focused tests passed |
 | 2 | API, database, pool, and concurrency optimization | In progress; MySQL EXPLAIN pending | Task 3 bounded queries verified locally |
 | 3 | Executor isolation, health, telemetry, and alerts | Implemented | Tasks 4-6 focused tests passed |
-| A | Checkpoint A integration verification | In progress; Task 7 and MySQL verification pending | Task 1-6 integrated locally |
+| A | Checkpoint A integration verification | Local gate passed; MySQL verification pending | Tasks 1-7 integrated locally |
 | 4 | Organization-wide notices and maintenance mode | Not started | - |
 | 5 | External MySQL preflight | Not started | - |
 | 6 | MySQL migration and rollback | Not started | - |
@@ -64,6 +64,12 @@ Last updated: 2026-09-02
 - The VirtualBox Compose configuration remained valid. A scheduler-boundary regression was
   isolated from the persistent job lock so the notification idempotency test no longer depends
   on whether the full suite crosses a 15-minute cron boundary.
+- Task 7 saturation test passed: document-index rejection was contained while HTTP login,
+  task retrieval, notification execution, and readiness remained available.
+- Checkpoint A local suite: 468 backend tests, 0 failures/errors, 2 Docker-dependent skips;
+  8 frontend tests and the production build passed; Compose validation passed.
+- Detailed environment, duration, command, and gate evidence is recorded in
+  `docs/operations/checkpoint-a-verification.md`.
 
 ## Known Issues
 
@@ -73,5 +79,5 @@ Last updated: 2026-09-02
 
 ## Next Action
 
-Implement Task 7 Checkpoint A saturation verification. MySQL 8.4 migration and EXPLAIN
-remain gated on a Docker-enabled host.
+Write and execute the implementation plan for stages 8-10. MySQL 8.4 migration and
+EXPLAIN verification remains gated on a Docker-enabled integration host.
