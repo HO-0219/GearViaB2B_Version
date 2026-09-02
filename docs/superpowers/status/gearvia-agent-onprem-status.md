@@ -22,9 +22,9 @@ Last updated: 2026-09-02
 | 7 | NAS migration and rollback | Implemented locally | Verified copy, switch, and non-destructive rollback tests |
 | 8 | Personal MCP tokens and Agent Gateway | Implemented; MySQL verification pending | Hashed tokens, intranet policy, read tools, audit, limits, and My Page UI |
 | 9 | Internal LLM provider | Implemented locally; live endpoint verification pending | Runtime provider, egress policy, chat/embedding models, and admin UI |
-| C | Checkpoint C integration verification | Not started | - |
+| C | Checkpoint C integration verification | Local gate passed; environment gates pending | Stage 7-10 integration and full regression passed |
 | 10 | Ubuntu lifecycle scripts and capacity validation | Implemented locally | Safe rerun/removal tests, syntax gates, and evidence-only capacity runner |
-| Final | Full integration and capacity matrix | Not started | - |
+| Final | Full integration and capacity matrix | Local regression passed; capacity unmeasured | 485 backend and 9 frontend tests passed; no capacity claim |
 
 ## Completed Commits
 
@@ -83,6 +83,10 @@ Last updated: 2026-09-02
   because no corporate LLM endpoint was supplied.
 - Stage 10 lifecycle tests pass for Ubuntu rejection, dry-run immutability, rerun safety,
   data-preserving uninstall, guarded purge, and capacity configuration validation.
+- Final local suite: 485 backend tests, 0 failures/errors, 2 Docker-dependent skips;
+  9 frontend tests passed and the production build completed. Lifecycle, Bash syntax,
+  capacity configuration, and Compose gates passed. Details are recorded in
+  `docs/operations/checkpoint-c-final-verification.md`.
 
 ## Known Issues
 
@@ -92,6 +96,6 @@ Last updated: 2026-09-02
 
 ## Next Action
 
-Run the final integrated test checkpoint. MySQL 8.4 and live capacity remain gated on a
-Docker-enabled integration host with production-representative hardware.
+Run MySQL 8.x, live internal-LLM, and measured capacity acceptance gates on the target
+integration environment. Do not publish concurrent-user limits before those gates pass.
 MySQL 8.4 migration verification remains gated on a Docker-enabled integration host.
