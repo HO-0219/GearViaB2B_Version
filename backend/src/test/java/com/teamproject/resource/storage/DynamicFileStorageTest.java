@@ -101,6 +101,38 @@ class DynamicFileStorageTest {
     }
 
     @Test
+    void verifiedMigrationReportsPreflightAndCopyEvidence() {
+        when(settings.findById(StorageSettings.SINGLETON_ID)).thenReturn(Optional.empty());
+        DynamicFileStorage storage = new DynamicFileStorage("local", localRoot.toString(), nasRoot.toString(), settings);
+        storage.put("docs/evidence.txt", "evidence".getBytes(StandardCharsets.UTF_8), "text/plain");
+
+        NasMigrationService.NasPreflight preflight = storage.preflightNas();
+        NasMigrationService.MigrationResult result = storage.migrateToNas();
+
+        assertThat(preflight.success()).isTrue();
+        assertThat(preflight.sourceFiles()).isEqualTo(1);
+        assertThat(result.success()).isTrue();
+        assertThat(result.verifiedFiles()).isEqualTo(1);
+        assertThat(result.verifiedBytes()).isEqualTo(8);
+        assertThat(storage.status().provider()).isEqualTo("nas_mount");
+    }
+
+    @Test
+    void rollbackKeepsBothCopiesAndRestoresLocalOnlyAfterVerification() {
+        when(settings.findById(StorageSettings.SINGLETON_ID)).thenReturn(Optional.empty());
+        DynamicFileStorage storage = new DynamicFileStorage("local", localRoot.toString(), nasRoot.toString(), settings);
+        storage.activateNas();
+        storage.put("docs/new.txt", "new".getBytes(StandardCharsets.UTF_8), "text/plain");
+
+        NasMigrationService.MigrationResult result = storage.rollbackToLocal();
+
+        assertThat(result.success()).isTrue();
+        assertThat(storage.status().provider()).isEqualTo("local");
+        assertThat(localRoot.resolve("docs/new.txt")).exists();
+        assertThat(nasRoot.resolve("docs/new.txt")).exists();
+    }
+
+    @Test
     void activateLocalMigratesFilesThatWereStoredWhileNasWasActive() {
         when(settings.findById(StorageSettings.SINGLETON_ID)).thenReturn(Optional.empty());
         DynamicFileStorage storage = new DynamicFileStorage("local", localRoot.toString(), nasRoot.toString(), settings);

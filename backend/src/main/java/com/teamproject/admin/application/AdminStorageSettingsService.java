@@ -28,6 +28,18 @@ public class AdminStorageSettingsService {
         return storage.activateNas();
     }
 
+    public com.teamproject.resource.storage.NasMigrationService.NasPreflight preflightNas() {
+        return storage.preflightNas();
+    }
+
+    public com.teamproject.resource.storage.NasMigrationService.MigrationResult migrateToNas() {
+        return storage.migrateToNas();
+    }
+
+    public com.teamproject.resource.storage.NasMigrationService.MigrationResult rollbackToLocal() {
+        return storage.rollbackToLocal();
+    }
+
     public void activateLocal() {
         storage.activateLocal();
     }

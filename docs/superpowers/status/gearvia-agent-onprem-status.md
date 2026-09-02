@@ -19,7 +19,7 @@ Last updated: 2026-09-02
 | 5 | External MySQL preflight | Not started | - |
 | 6 | MySQL migration and rollback | Not started | - |
 | B | Checkpoint B integration verification | Not started | - |
-| 7 | NAS migration and rollback | Not started | - |
+| 7 | NAS migration and rollback | Implemented locally | Verified copy, switch, and non-destructive rollback tests |
 | 8 | Personal MCP tokens and Agent Gateway | Not started | - |
 | 9 | Internal LLM provider | Not started | - |
 | C | Checkpoint C integration verification | Not started | - |
@@ -70,6 +70,9 @@ Last updated: 2026-09-02
   8 frontend tests and the production build passed; Compose validation passed.
 - Detailed environment, duration, command, and gate evidence is recorded in
   `docs/operations/checkpoint-a-verification.md`.
+- Stage 7 NAS workflow preflights source size, reserved target capacity, and mount identity;
+  verifies copied bytes and content types before switching; and retains both copies on rollback.
+- Stage 7 focused storage suite: 17 tests, 0 failures/errors.
 
 ## Known Issues
 
@@ -79,5 +82,5 @@ Last updated: 2026-09-02
 
 ## Next Action
 
-Write and execute the implementation plan for stages 8-10. MySQL 8.4 migration and
-EXPLAIN verification remains gated on a Docker-enabled integration host.
+Implement Stage 8 personal MCP tokens and the intranet/VPN Agent Gateway. MySQL 8.4
+migration and EXPLAIN verification remains gated on a Docker-enabled integration host.

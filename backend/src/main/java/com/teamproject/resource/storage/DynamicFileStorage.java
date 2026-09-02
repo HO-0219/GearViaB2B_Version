@@ -4,7 +4,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -32,6 +31,7 @@ public class DynamicFileStorage implements FileStorage {
     private final String localRoot;
     private final String nasRoot;
     private final StorageSettingsRepository settings;
+    private final NasMigrationService migrations = new NasMigrationService();
     private volatile NasFileStorage nas;
     private volatile String active;
 
@@ -107,36 +107,50 @@ public class DynamicFileStorage implements FileStorage {
      * active provider is unchanged. Files already stored under the currently-active
      * provider are copied over first so they stay reachable after the switch.
      */
-    @Transactional
     public TestResult activateNas() {
-        TestResult result = testNas();
-        if (!result.success()) return result;
-        NasFileStorage target = new NasFileStorage(nasRoot);
-        migrate(delegate(), target);
-        this.nas = target;
-        this.active = NAS_MOUNT;
-        persist(NAS_MOUNT);
-        return result;
+        NasMigrationService.MigrationResult result = migrateToNas();
+        return new TestResult(result.success(), result.success()
+                ? "NAS 복사 검증 및 전환이 완료되었습니다."
+                : "NAS 전환에 실패했습니다: " + result.failureCode());
     }
 
-    @Transactional
     public void activateLocal() {
-        migrate(delegate(), local);
-        this.active = LOCAL;
-        persist(LOCAL);
+        rollbackToLocal();
     }
 
-    private void migrate(FileStorage source, FileStorage target) {
-        for (String key : source.listKeys()) {
-            StoredFile file = source.get(key);
-            target.put(key, file.content(), file.contentType());
+    public NasMigrationService.NasPreflight preflightNas() {
+        return migrations.preflight(Path.of(localRoot), Path.of(nasRoot), delegate());
+    }
+
+    public NasMigrationService.MigrationResult migrateToNas() {
+        if (NAS_MOUNT.equals(active) && nas != null) {
+            return new NasMigrationService.MigrationResult(true, 0, 0, null);
         }
+        TestResult probe = testNas();
+        if (!probe.success()) return NasMigrationService.MigrationResult.failed("NAS_UNAVAILABLE");
+        NasMigrationService.NasPreflight preflight = preflightNas();
+        if (!preflight.success()) return NasMigrationService.MigrationResult.failed(preflight.failureCode());
+        NasFileStorage target = new NasFileStorage(nasRoot);
+        return migrations.migrateAndVerify(delegate(), target, () -> {
+            persist(NAS_MOUNT);
+            this.nas = target;
+            this.active = NAS_MOUNT;
+        });
+    }
+
+    public NasMigrationService.MigrationResult rollbackToLocal() {
+        if (LOCAL.equals(active)) return new NasMigrationService.MigrationResult(true, 0, 0, null);
+        return migrations.rollback(delegate(), local, () -> {
+            persist(LOCAL);
+            this.active = LOCAL;
+        });
     }
 
     private void persist(String provider) {
-        settings.findById(StorageSettings.SINGLETON_ID)
-                .ifPresentOrElse(value -> value.updateProvider(provider),
-                        () -> settings.save(new StorageSettings(provider)));
+        StorageSettings value = settings.findById(StorageSettings.SINGLETON_ID)
+                .orElseGet(() -> new StorageSettings(provider));
+        value.updateProvider(provider);
+        settings.save(value);
     }
 
     public record Status(String provider, List<String> supportedProviders, String localRootPath,

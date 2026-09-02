@@ -3,6 +3,8 @@ package com.teamproject.admin.presentation;
 import com.teamproject.admin.application.AdminStorageSettingsService;
 import com.teamproject.resource.storage.DynamicFileStorage.Status;
 import com.teamproject.resource.storage.DynamicFileStorage.TestResult;
+import com.teamproject.resource.storage.NasMigrationService.MigrationResult;
+import com.teamproject.resource.storage.NasMigrationService.NasPreflight;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -30,6 +32,21 @@ public class AdminStorageSettingsController {
     @PostMapping("/nas/activate")
     TestResult activateNas() {
         return service.activateNas();
+    }
+
+    @PostMapping("/nas/preflight")
+    NasPreflight preflightNas() {
+        return service.preflightNas();
+    }
+
+    @PostMapping("/nas/migrate")
+    MigrationResult migrateToNas() {
+        return service.migrateToNas();
+    }
+
+    @PostMapping("/nas/rollback")
+    MigrationResult rollbackToLocal() {
+        return service.rollbackToLocal();
     }
 
     @PostMapping("/local/activate")
