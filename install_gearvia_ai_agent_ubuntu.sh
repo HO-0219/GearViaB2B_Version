@@ -6,24 +6,17 @@ script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 . "$script_dir/infra/ubuntu/lib/gearvia-common.sh"
 
 dry_run=false
-config=""; tls_cert=""; tls_key=""
-usage() { echo "Usage: sudo $0 [--dry-run] --config /absolute/runtime.env --tls-cert /absolute/fullchain.pem --tls-key /absolute/privkey.pem"; }
+db_password_file=""
+usage() { echo "Usage: sudo $0 [--dry-run] [--db-password-file /absolute/file]"; }
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --dry-run) dry_run=true; shift ;;
-    --config) [[ $# -ge 2 ]] || gearvia_die "--config requires a file"; config="$2"; shift 2 ;;
-    --tls-cert) [[ $# -ge 2 ]] || gearvia_die "--tls-cert requires a file"; tls_cert="$2"; shift 2 ;;
-    --tls-key) [[ $# -ge 2 ]] || gearvia_die "--tls-key requires a file"; tls_key="$2"; shift 2 ;;
+    --db-password-file) [[ $# -ge 2 ]] || gearvia_die "--db-password-file requires a file"; db_password_file="$2"; shift 2 ;;
     -h|--help) usage; exit 0 ;;
     *) usage >&2; gearvia_die "Unknown option: $1" ;;
   esac
 done
 
-[[ "$config" = /* && -r "$config" ]] || gearvia_die "--config must name a readable absolute file"
-if [[ "$dry_run" == false && "${GEARVIA_SKIP_RUNTIME:-0}" != "1" ]]; then
-  [[ "$tls_cert" = /* && -r "$tls_cert" ]] || gearvia_die "--tls-cert must name a readable absolute file"
-  [[ "$tls_key" = /* && -r "$tls_key" ]] || gearvia_die "--tls-key must name a readable absolute file"
-fi
 gearvia_validate_ubuntu
 gearvia_require_root
 [[ -f "$script_dir/infra/b2b/compose.yml" ]] || gearvia_die "Run from a complete GearVia release bundle"
@@ -32,6 +25,19 @@ install_root="$(gearvia_root /opt/b2bgearvia)"
 config_root="$(gearvia_root /etc/gearvia)"
 state_root="$(gearvia_root /var/lib/gearvia)"
 unit_path="$(gearvia_root /etc/systemd/system/b2bgearvia.service)"
+active_runtime="$config_root/runtime.env"
+
+provided_db_password=""
+if [[ -n "$db_password_file" ]]; then
+  provided_db_password="$(gearvia_read_db_password "$db_password_file")"
+fi
+if existing_db_password="$(gearvia_read_runtime_value "$active_runtime" MYSQL_APP_PASSWORD)" && [[ -n "$existing_db_password" ]]; then
+  db_password="$existing_db_password"
+elif [[ -n "$provided_db_password" ]]; then
+  db_password="$provided_db_password"
+else
+  db_password="$(gearvia_read_db_password)"
+fi
 
 gearvia_log "Validated Ubuntu host, release bundle, and runtime configuration"
 if [[ "$dry_run" == true ]]; then
@@ -39,11 +45,18 @@ if [[ "$dry_run" == true ]]; then
   exit 0
 fi
 
+command -v openssl >/dev/null 2>&1 || gearvia_die "OpenSSL is required to generate runtime secrets"
 if [[ "${GEARVIA_SKIP_RUNTIME:-0}" != "1" ]]; then
   command -v docker >/dev/null 2>&1 || gearvia_die "Docker Engine with Compose v2 is required"
   docker compose version >/dev/null 2>&1 || gearvia_die "Docker Compose v2 is required"
   command -v curl >/dev/null 2>&1 || gearvia_die "curl is required for readiness verification"
-  docker compose --env-file "$config" -f "$script_dir/infra/b2b/compose.yml" config --quiet
+fi
+
+runtime_candidate="$(mktemp "${TMPDIR:-/tmp}/gearvia-runtime.XXXXXX")"
+trap 'rm -f -- "${runtime_candidate:-}"' EXIT
+gearvia_write_runtime_env "$runtime_candidate" "https://127.0.0.1" "$db_password"
+if [[ "${GEARVIA_SKIP_RUNTIME:-0}" != "1" ]]; then
+  docker compose --env-file "$runtime_candidate" -f "$script_dir/infra/b2b/compose.yml" config --quiet
 fi
 
 if [[ -n "${GEARVIA_TEST_ROOT:-}" ]]; then
@@ -56,9 +69,7 @@ install -m 0644 "$script_dir/infra/b2b/compose.yml" "$install_root/compose.yml"
 if [[ -f "$config_root/runtime.env" ]]; then
   install -m 0600 "$config_root/runtime.env" "$state_root/recovery/runtime.env.previous"
 fi
-install -m 0600 "$config" "$config_root/runtime.env"
-if [[ -n "$tls_cert" ]]; then install -m 0644 "$tls_cert" "$install_root/tls/fullchain.pem"; fi
-if [[ -n "$tls_key" ]]; then install -m 0600 "$tls_key" "$install_root/tls/privkey.pem"; fi
+install -m 0600 "$runtime_candidate" "$config_root/runtime.env"
 install -D -m 0644 "$script_dir/infra/b2b/systemd/b2bgearvia.service" "$unit_path"
 printf 'INSTALL_VERSION=1\nINSTALLED_AT=%s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > "$state_root/install-state.env"
 chmod 0600 "$state_root/install-state.env"

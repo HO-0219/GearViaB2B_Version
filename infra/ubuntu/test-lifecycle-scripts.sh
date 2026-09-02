@@ -15,23 +15,42 @@ assert_absent() { [[ ! -e "$1" ]] || fail "path should be absent: $1"; }
 [[ -x "$uninstaller" ]] || fail "uninstaller missing or not executable"
 
 mkdir -p "$tmp_root/etc"
+password_file="$tmp_root/db-password"
+printf '%s' 'LocalDbPassword-2026!' > "$password_file"
+
 printf 'ID=debian\nVERSION_ID="12"\n' > "$tmp_root/etc/os-release"
-if GEARVIA_TEST_ROOT="$tmp_root" "$installer" --dry-run --config "$repo_root/infra/b2b/runtime.env.example" >/dev/null 2>&1; then
+if GEARVIA_TEST_ROOT="$tmp_root" "$installer" --dry-run --db-password-file "$password_file" >/dev/null 2>&1; then
   fail "unsupported operating system was accepted"
 fi
 
 printf 'ID=ubuntu\nVERSION_ID="24.04"\n' > "$tmp_root/etc/os-release"
-if GEARVIA_TEST_ROOT="$tmp_root" GEARVIA_TEST_ARCH="aarch64" "$installer" --dry-run --config "$repo_root/infra/b2b/runtime.env.example" >/dev/null 2>&1; then
+if GEARVIA_TEST_ROOT="$tmp_root" GEARVIA_TEST_ARCH="aarch64" "$installer" --dry-run --db-password-file "$password_file" >/dev/null 2>&1; then
   fail "unsupported architecture was accepted"
 fi
-GEARVIA_TEST_ROOT="$tmp_root" GEARVIA_SKIP_RUNTIME=1 "$installer" --dry-run --config "$repo_root/infra/b2b/runtime.env.example" >/dev/null
+GEARVIA_TEST_ROOT="$tmp_root" GEARVIA_SKIP_RUNTIME=1 "$installer" --dry-run --db-password-file "$password_file" >/dev/null
 assert_absent "$tmp_root/opt/b2bgearvia"
 
-GEARVIA_TEST_ROOT="$tmp_root" GEARVIA_SKIP_RUNTIME=1 "$installer" --config "$repo_root/infra/b2b/runtime.env.example" >/dev/null
-GEARVIA_TEST_ROOT="$tmp_root" GEARVIA_SKIP_RUNTIME=1 "$installer" --config "$repo_root/infra/b2b/runtime.env.example" >/dev/null
+GEARVIA_TEST_ROOT="$tmp_root" GEARVIA_SKIP_RUNTIME=1 \
+  "$installer" --db-password-file "$password_file"
 assert_file "$tmp_root/opt/b2bgearvia/compose.yml"
 assert_file "$tmp_root/etc/gearvia/runtime.env"
 assert_file "$tmp_root/var/lib/gearvia/install-state.env"
+grep -Eq '^JWT_SECRET=.{43,}$' "$tmp_root/etc/gearvia/runtime.env"
+grep -Eq '^ADMIN_MFA_ENCRYPTION_KEY_BASE64=.{43,}$' "$tmp_root/etc/gearvia/runtime.env"
+grep -Fq 'MYSQL_APP_PASSWORD=LocalDbPassword-2026!' "$tmp_root/etc/gearvia/runtime.env"
+if [[ "$(uname -s)" != MINGW* ]]; then
+  [[ "$(stat -c '%a' "$tmp_root/etc/gearvia/runtime.env")" == "600" ]] || fail "runtime configuration is not mode 0600"
+fi
+if (cd "$tmp_root" && GEARVIA_TEST_ROOT="$tmp_root" GEARVIA_SKIP_RUNTIME=1 \
+  "$installer" --db-password-file db-password >/dev/null 2>&1); then
+  fail "relative database password file was accepted on rerun"
+fi
+
+cp "$tmp_root/etc/gearvia/runtime.env" "$tmp_root/runtime.env.before-rerun"
+printf '%s' 'ReplacementPasswordMustNotWin-2026!' > "$password_file"
+GEARVIA_TEST_ROOT="$tmp_root" GEARVIA_SKIP_RUNTIME=1 \
+  "$installer" --db-password-file "$password_file" >/dev/null
+cmp "$tmp_root/runtime.env.before-rerun" "$tmp_root/etc/gearvia/runtime.env" >/dev/null || fail "rerun replaced runtime secrets"
 
 mkdir -p "$tmp_root/opt/b2bgearvia/data/local"
 printf 'preserve-me' > "$tmp_root/opt/b2bgearvia/data/local/file.bin"
