@@ -1,7 +1,9 @@
 # Checkpoint C and Final Local Verification
 
-Verified at: 2026-09-02 KST  
-Commit under test: `69d8008` plus this evidence update  
+Verified at: 2026-09-02 KST
+
+Commit under test: `69d8008` plus this evidence update
+
 Environment: Windows development host, Java 21.0.10, Spring Boot 3.3.5, Node/Vite local toolchain
 
 ## Results
