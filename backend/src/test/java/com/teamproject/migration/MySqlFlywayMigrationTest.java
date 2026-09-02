@@ -38,15 +38,21 @@ class MySqlFlywayMigrationTest {
         long adminsBeforeRerun = countRows("users", "role", "ADMIN");
         long tablesAfterFirstMigration = countSchemaObjects("information_schema.tables", "table_name", List.of("users", "work_groups", "tasks", "push_subscriptions", "ai_usage_records", "infrastructure_change_jobs"));
         flyway.migrate();
-        assertThat(flyway.info().current().getVersion().getVersion()).isEqualTo("6");
+        assertThat(flyway.info().current().getVersion().getVersion()).isEqualTo("8");
         assertThat(countSchemaObjects("information_schema.tables", "table_name", List.of("users", "work_groups", "tasks", "push_subscriptions", "ai_usage_records", "infrastructure_change_jobs"))).isEqualTo(tablesAfterFirstMigration);
         assertThat(countRows("users", "role", "ADMIN")).isEqualTo(adminsBeforeRerun);
         assertThat(countSchemaObjects("information_schema.tables", "table_name", List.of("payment_methods", "payment_attempts", "group_subscriptions", "subscription_consents", "oauth_signup_requests", "social_accounts"))).isZero();
         assertThat(countColumns("work_groups", List.of("membership_plan", "paid_period_start", "paid_period_end"))).isZero();
 
-        assertThat(flyway.info().current().getVersion().getVersion()).isEqualTo("6");
+        assertThat(flyway.info().current().getVersion().getVersion()).isEqualTo("8");
         assertThat(countSchemaObjects("information_schema.tables", "table_name",
                 List.of("mcp_personal_tokens", "mcp_tool_call_audits"))).isEqualTo(2);
+        assertThat(countSchemaObjects("information_schema.tables", "table_name",
+                List.of("deployment_settings"))).isEqualTo(1);
+        assertThat(countColumns("deployment_settings",
+                List.of("id", "public_url", "certificate_issuer", "certificate_not_after",
+                        "certificate_sans", "apply_version", "status", "updated_at")))
+                .isEqualTo(8);
         assertThat(countColumns(
                 "infrastructure_change_jobs",
                 List.of("change_type", "status", "actor_user_id", "redacted_target", "estimated_seconds",
