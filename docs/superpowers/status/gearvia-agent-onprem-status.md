@@ -14,7 +14,7 @@ Last updated: 2026-09-02
 | 1 | Operational configuration and job foundations | Implemented; MySQL verification pending | Tasks 1-2 focused tests passed |
 | 2 | API, database, pool, and concurrency optimization | In progress; MySQL EXPLAIN pending | Task 3 bounded queries verified locally |
 | 3 | Executor isolation, health, telemetry, and alerts | Implemented | Tasks 4-6 focused tests passed |
-| A | Checkpoint A integration verification | Planned | - |
+| A | Checkpoint A integration verification | In progress; Task 7 and MySQL verification pending | Task 1-6 integrated locally |
 | 4 | Organization-wide notices and maintenance mode | Not started | - |
 | 5 | External MySQL preflight | Not started | - |
 | 6 | MySQL migration and rollback | Not started | - |
@@ -36,7 +36,7 @@ Last updated: 2026-09-02
 - `96f2d8b` - bounded database-side task filtering and MySQL index-plan gate
 - `4520da2` - bounded named executors and saturation telemetry
 - `4e14cc8` - dependency readiness and internal metrics
-- Task 6 branch commit - administrator operational telemetry and alerts
+- `bac0742` - administrator operational telemetry and alerts
 
 ## Verification Evidence
 
@@ -59,6 +59,11 @@ Last updated: 2026-09-02
 - Task 6 focused suite: 6 backend tests and 3 frontend tests passed with 0 failures/errors;
   the production frontend TypeScript/Vite build passed. The admin view now shows instance,
   bounded query settings, database pool, dependencies, executor queues, and deterministic alerts.
+- Task 4-6 integration suite: 467 backend tests, 0 failures, 0 errors, and 2
+  Docker-dependent skips; 8 frontend tests passed and the production frontend build passed.
+- The VirtualBox Compose configuration remained valid. A scheduler-boundary regression was
+  isolated from the persistent job lock so the notification idempotency test no longer depends
+  on whether the full suite crosses a 15-minute cron boundary.
 
 ## Known Issues
 
@@ -68,5 +73,5 @@ Last updated: 2026-09-02
 
 ## Next Action
 
-Run the Task 4-6 integration checkpoint, then prepare Task 7 Checkpoint A saturation
-verification. MySQL 8.4 migration and EXPLAIN remain gated on a Docker-enabled host.
+Implement Task 7 Checkpoint A saturation verification. MySQL 8.4 migration and EXPLAIN
+remain gated on a Docker-enabled host.

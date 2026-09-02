@@ -11,11 +11,13 @@ import com.teamproject.group.domain.GroupMember;
 import com.teamproject.group.domain.GroupMemberRepository;
 import com.teamproject.group.domain.GroupRepository;
 import com.teamproject.notification.application.TaskReminderScheduler;
+import com.teamproject.common.scheduling.DatabaseJobLock;
 import com.teamproject.user.domain.UserRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
@@ -25,6 +27,9 @@ import java.time.ZoneId;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.when;
 
 @SpringBootTest(classes = B2BGearViaApplication.class)
 @AutoConfigureMockMvc
@@ -38,6 +43,7 @@ class NotificationApiTest {
     @Autowired GroupRepository groups;
     @Autowired GroupMemberRepository members;
     @Autowired TaskReminderScheduler reminders;
+    @MockBean DatabaseJobLock jobLock;
 
     @Test
     void pushConfigurationIsAuthenticatedAndDisabledWithoutVapidKeys() throws Exception {
@@ -280,6 +286,7 @@ class NotificationApiTest {
 
     @Test
     void dueSoonSchedulerNotifiesAssigneeOnlyOnce() throws Exception {
+        when(jobLock.acquire(anyString(), any())).thenReturn(true);
         Fixture fixture = fixture("due_soon");
         long taskId = createTask(fixture.memberToken(), fixture.groupId(), "곧 마감 업무",
                 LocalDateTime.now(ZoneId.of("Asia/Seoul")).plusHours(2).withNano(0).toString());
