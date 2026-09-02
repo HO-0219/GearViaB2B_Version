@@ -4,6 +4,8 @@ set -euo pipefail
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=infra/ubuntu/lib/gearvia-common.sh
 . "$script_dir/infra/ubuntu/lib/gearvia-common.sh"
+# shellcheck source=infra/ubuntu/lib/gearvia-tls.sh
+. "$script_dir/infra/ubuntu/lib/gearvia-tls.sh"
 
 dry_run=false
 db_password_file=""
@@ -26,6 +28,7 @@ config_root="$(gearvia_root /etc/gearvia)"
 state_root="$(gearvia_root /var/lib/gearvia)"
 unit_path="$(gearvia_root /etc/systemd/system/b2bgearvia.service)"
 active_runtime="$config_root/runtime.env"
+tls_root="$config_root/tls"
 
 provided_db_password=""
 if [[ -n "$db_password_file" ]]; then
@@ -38,6 +41,9 @@ elif [[ -n "$provided_db_password" ]]; then
 else
   db_password="$(gearvia_read_db_password)"
 fi
+public_address="$(gearvia_detect_primary_address)"
+host_name="${GEARVIA_TEST_HOSTNAME:-$(hostname -f 2>/dev/null || hostname)}"
+public_url="https://$public_address"
 
 gearvia_log "Validated Ubuntu host, release bundle, and runtime configuration"
 if [[ "$dry_run" == true ]]; then
@@ -53,23 +59,30 @@ if [[ "${GEARVIA_SKIP_RUNTIME:-0}" != "1" ]]; then
 fi
 
 runtime_candidate="$(mktemp "${TMPDIR:-/tmp}/gearvia-runtime.XXXXXX")"
-trap 'rm -f -- "${runtime_candidate:-}"' EXIT
-gearvia_write_runtime_env "$runtime_candidate" "https://127.0.0.1" "$db_password"
+tls_candidate="$(mktemp -d "${TMPDIR:-/tmp}/gearvia-tls.XXXXXX")"
+trap 'rm -f -- "${runtime_candidate:-}"; rm -rf -- "${tls_candidate:-}"' EXIT
+if [[ -d "$tls_root" ]]; then cp -a "$tls_root/." "$tls_candidate/"; fi
+gearvia_issue_server_cert "$tls_candidate" "$public_address" "$host_name"
+gearvia_write_runtime_env "$runtime_candidate" "$public_url" "$db_password"
 if [[ "${GEARVIA_SKIP_RUNTIME:-0}" != "1" ]]; then
   docker compose --env-file "$runtime_candidate" -f "$script_dir/infra/b2b/compose.yml" config --quiet
 fi
 
 if [[ -n "${GEARVIA_TEST_ROOT:-}" ]]; then
-  mkdir -p "$install_root/data/uploads" "$install_root/data/nas" "$install_root/config" "$config_root" "$state_root/recovery"
+  mkdir -p "$install_root/data/uploads" "$install_root/data/nas" "$install_root/config" "$config_root" "$tls_root" "$state_root/recovery"
 else
-install -d -m 0755 "$install_root" "$install_root/data/uploads" "$install_root/data/nas" "$install_root/config" "$install_root/tls"
-  install -d -m 0700 "$config_root" "$state_root" "$state_root/recovery"
+  install -d -m 0755 "$install_root" "$install_root/data/uploads" "$install_root/data/nas" "$install_root/config"
+  install -d -m 0700 "$config_root" "$tls_root" "$state_root" "$state_root/recovery"
 fi
 install -m 0644 "$script_dir/infra/b2b/compose.yml" "$install_root/compose.yml"
 if [[ -f "$config_root/runtime.env" ]]; then
   install -m 0600 "$config_root/runtime.env" "$state_root/recovery/runtime.env.previous"
 fi
 install -m 0600 "$runtime_candidate" "$config_root/runtime.env"
+install -m 0600 "$tls_candidate/ca.key" "$tls_root/ca.key"
+install -m 0644 "$tls_candidate/ca.crt" "$tls_root/ca.crt"
+install -m 0600 "$tls_candidate/privkey.pem" "$tls_root/privkey.pem"
+install -m 0644 "$tls_candidate/fullchain.pem" "$tls_root/fullchain.pem"
 install -D -m 0644 "$script_dir/infra/b2b/systemd/b2bgearvia.service" "$unit_path"
 printf 'INSTALL_VERSION=1\nINSTALLED_AT=%s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > "$state_root/install-state.env"
 chmod 0600 "$state_root/install-state.env"

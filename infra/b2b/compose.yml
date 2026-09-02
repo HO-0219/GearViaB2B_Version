@@ -120,8 +120,8 @@ services:
     read_only: true
     tmpfs: [/var/cache/nginx, /var/run, /etc/nginx/conf.d]
     volumes:
-      - ${TLS_CERT_FILE:-./tls/fullchain.pem}:/etc/nginx/tls/fullchain.pem:ro
-      - ${TLS_KEY_FILE:-./tls/privkey.pem}:/etc/nginx/tls/privkey.pem:ro
+      - /etc/gearvia/tls/fullchain.pem:/etc/nginx/tls/fullchain.pem:ro
+      - /etc/gearvia/tls/privkey.pem:/etc/nginx/tls/privkey.pem:ro
     networks: [internal]
     depends_on: {backend: {condition: service_healthy}}
     healthcheck:
