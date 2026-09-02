@@ -45,6 +45,8 @@ public class AiProviderPolicy {
     }
 
     private boolean resolvesOnlyToPrivateAddresses(String host) {
+        boolean literal = host.equals("localhost") || host.matches("[0-9]{1,3}(\\.[0-9]{1,3}){3}") || host.contains(":");
+        if (!literal) return false;
         try {
             InetAddress[] addresses = InetAddress.getAllByName(host);
             if (addresses.length == 0) return false;

@@ -67,12 +67,15 @@ if [[ "${GEARVIA_SKIP_RUNTIME:-0}" != "1" ]]; then
   docker compose --env-file "$config_root/runtime.env" -f "$install_root/compose.yml" config --quiet
   systemctl daemon-reload
   if ! systemctl enable --now b2bgearvia.service; then
-    [[ ! -f "$state_root/recovery/runtime.env.previous" ]] || install -m 0600 "$state_root/recovery/runtime.env.previous" "$config_root/runtime.env"
+    if [[ -f "$state_root/recovery/runtime.env.previous" ]]; then
+      install -m 0600 "$state_root/recovery/runtime.env.previous" "$config_root/runtime.env"
+      systemctl restart b2bgearvia.service >/dev/null 2>&1 || true
+    fi
     gearvia_die "Service startup failed; previous runtime configuration was restored"
   fi
   ready=false
   for _ in {1..60}; do
-    if curl --insecure --fail --silent --max-time 5 https://127.0.0.1/healthz >/dev/null 2>&1; then ready=true; break; fi
+    if curl --insecure --fail --silent --max-time 5 https://127.0.0.1/api/v1/health/ready >/dev/null 2>&1; then ready=true; break; fi
     sleep 2
   done
   if [[ "$ready" != true ]]; then

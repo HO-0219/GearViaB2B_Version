@@ -7,6 +7,8 @@ configured intranet or VPN networks. Set `MCP_ENABLED=true`, list those CIDRs in
 `MCP_ALLOWED_CIDRS`, set `MCP_TRUSTED_PROXIES` only to the reverse-proxy container/network, and
 never forward the backend port or MCP endpoint directly to the Internet. Nginx overwrites rather
 than appends `X-Forwarded-For`, and GearVia trusts that header only from the configured proxy CIDR.
+The packaged backend sets `SERVER_FORWARD_HEADERS_STRATEGY=none` so the servlet container cannot
+rewrite the socket peer before this policy runs.
 
 Each user issues a personal read-only token from My Profile. The plaintext is shown once; GearVia
 stores only its SHA-256 hash. Revoking it or suspending the account blocks the next request.

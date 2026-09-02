@@ -42,6 +42,8 @@ public class McpToolCatalog {
             String sourceIp, String correlationId) {
         long started = System.nanoTime();
         String target = null;
+        ToolResult result;
+        String outcome;
         try {
             Map<String, Object> structured;
             switch (name) {
@@ -60,19 +62,21 @@ public class McpToolCatalog {
             if (encoded.getBytes(java.nio.charset.StandardCharsets.UTF_8).length > MAX_SERIALIZED_RESULT_BYTES) {
                 throw new IllegalStateException("MCP_RESULT_TOO_LARGE");
             }
-            safeAudit(authentication, name, target, sourceIp, "SUCCESS", started, correlationId);
-            return new ToolResult(List.of(Map.of("type", "text", "text", encoded)), structured, false);
+            result = new ToolResult(List.of(Map.of("type", "text", "text", encoded)), structured, false);
+            outcome = "SUCCESS";
         } catch (ApplicationException exception) {
-            safeAudit(authentication, name, target, sourceIp, "DENIED", started, correlationId);
             Map<String, Object> error = Map.of("code", exception.code(), "message", exception.getMessage());
-            return new ToolResult(List.of(Map.of("type", "text", "text", encode(error))), error, true);
+            result = new ToolResult(List.of(Map.of("type", "text", "text", encode(error))), error, true);
+            outcome = "DENIED";
         } catch (RuntimeException exception) {
-            safeAudit(authentication, name, target, sourceIp, "FAILED", started, correlationId);
             String code = "MCP_RESULT_TOO_LARGE".equals(exception.getMessage())
                     ? "MCP_RESULT_TOO_LARGE" : "MCP_TOOL_INVALID_OR_FAILED";
             Map<String, Object> error = Map.of("code", code, "message", "MCP tool request could not be completed.");
-            return new ToolResult(List.of(Map.of("type", "text", "text", encode(error))), error, true);
+            result = new ToolResult(List.of(Map.of("type", "text", "text", encode(error))), error, true);
+            outcome = "FAILED";
         }
+        audit(authentication, name, target, sourceIp, outcome, started, correlationId);
+        return result;
     }
 
     private Map<String, Object> tool(String name, String description, Map<String, Object> properties) {
@@ -89,14 +93,9 @@ public class McpToolCatalog {
     private void audit(McpTokenService.AuthenticatedToken auth, String tool, String target, String source,
             String result, long started, String correlation) {
         long latency = Math.max(0, (System.nanoTime() - started) / 1_000_000);
-        audits.save(new McpToolCallAudit(auth.tokenId(), auth.userId(), tool, target, source, result,
+        String boundedTool = tool == null || tool.isBlank() ? "unknown" : tool.substring(0, Math.min(80, tool.length()));
+        audits.saveAndFlush(new McpToolCallAudit(auth.tokenId(), auth.userId(), boundedTool, target, source, result,
                 latency, instance.value(), correlation));
-    }
-    private void safeAudit(McpTokenService.AuthenticatedToken auth, String tool, String target, String source,
-            String result, long started, String correlation) {
-        try { audit(auth, tool == null ? "unknown" : tool.substring(0, Math.min(80, tool.length())), target,
-                source, result, started, correlation); }
-        catch (RuntimeException ignored) { /* Audit storage must not leak internals into the protocol response. */ }
     }
     private String encode(Object value) {
         try { return json.writeValueAsString(value); }

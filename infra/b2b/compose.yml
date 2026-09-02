@@ -54,6 +54,8 @@ services:
       FRONTEND_URL: ${FRONTEND_URL:?set FRONTEND_URL}
       ADMIN_FRONTEND_URL: ${ADMIN_FRONTEND_URL:?set ADMIN_FRONTEND_URL}
       SERVER_PORT: 8081
+      # MCP/Admin perform their own trusted-proxy validation and require the raw socket peer.
+      SERVER_FORWARD_HEADERS_STRATEGY: none
       INSTANCE_ID: ${INSTANCE_ID:-}
       DB_POOL_MAX_SIZE: ${DB_POOL_MAX_SIZE:-20}
       DB_POOL_MIN_IDLE: ${DB_POOL_MIN_IDLE:-5}
