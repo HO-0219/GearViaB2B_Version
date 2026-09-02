@@ -20,7 +20,9 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.jdbc.core.JdbcTemplate;
 import jakarta.persistence.EntityManager;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -99,44 +101,55 @@ class CalendarApiTest {
     @Test
     void taskTimelineSpansFromCreationOrStartThroughItsDueDate() throws Exception {
         Team team = team("deadline", "Asia/Seoul");
-        long taskId = createTask(team.memberToken(), team.groupId(), "마감 업무", "2026-08-05T18:00:00");
+        LocalDate today = LocalDate.now();
+        LocalDate firstRangeFrom = today.minusDays(1);
+        LocalDate firstRangeTo = today.plusDays(10);
+        LocalDate secondRangeTo = today.plusDays(20);
+        DateTimeFormatter apiDateTime = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss");
+        String initialDueAt = today.plusDays(3).atTime(18, 0).format(apiDateTime);
+        String movedDueAt = today.plusDays(15).atTime(12, 0).format(apiDateTime);
+        long taskId = createTask(team.memberToken(), team.groupId(), "마감 업무", initialDueAt);
 
         mvc.perform(get("/api/v1/calendars/events").param("groupId", String.valueOf(team.groupId()))
-                        .param("from", "2026-08-01").param("to", "2026-09-01")
+                        .param("from", firstRangeFrom.toString()).param("to", firstRangeTo.toString())
                         .header("Authorization", bearer(team.memberToken())))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.items.length()").value(1))
                 .andExpect(jsonPath("$.items[0].source").value("TASK_DEADLINE"))
                 .andExpect(jsonPath("$.items[0].sourceTaskId").value(taskId))
                 .andExpect(jsonPath("$.items[0].startAt").isNotEmpty())
-                .andExpect(jsonPath("$.items[0].endAt").value("2026-08-05T18:00:00"))
+                .andExpect(jsonPath("$.items[0].endAt").value(initialDueAt))
                 .andExpect(jsonPath("$.items[0].taskStatus").value("REQUESTED"))
                 .andExpect(jsonPath("$.items[0].taskAssigneeMemberId").doesNotExist());
 
         mvc.perform(patch("/api/v1/tasks/{taskId}", taskId)
                         .header("Authorization", bearer(team.memberToken())).contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"dueAt\":\"2026-09-03T12:00:00\",\"expectedVersion\":0}"))
+                        .content("{\"dueAt\":\"" + movedDueAt + "\",\"expectedVersion\":0}"))
                 .andExpect(status().isOk());
         mvc.perform(get("/api/v1/calendars/events").param("groupId", String.valueOf(team.groupId()))
-                .param("from", "2026-08-01").param("to", "2026-09-01")
+                .param("from", firstRangeFrom.toString()).param("to", firstRangeTo.toString())
                         .header("Authorization", bearer(team.ownerToken())))
                 .andExpect(jsonPath("$.items.length()").value(1))
-                .andExpect(jsonPath("$.items[0].endAt").value("2026-09-03T12:00:00"));
+                .andExpect(jsonPath("$.items[0].endAt").value(movedDueAt));
         mvc.perform(get("/api/v1/calendars/events").param("groupId", String.valueOf(team.groupId()))
-                        .param("from", "2026-09-01").param("to", "2026-10-01")
+                        .param("from", firstRangeTo.toString()).param("to", secondRangeTo.toString())
                 .header("Authorization", bearer(team.ownerToken())))
                 .andExpect(jsonPath("$.items[0].sourceTaskId").value(taskId))
-                .andExpect(jsonPath("$.items[0].endAt").value("2026-09-03T12:00:00"));
+                .andExpect(jsonPath("$.items[0].endAt").value(movedDueAt));
     }
 
     @Test
     void rejectedTaskDeadlineDisappearsAfterRetentionWindowButTaskRecordRemains() throws Exception {
         Team team = team("rejected_deadline", "Asia/Seoul");
-        long taskId = createTask(team.memberToken(), team.groupId(), "반려 일정", "2026-08-05T18:00:00");
+        LocalDate today = LocalDate.now();
+        LocalDate rangeFrom = today.minusDays(1);
+        LocalDate rangeTo = today.plusDays(10);
+        long taskId = createTask(team.memberToken(), team.groupId(), "반려 일정",
+                today.plusDays(3).atTime(18, 0).toString());
         transition(team.ownerToken(), taskId, "REJECT", 0, "진행하지 않음");
 
         mvc.perform(get("/api/v1/calendars/events").param("groupId", String.valueOf(team.groupId()))
-                        .param("from", "2026-08-01").param("to", "2026-09-01")
+                        .param("from", rangeFrom.toString()).param("to", rangeTo.toString())
                         .header("Authorization", bearer(team.ownerToken())))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.items[0].sourceTaskId").value(taskId));
@@ -146,7 +159,7 @@ class CalendarApiTest {
         entityManager.clear();
 
         mvc.perform(get("/api/v1/calendars/events").param("groupId", String.valueOf(team.groupId()))
-                        .param("from", "2026-08-01").param("to", "2026-09-01")
+                        .param("from", rangeFrom.toString()).param("to", rangeTo.toString())
                         .header("Authorization", bearer(team.ownerToken())))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.items.length()").value(0));
