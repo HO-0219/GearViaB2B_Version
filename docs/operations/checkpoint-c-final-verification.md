@@ -2,7 +2,7 @@
 
 Verified at: 2026-09-02 KST
 
-Commit under test: `69d8008` plus this evidence update
+Commit under test: `9faa57f` plus this evidence update
 
 Environment: Windows development host, Java 21.0.10, Spring Boot 3.3.5, Node/Vite local toolchain
 
@@ -10,13 +10,14 @@ Environment: Windows development host, Java 21.0.10, Spring Boot 3.3.5, Node/Vit
 
 | Gate | Result | Evidence |
 |---|---|---|
-| Backend full suite | PASS locally | 485 tests, 0 failures, 0 errors, 2 skipped; 58.404 s |
-| Frontend suite | PASS | 5 files, 9 tests; 1.40 s |
+| Backend full suite | PASS locally | 488 tests, 0 failures, 0 errors, 2 skipped; 56.220 s |
+| Frontend suite | PASS | 6 files, 10 tests; 1.44 s |
 | Frontend production build | PASS with warning | 97 modules; main JS 551.04 kB (158.48 kB gzip) |
 | Ubuntu lifecycle simulation | PASS | OS rejection, dry-run, rerun, preserved removal, confirmation-guarded purge |
 | Capacity config validation | PASS | valid template accepted and invalid zero concurrency rejected |
 | Bash syntax | PASS | all new lifecycle and capacity scripts parsed by `bash -n` |
 | Compose validation | PASS | VirtualBox/B2B merged configuration valid |
+| MCP reverse-proxy contract | PASS | `/mcp`, runtime settings, and trusted-proxy wiring present |
 | Secret-pattern review | PASS | no generated MCP token or real provider credential found in tracked changes |
 
 ## Open release gates

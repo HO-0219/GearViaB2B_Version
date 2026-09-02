@@ -5,7 +5,7 @@ Last updated: 2026-09-02
 ## Source Documents
 
 - Design: `docs/superpowers/specs/2026-09-02-gearvia-agent-onprem-operations-design.md`
-- Active plan: `docs/superpowers/plans/2026-09-02-gearvia-onprem-checkpoint-a.md`
+- Active plan: `docs/superpowers/plans/2026-09-02-gearvia-onprem-stages-7-10.md`
 
 ## Stage Status
 
@@ -37,6 +37,12 @@ Last updated: 2026-09-02
 - `4520da2` - bounded named executors and saturation telemetry
 - `4e14cc8` - dependency readiness and internal metrics
 - `bac0742` - administrator operational telemetry and alerts
+- `dae533b` - Checkpoint A verification evidence
+- `b19a70f` - verified NAS migration workflow
+- `c53c9c8` - personal MCP Agent Gateway
+- `8b5ab41` - internal OpenAI-compatible LLM provider
+- `664fb73` / `69d8008` - Ubuntu lifecycle and capacity tooling
+- `6e600ee` / `9faa57f` - independent-review production hardening
 
 ## Verification Evidence
 
@@ -83,8 +89,8 @@ Last updated: 2026-09-02
   because no corporate LLM endpoint was supplied.
 - Stage 10 lifecycle tests pass for Ubuntu rejection, dry-run immutability, rerun safety,
   data-preserving uninstall, guarded purge, and capacity configuration validation.
-- Final local suite: 485 backend tests, 0 failures/errors, 2 Docker-dependent skips;
-  9 frontend tests passed and the production build completed. Lifecycle, Bash syntax,
+- Final local suite: 488 backend tests, 0 failures/errors, 2 Docker-dependent skips;
+  10 frontend tests passed and the production build completed. Lifecycle, Bash syntax,
   capacity configuration, and Compose gates passed. Details are recorded in
   `docs/operations/checkpoint-c-final-verification.md`.
 
