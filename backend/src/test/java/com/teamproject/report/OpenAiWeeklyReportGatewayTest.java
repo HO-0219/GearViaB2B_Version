@@ -73,6 +73,8 @@ class OpenAiWeeklyReportGatewayTest {
         DynamicOpenAiSettings openAi = mock(DynamicOpenAiSettings.class);
         when(openAi.reportEnabled()).thenReturn(enabled);
         when(openAi.hasApiKey()).thenReturn(true);
+        when(openAi.ready()).thenReturn(true);
+        when(openAi.chatModel()).thenReturn(model);
         when(openAi.reportClient()).thenReturn(client);
         return new OpenAiWeeklyReportGateway(openAi, props, json, mapper, recorder);
     }

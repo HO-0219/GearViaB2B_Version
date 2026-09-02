@@ -9,7 +9,8 @@ export type AdminMfaStatus = { enabled: boolean; sessionVerified: boolean; encry
 export type AdminMfaSetup = { secret: string; otpauthUri: string };
 export type AdminAudit = { id: number; actorUserId?: number; method: string; path: string; status: number; outcome: string; ipAddress?: string; requestId?: string; occurredAt: string };
 export type AdminAiVerticalStatus = { enabled: boolean; apiKeyConfigured: boolean; maskedApiKey?: string; model: string; baseUrl: string };
-export type AdminAiSettingsStatus = { report: AdminAiVerticalStatus; assistant: AdminAiVerticalStatus; supportedModels: string[] };
+export type AdminAiSettingsStatus = { report: AdminAiVerticalStatus; assistant: AdminAiVerticalStatus; supportedModels: string[]; provider: 'OPENAI' | 'INTERNAL_OPENAI_COMPATIBLE'; baseUrl: string; chatModel: string; embeddingModel: string; requestTimeoutSeconds: number; externalAllowed: boolean };
+export type AdminAiSettingsInput = Pick<AdminAiSettingsStatus, 'provider' | 'baseUrl' | 'chatModel' | 'embeddingModel' | 'requestTimeoutSeconds' | 'externalAllowed'> & { apiKey?: string; reportEnabled: boolean; assistantEnabled: boolean };
 export type AdminAiConnectionResult = { success: boolean; message: string };
 export type AdminAiConnectionTestResponse = { report: AdminAiConnectionResult; assistant: AdminAiConnectionResult };
 export type AdminStorageSettings = { provider: string; supportedProviders: string[]; localRootPath: string; localMounted: boolean; nasRootPath: string; nasMounted: boolean };
@@ -55,9 +56,9 @@ export const adminApi = {
   auditLogs: (page = 0) => request<Page<AdminAudit>>(`/admin/audit-logs?page=${page}&size=50`, {}, true),
   aiSettings: () => request<AdminAiSettingsStatus>('/admin/ai-settings', {}, true),
   testAiConnections: () => request<AdminAiConnectionTestResponse>('/admin/ai-settings/test', { method: 'POST' }, true),
-  updateAiSettings: (apiKey: string | undefined, reportEnabled: boolean, assistantEnabled: boolean) =>
+  updateAiSettings: (body: AdminAiSettingsInput) =>
     request<AdminAiSettingsStatus>('/admin/ai-settings', {
-      method: 'PUT', body: JSON.stringify({ apiKey, reportEnabled, assistantEnabled }),
+      method: 'PUT', body: JSON.stringify(body),
     }, true),
   storageSettings: () => request<AdminStorageSettings>('/admin/storage-settings', {}, true),
   testNasStorage: () => request<AdminStorageTestResult>('/admin/storage-settings/nas/test', { method: 'POST' }, true),

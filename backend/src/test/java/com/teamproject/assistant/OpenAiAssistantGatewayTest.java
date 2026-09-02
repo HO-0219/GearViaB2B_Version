@@ -92,6 +92,8 @@ class OpenAiAssistantGatewayTest {
         DynamicOpenAiSettings openAi = mock(DynamicOpenAiSettings.class);
         when(openAi.assistantEnabled()).thenReturn(enabled);
         when(openAi.hasApiKey()).thenReturn(apiKey != null && !apiKey.isBlank());
+        when(openAi.ready()).thenReturn(apiKey != null && !apiKey.isBlank());
+        when(openAi.chatModel()).thenReturn(model);
         when(openAi.assistantClient()).thenReturn(client);
         return new OpenAiAssistantGateway(openAi, assistant, recorder);
     }

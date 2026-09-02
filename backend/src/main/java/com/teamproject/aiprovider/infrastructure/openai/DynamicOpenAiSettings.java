@@ -3,6 +3,8 @@ package com.teamproject.aiprovider.infrastructure.openai;
 import com.openai.client.OpenAIClient;
 import com.openai.client.okhttp.OpenAIOkHttpClient;
 import com.teamproject.admin.security.AdminMfaCipher;
+import com.teamproject.aiprovider.application.AiProviderPolicy;
+import com.teamproject.aiprovider.application.AiProviderProfile;
 import com.teamproject.aiprovider.domain.AiProviderSettings;
 import com.teamproject.aiprovider.domain.AiProviderSettingsRepository;
 import com.teamproject.assistant.infrastructure.openai.OpenAiAssistantProperties;
@@ -11,6 +13,7 @@ import com.teamproject.report.infrastructure.openai.OpenAiReportProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -32,6 +35,7 @@ public class DynamicOpenAiSettings {
     private final AdminMfaCipher cipher;
     private final OpenAiReportProperties reportDefaults;
     private final OpenAiAssistantProperties assistantDefaults;
+    private final AiProviderPolicy policy;
 
     private volatile boolean loaded;
     private volatile String apiKey;
@@ -39,13 +43,22 @@ public class DynamicOpenAiSettings {
     private volatile boolean assistantEnabled;
     private volatile OpenAIClient reportClient;
     private volatile OpenAIClient assistantClient;
+    private volatile AiProviderProfile profile;
 
-    public DynamicOpenAiSettings(AiProviderSettingsRepository settings, AdminMfaCipher cipher,
+    DynamicOpenAiSettings(AiProviderSettingsRepository settings, AdminMfaCipher cipher,
             OpenAiReportProperties reportDefaults, OpenAiAssistantProperties assistantDefaults) {
+        this(settings, cipher, reportDefaults, assistantDefaults, new AiProviderPolicy());
+    }
+
+    @Autowired
+    public DynamicOpenAiSettings(AiProviderSettingsRepository settings, AdminMfaCipher cipher,
+            OpenAiReportProperties reportDefaults, OpenAiAssistantProperties assistantDefaults,
+            AiProviderPolicy policy) {
         this.settings = settings;
         this.cipher = cipher;
         this.reportDefaults = reportDefaults;
         this.assistantDefaults = assistantDefaults;
+        this.policy = policy;
     }
 
     /**
@@ -60,10 +73,13 @@ public class DynamicOpenAiSettings {
             this.apiKey = value.getApiKeyEncrypted() == null ? "" : safeDecrypt(value.getApiKeyEncrypted());
             this.reportEnabled = value.isReportEnabled();
             this.assistantEnabled = value.isAssistantEnabled();
+            this.profile = persistedProfile(value);
         }, () -> {
             this.apiKey = reportDefaults.apiKey();
             this.reportEnabled = reportDefaults.enabled();
             this.assistantEnabled = assistantDefaults.enabled();
+            this.profile = policy.validate("OPENAI", reportDefaults.baseUrl(), assistantDefaults.model(), assistantDefaults.embeddingModel(),
+                    (int) assistantDefaults.requestTimeout().toSeconds(), true);
         });
         rebuildClients();
         loaded = true;
@@ -74,6 +90,16 @@ public class DynamicOpenAiSettings {
     public boolean hasApiKey() { ensureLoaded(); return apiKey != null && !apiKey.isBlank(); }
     public boolean reportEnabled() { ensureLoaded(); return reportEnabled; }
     public boolean assistantEnabled() { ensureLoaded(); return assistantEnabled; }
+    public String provider() { ensureLoaded(); return profile.provider().name(); }
+    public String baseUrl() { ensureLoaded(); return profile.baseUrl(); }
+    public String chatModel() { ensureLoaded(); return profile.chatModel(); }
+    public String embeddingModel() { ensureLoaded(); return profile.embeddingModel(); }
+    public int requestTimeoutSeconds() { ensureLoaded(); return profile.requestTimeoutSeconds(); }
+    public boolean externalAllowed() { ensureLoaded(); return profile.externalAllowed(); }
+    public boolean ready() {
+        ensureLoaded();
+        return profile.provider() == AiProviderProfile.Provider.INTERNAL_OPENAI_COMPATIBLE || hasApiKey();
+    }
 
     public String maskedApiKey() {
         ensureLoaded();
@@ -90,6 +116,16 @@ public class DynamicOpenAiSettings {
     @Transactional
     public void update(String apiKeyOrNull, boolean newReportEnabled, boolean newAssistantEnabled) {
         ensureLoaded();
+        update(apiKeyOrNull, newReportEnabled, newAssistantEnabled, provider(), baseUrl(), chatModel(), embeddingModel(),
+                requestTimeoutSeconds(), externalAllowed());
+    }
+
+    @Transactional
+    public void update(String apiKeyOrNull, boolean newReportEnabled, boolean newAssistantEnabled,
+            String providerValue, String baseUrl, String chatModel, String embeddingModel, int timeoutSeconds, boolean externalAllowed) {
+        ensureLoaded();
+        AiProviderProfile resolvedProfile = policy.validate(providerValue, baseUrl, chatModel, embeddingModel,
+                timeoutSeconds, externalAllowed);
         String resolvedKey = apiKeyOrNull == null ? apiKey : apiKeyOrNull.trim();
         if (resolvedKey != null && !resolvedKey.isEmpty() && !cipher.configured()) {
             throw new ApplicationException("AI_KEY_ENCRYPTION_NOT_CONFIGURED", HttpStatus.SERVICE_UNAVAILABLE,
@@ -99,17 +135,32 @@ public class DynamicOpenAiSettings {
         AiProviderSettings value = settings.findById(AiProviderSettings.SINGLETON_ID)
                 .map(existing -> { existing.update(encrypted, newReportEnabled, newAssistantEnabled); return existing; })
                 .orElseGet(() -> new AiProviderSettings(encrypted, newReportEnabled, newAssistantEnabled));
+        value.updateProvider(resolvedProfile.provider().name(), resolvedProfile.baseUrl(), resolvedProfile.chatModel(), resolvedProfile.embeddingModel(),
+                resolvedProfile.requestTimeoutSeconds(), resolvedProfile.externalAllowed());
         settings.save(value);
 
         this.apiKey = resolvedKey == null ? "" : resolvedKey;
         this.reportEnabled = newReportEnabled;
         this.assistantEnabled = newAssistantEnabled;
+        this.profile = resolvedProfile;
         rebuildClients();
     }
 
     private void rebuildClients() {
-        this.reportClient = buildClient(reportDefaults.baseUrl(), reportDefaults.requestTimeout(), reportDefaults.maxRetries());
-        this.assistantClient = buildClient(reportDefaults.baseUrl(), assistantDefaults.requestTimeout(), 1);
+        java.time.Duration timeout = java.time.Duration.ofSeconds(profile.requestTimeoutSeconds());
+        this.reportClient = buildClient(profile.baseUrl(), timeout, reportDefaults.maxRetries());
+        this.assistantClient = buildClient(profile.baseUrl(), timeout, 1);
+    }
+
+    private AiProviderProfile persistedProfile(AiProviderSettings value) {
+        String provider = value.getProviderType() == null ? "OPENAI" : value.getProviderType();
+        String baseUrl = value.getBaseUrl() == null ? reportDefaults.baseUrl() : value.getBaseUrl();
+        String model = value.getChatModel() == null ? assistantDefaults.model() : value.getChatModel();
+        String embeddingModel = value.getEmbeddingModel() == null ? assistantDefaults.embeddingModel() : value.getEmbeddingModel();
+        int timeout = value.getRequestTimeoutSeconds() == null
+                ? (int) assistantDefaults.requestTimeout().toSeconds() : value.getRequestTimeoutSeconds();
+        boolean external = value.getExternalAllowed() == null || value.getExternalAllowed();
+        return policy.validate(provider, baseUrl, model, embeddingModel, timeout, external);
     }
 
     private OpenAIClient buildClient(String baseUrl, java.time.Duration timeout, int maxRetries) {

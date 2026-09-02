@@ -78,6 +78,8 @@ class OpenAiEmbeddingGatewayTest {
         DynamicOpenAiSettings openAi = mock(DynamicOpenAiSettings.class);
         when(openAi.assistantEnabled()).thenReturn(enabled);
         when(openAi.hasApiKey()).thenReturn(apiKey != null && !apiKey.isBlank());
+        when(openAi.ready()).thenReturn(apiKey != null && !apiKey.isBlank());
+        when(openAi.embeddingModel()).thenReturn(model);
         when(openAi.assistantClient()).thenReturn(client);
         return new OpenAiEmbeddingGateway(openAi, assistant, recorder);
     }

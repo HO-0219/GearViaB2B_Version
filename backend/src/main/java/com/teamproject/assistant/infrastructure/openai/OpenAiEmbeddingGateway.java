@@ -28,14 +28,14 @@ public class OpenAiEmbeddingGateway implements EmbeddingGateway {
 
     @Override
     public String modelId() {
-        return properties.embeddingModel();
+        return openAi.embeddingModel();
     }
 
     @Override
     public List<float[]> embed(List<String> texts) {
         if (texts.isEmpty()) return List.of();
-        if (!openAi.assistantEnabled() || !openAi.hasApiKey()
-                || properties.embeddingModel().isBlank()) {
+        if (!openAi.assistantEnabled() || !openAi.ready()
+                || openAi.embeddingModel().isBlank()) {
             throw new ApplicationException("AI_ASSISTANT_NOT_CONFIGURED", HttpStatus.SERVICE_UNAVAILABLE,
                     "AI 비서가 아직 활성화되지 않았습니다.");
         }
@@ -49,7 +49,7 @@ public class OpenAiEmbeddingGateway implements EmbeddingGateway {
 
     private List<float[]> call(List<String> batch) {
         var params = EmbeddingCreateParams.builder()
-                .model(properties.embeddingModel())
+                .model(openAi.embeddingModel())
                 .inputOfArrayOfStrings(batch)
                 .build();
         try {
@@ -65,7 +65,7 @@ public class OpenAiEmbeddingGateway implements EmbeddingGateway {
             for (float[] vector : ordered) {
                 if (vector == null) throw new IllegalStateException("embedding response incomplete");
             }
-            usageRecorder.success(AiUsageOperation.DOCUMENT_EMBEDDING, properties.embeddingModel(),
+            usageRecorder.success(AiUsageOperation.DOCUMENT_EMBEDDING, openAi.embeddingModel(),
                     response._usage().asKnown()
                             .flatMap(usage -> usage._promptTokens().asKnown())
                             .orElse(null),
@@ -78,7 +78,7 @@ public class OpenAiEmbeddingGateway implements EmbeddingGateway {
             throw exception;
         } catch (Exception exception) {
             // 요청 본문과 응답 원문은 남기지 않는다. 실패 사실만 계약된 코드로 올린다.
-            usageRecorder.failure(AiUsageOperation.DOCUMENT_EMBEDDING, properties.embeddingModel(),
+            usageRecorder.failure(AiUsageOperation.DOCUMENT_EMBEDDING, openAi.embeddingModel(),
                     "AI_ASSISTANT_EMBEDDING_FAILED");
             throw new ApplicationException("AI_ASSISTANT_EMBEDDING_FAILED", HttpStatus.SERVICE_UNAVAILABLE,
                     "자료 검색 준비에 실패했습니다. 잠시 후 다시 시도해 주세요.");

@@ -52,13 +52,13 @@ public class OpenAiWeeklyReportGateway implements AiWeeklyReportGateway {
             log.info("OpenAI report generation is disabled via properties");
             throw new OpenAiReportUnavailableException("AI 리포트가 비활성화되어 있습니다. 관리자에게 서버 AI 설정을 요청해 주세요.");
         }
-        if (!properties.hasModel()) {
+        if (openAi.chatModel().isBlank()) {
             log.warn("OpenAI model is missing");
             throw new OpenAiReportUnavailableException("AI 리포트 모델이 설정되지 않았습니다. 관리자에게 서버 AI 설정을 요청해 주세요.");
         }
         // 키 없이 켜져 있으면 placeholder 키로 호출해 401을 받을 때까지 기다린다(최대 45초).
         // 결과는 어차피 fallback이므로 기다릴 이유가 없다.
-        if (!openAi.hasApiKey()) {
+        if (!openAi.ready()) {
             log.warn("OpenAI API key is missing");
             throw new OpenAiReportUnavailableException("AI 리포트 API 키가 설정되지 않았습니다. 관리자에게 서버 AI 설정을 요청해 주세요.");
         }
@@ -77,7 +77,7 @@ public class OpenAiWeeklyReportGateway implements AiWeeklyReportGateway {
                         .instructions(instructions)
                         .input(snapshotJson)
                         .text(AiWeeklyReportAnalysisContract.class)
-                        .model(properties.model())
+                        .model(openAi.chatModel())
                         .maxOutputTokens(properties.maxOutputTokens())
                         .store(false)
                         .build();
@@ -99,26 +99,26 @@ public class OpenAiWeeklyReportGateway implements AiWeeklyReportGateway {
             Integer inputTokens = response.usage().map(u -> (int) u.inputTokens()).orElse(null);
             Integer outputTokens = response.usage().map(u -> (int) u.outputTokens()).orElse(null);
             Analysis analysis = new Analysis(mapper.toDomain(contract), inputTokens, outputTokens);
-            usageRecorder.success(AiUsageOperation.WEEKLY_REPORT, properties.model(),
+            usageRecorder.success(AiUsageOperation.WEEKLY_REPORT, openAi.chatModel(),
                     response.usage().map(usage -> usage.inputTokens()).orElse(null),
                     response.usage().map(usage -> usage.outputTokens()).orElse(null),
                     response.usage().map(usage -> usage.totalTokens()).orElse(null));
             return analysis;
 
         } catch (OpenAiReportException e) {
-            usageRecorder.failure(AiUsageOperation.WEEKLY_REPORT, properties.model(), failureCode(e));
+            usageRecorder.failure(AiUsageOperation.WEEKLY_REPORT, openAi.chatModel(), failureCode(e));
             log.warn("OpenAI weekly report call failed: category={}", e.getClass().getSimpleName());
             throw e;
         } catch (Exception e) {
             String msg = e.getMessage() != null ? e.getMessage() : "";
             if (msg.contains("429") || msg.contains("rate_limit")) {
-                usageRecorder.failure(AiUsageOperation.WEEKLY_REPORT, properties.model(),
+                usageRecorder.failure(AiUsageOperation.WEEKLY_REPORT, openAi.chatModel(),
                         "AI_REPORT_RATE_LIMIT");
                 log.warn("OpenAI rate limit error occurred");
                 throw new OpenAiReportRateLimitException("Rate limit reached", e);
             }
             if (msg.contains("timeout") || msg.contains("Timeout")) {
-                usageRecorder.failure(AiUsageOperation.WEEKLY_REPORT, properties.model(),
+                usageRecorder.failure(AiUsageOperation.WEEKLY_REPORT, openAi.chatModel(),
                         "AI_REPORT_TIMEOUT");
                 log.warn("OpenAI call timed out");
                 throw new OpenAiReportTimeoutException("Request timed out", e);
@@ -127,7 +127,7 @@ public class OpenAiWeeklyReportGateway implements AiWeeklyReportGateway {
             // 남긴다. 메시지 본문은 응답 조각을 담을 수 있어 넣지 않는다(명세 8.2).
             log.warn("OpenAI report call failed: exception={} rootCause={}",
                     e.getClass().getSimpleName(), rootCauseName(e));
-            usageRecorder.failure(AiUsageOperation.WEEKLY_REPORT, properties.model(),
+            usageRecorder.failure(AiUsageOperation.WEEKLY_REPORT, openAi.chatModel(),
                     "AI_REPORT_INVALID_RESPONSE");
             throw new OpenAiReportInvalidResponseException("OpenAI response call failed", e);
         }

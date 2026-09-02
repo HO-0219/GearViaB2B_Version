@@ -114,4 +114,22 @@ class DynamicOpenAiSettingsTest {
         assertThatThrownBy(() -> value.update("sk-new-key", true, true))
                 .isInstanceOf(ApplicationException.class);
     }
+
+    @Test
+    void internalProviderDoesNotRequireAnApiKeyAndPersistsRuntimeRouting() {
+        when(settings.findById(AiProviderSettings.SINGLETON_ID)).thenReturn(Optional.empty());
+        when(settings.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+        DynamicOpenAiSettings value = new DynamicOpenAiSettings(settings, cipher, reportDefaults, assistantDefaults);
+
+        value.update("", true, true, "INTERNAL_OPENAI_COMPATIBLE", "http://10.0.0.8:8000/v1",
+                "company-model", "company-embed", 20, false);
+
+        assertThat(value.ready()).isTrue();
+        assertThat(value.provider()).isEqualTo("INTERNAL_OPENAI_COMPATIBLE");
+        assertThat(value.baseUrl()).isEqualTo("http://10.0.0.8:8000/v1");
+        assertThat(value.chatModel()).isEqualTo("company-model");
+        assertThat(value.embeddingModel()).isEqualTo("company-embed");
+        assertThat(value.requestTimeoutSeconds()).isEqualTo(20);
+        assertThat(value.externalAllowed()).isFalse();
+    }
 }

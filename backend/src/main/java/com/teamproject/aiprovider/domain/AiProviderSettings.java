@@ -25,6 +25,18 @@ public class AiProviderSettings {
     private boolean reportEnabled;
     @Column(name = "assistant_enabled", nullable = false)
     private boolean assistantEnabled;
+    @Column(name = "provider_type", length = 40)
+    private String providerType;
+    @Column(name = "base_url", length = 500)
+    private String baseUrl;
+    @Column(name = "chat_model", length = 120)
+    private String chatModel;
+    @Column(name = "embedding_model", length = 120)
+    private String embeddingModel;
+    @Column(name = "request_timeout_seconds")
+    private Integer requestTimeoutSeconds;
+    @Column(name = "external_allowed")
+    private Boolean externalAllowed;
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
@@ -45,7 +57,24 @@ public class AiProviderSettings {
         this.updatedAt = LocalDateTime.now();
     }
 
+    public void updateProvider(String providerType, String baseUrl, String chatModel, String embeddingModel,
+            int requestTimeoutSeconds, boolean externalAllowed) {
+        this.providerType = providerType;
+        this.baseUrl = baseUrl;
+        this.chatModel = chatModel;
+        this.embeddingModel = embeddingModel;
+        this.requestTimeoutSeconds = requestTimeoutSeconds;
+        this.externalAllowed = externalAllowed;
+        this.updatedAt = LocalDateTime.now();
+    }
+
     public String getApiKeyEncrypted() { return apiKeyEncrypted; }
     public boolean isReportEnabled() { return reportEnabled; }
     public boolean isAssistantEnabled() { return assistantEnabled; }
+    public String getProviderType() { return providerType; }
+    public String getBaseUrl() { return baseUrl; }
+    public String getChatModel() { return chatModel; }
+    public String getEmbeddingModel() { return embeddingModel; }
+    public Integer getRequestTimeoutSeconds() { return requestTimeoutSeconds; }
+    public Boolean getExternalAllowed() { return externalAllowed; }
 }

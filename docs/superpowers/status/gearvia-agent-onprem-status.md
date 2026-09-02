@@ -21,7 +21,7 @@ Last updated: 2026-09-02
 | B | Checkpoint B integration verification | Not started | - |
 | 7 | NAS migration and rollback | Implemented locally | Verified copy, switch, and non-destructive rollback tests |
 | 8 | Personal MCP tokens and Agent Gateway | Implemented; MySQL verification pending | Hashed tokens, intranet policy, read tools, audit, limits, and My Page UI |
-| 9 | Internal LLM provider | Not started | - |
+| 9 | Internal LLM provider | Implemented locally; live endpoint verification pending | Runtime provider, egress policy, chat/embedding models, and admin UI |
 | C | Checkpoint C integration verification | Not started | - |
 | 10 | Ubuntu lifecycle scripts and capacity validation | Not started | - |
 | Final | Full integration and capacity matrix | Not started | - |
@@ -78,6 +78,9 @@ Last updated: 2026-09-02
   CIDR/Origin rejection, audit creation, and per-token rate limiting.
 - Stage 8 My Page UI test passed and the production frontend build completed. Registration
   guidance is in `docs/operations/mcp-agent-access.md`.
+- Stage 9 policy/settings suite passed together with authentication regression tests. The
+  frontend production build passed. Live inference remains an environment acceptance test
+  because no corporate LLM endpoint was supplied.
 
 ## Known Issues
 
@@ -87,5 +90,5 @@ Last updated: 2026-09-02
 
 ## Next Action
 
-Implement Stage 9 OpenAI-compatible internal LLM provider policy and administration.
+Implement Stage 10 Ubuntu lifecycle scripts and capacity validation.
 MySQL 8.4 migration verification remains gated on a Docker-enabled integration host.

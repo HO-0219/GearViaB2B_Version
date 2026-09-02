@@ -37,7 +37,14 @@ class AdminAiSettingsServiceTest {
         when(value.reportEnabled()).thenReturn(reportEnabled);
         when(value.assistantEnabled()).thenReturn(assistantEnabled);
         when(value.hasApiKey()).thenReturn(hasKey);
+        when(value.ready()).thenReturn(hasKey);
         when(value.maskedApiKey()).thenReturn(maskedKey);
+        when(value.provider()).thenReturn("OPENAI");
+        when(value.baseUrl()).thenReturn("https://api.openai.com/v1");
+        when(value.chatModel()).thenReturn("gpt-5.6-sol");
+        when(value.embeddingModel()).thenReturn("text-embedding-3-small");
+        when(value.requestTimeoutSeconds()).thenReturn(30);
+        when(value.externalAllowed()).thenReturn(true);
         when(value.reportClient()).thenReturn(reportClient);
         when(value.assistantClient()).thenReturn(assistantClient);
         return value;

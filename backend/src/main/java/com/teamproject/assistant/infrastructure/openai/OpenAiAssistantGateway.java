@@ -52,14 +52,14 @@ public class OpenAiAssistantGateway implements AiAssistantGateway {
 
     @Override
     public Decision decide(String context, List<ChatMessage> history, String message, String searchResult) {
-        if (!openAi.assistantEnabled() || !openAi.hasApiKey() || properties.model().isBlank()) {
+        if (!openAi.assistantEnabled() || !openAi.ready() || openAi.chatModel().isBlank()) {
             throw new ApplicationException("AI_ASSISTANT_NOT_CONFIGURED", HttpStatus.SERVICE_UNAVAILABLE,
                     "AI 비서가 비활성화되어 있습니다. 관리자에게 서버 AI 설정(기능 활성화와 API 키)을 요청해 주세요.");
         }
         var builder = ResponseCreateParams.builder()
                 .instructions(INSTRUCTIONS)
                 .input(input(context, history, message, searchResult))
-                .model(properties.model())
+                .model(openAi.chatModel())
                 .maxOutputTokens(properties.maxOutputTokens())
                 .maxToolCalls(1)
                 .parallelToolCalls(false)
@@ -120,7 +120,7 @@ public class OpenAiAssistantGateway implements AiAssistantGateway {
                         .findFirst().orElse("요청을 이해하지 못했습니다. 조금 더 구체적으로 말씀해 주세요.");
                 decision = new TextDecision(text);
             }
-            usageRecorder.success(AiUsageOperation.ASSISTANT_RESPONSE, properties.model(),
+            usageRecorder.success(AiUsageOperation.ASSISTANT_RESPONSE, openAi.chatModel(),
                     response.usage().map(usage -> usage.inputTokens()).orElse(null),
                     response.usage().map(usage -> usage.outputTokens()).orElse(null),
                     response.usage().map(usage -> usage.totalTokens()).orElse(null));
@@ -128,7 +128,7 @@ public class OpenAiAssistantGateway implements AiAssistantGateway {
         } catch (ApplicationException exception) {
             throw exception;
         } catch (Exception exception) {
-            usageRecorder.failure(AiUsageOperation.ASSISTANT_RESPONSE, properties.model(),
+            usageRecorder.failure(AiUsageOperation.ASSISTANT_RESPONSE, openAi.chatModel(),
                     "AI_ASSISTANT_UNAVAILABLE");
             throw new ApplicationException("AI_ASSISTANT_UNAVAILABLE", HttpStatus.SERVICE_UNAVAILABLE,
                     "AI 비서가 잠시 응답하지 않습니다. 잠시 후 다시 시도해 주세요.");

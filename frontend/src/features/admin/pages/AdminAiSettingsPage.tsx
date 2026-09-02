@@ -16,11 +16,23 @@ export function AdminAiSettingsPage() {
   const [reportEnabled, setReportEnabled] = useState(false);
   const [assistantEnabled, setAssistantEnabled] = useState(false);
   const [saveMessage, setSaveMessage] = useState('');
+  const [provider, setProvider] = useState<'OPENAI' | 'INTERNAL_OPENAI_COMPATIBLE'>('INTERNAL_OPENAI_COMPATIBLE');
+  const [baseUrl, setBaseUrl] = useState('');
+  const [chatModel, setChatModel] = useState('');
+  const [embeddingModel, setEmbeddingModel] = useState('');
+  const [requestTimeoutSeconds, setRequestTimeoutSeconds] = useState(30);
+  const [externalAllowed, setExternalAllowed] = useState(false);
 
   function applyStatus(value: AdminAiSettingsStatus) {
     setStatus(value);
     setReportEnabled(value.report.enabled);
     setAssistantEnabled(value.assistant.enabled);
+    setProvider(value.provider);
+    setBaseUrl(value.baseUrl);
+    setChatModel(value.chatModel);
+    setEmbeddingModel(value.embeddingModel);
+    setRequestTimeoutSeconds(value.requestTimeoutSeconds);
+    setExternalAllowed(value.externalAllowed);
   }
 
   useEffect(() => {
@@ -40,7 +52,8 @@ export function AdminAiSettingsPage() {
     setSaving(true); setError(''); setSaveMessage('');
     try {
       const apiKey = clearKey ? '' : (apiKeyInput.trim() ? apiKeyInput.trim() : undefined);
-      const updated = await adminApi.updateAiSettings(apiKey, reportEnabled, assistantEnabled);
+      const updated = await adminApi.updateAiSettings({ apiKey, reportEnabled, assistantEnabled,
+        provider, baseUrl, chatModel, embeddingModel, requestTimeoutSeconds, externalAllowed });
       applyStatus(updated);
       setApiKeyInput(''); setClearKey(false);
       setSaveMessage(t('저장했습니다.', 'Saved.'));
@@ -55,7 +68,7 @@ export function AdminAiSettingsPage() {
   return <>
     {error && <p className="error">{error}</p>}
     <section className="admin-panel admin-notice-panel">
-      <div className="admin-panel-heading"><div><h2>{t('AI 연동 상태', 'AI integration status')}</h2><p>{t('API 키 설정과 기능별 활성화 전환은 이 화면에서 할 수 있습니다. 모델은 서버 배포 설정으로 고정되어 있습니다.', 'Set the API key and toggle each feature on or off here. The model is fixed by server deployment configuration.')}</p></div></div>
+      <div className="admin-panel-heading"><div><h2>{t('AI 연동 상태', 'AI integration status')}</h2><p>{t('OpenAI 또는 사내 OpenAI 호환 LLM을 선택할 수 있습니다.', 'Choose OpenAI or an internal OpenAI-compatible LLM.')}</p></div></div>
       {status && <div className="ai-settings-grid">
         <VerticalCard title={t('AI 비서', 'AI assistant')} status={status.assistant} testResult={results?.assistant} />
         <VerticalCard title={t('AI 주간 리포트', 'AI weekly report')} status={status.report} testResult={results?.report} />
@@ -65,6 +78,28 @@ export function AdminAiSettingsPage() {
     </section>
     <section className="admin-panel admin-notice-panel">
       <div className="admin-panel-heading"><div><h2>{t('AI 설정 변경', 'Change AI settings')}</h2></div></div>
+      <label className="field"><span>{t('AI 공급자', 'AI provider')}</span>
+        <select value={provider} onChange={(event) => setProvider(event.target.value as typeof provider)}>
+          <option value="INTERNAL_OPENAI_COMPATIBLE">{t('사내 OpenAI 호환 LLM', 'Internal OpenAI-compatible LLM')}</option>
+          <option value="OPENAI">OpenAI</option>
+        </select>
+      </label>
+      <label className="field"><span>{t('서버 URL', 'Server URL')}</span>
+        <input value={baseUrl} placeholder="http://llm.internal:8000/v1" onChange={(event) => setBaseUrl(event.target.value)} />
+      </label>
+      <label className="field"><span>{t('채팅 모델', 'Chat model')}</span>
+        <input value={chatModel} placeholder="company-chat-model" onChange={(event) => setChatModel(event.target.value)} />
+      </label>
+      <label className="field"><span>{t('임베딩 모델', 'Embedding model')}</span>
+        <input value={embeddingModel} placeholder="company-embedding-model" onChange={(event) => setEmbeddingModel(event.target.value)} />
+      </label>
+      <label className="field"><span>{t('요청 제한 시간(초)', 'Request timeout (seconds)')}</span>
+        <input type="number" min="1" max="120" value={requestTimeoutSeconds} onChange={(event) => setRequestTimeoutSeconds(Number(event.target.value))} />
+      </label>
+      {provider === 'OPENAI' && <label className="admin-inline-checkbox">
+        <input type="checkbox" checked={externalAllowed} onChange={(event) => setExternalAllowed(event.target.checked)} />
+        <span>{t('외부 인터넷 연결 허용(VPN/방화벽 정책 필요)', 'Allow external internet access (VPN/firewall policy required)')}</span>
+      </label>}
       <label className="field">
         <span>{t('API 키', 'API key')}</span>
         <input type="password" value={apiKeyInput} disabled={clearKey}

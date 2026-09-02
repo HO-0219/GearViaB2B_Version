@@ -31,9 +31,11 @@ public class AdminAiSettingsController {
 
     @PutMapping
     StatusResponse update(@RequestBody UpdateRequest request) {
-        return service.update(request.apiKey(), request.reportEnabled(), request.assistantEnabled());
+        return service.update(request.apiKey(), request.reportEnabled(), request.assistantEnabled(), request.provider(),
+                request.baseUrl(), request.chatModel(), request.embeddingModel(), request.requestTimeoutSeconds(), request.externalAllowed());
     }
 
     /** apiKey: omit/null keeps the existing key, "" clears it, non-blank replaces it. */
-    public record UpdateRequest(String apiKey, boolean reportEnabled, boolean assistantEnabled) {}
+    public record UpdateRequest(String apiKey, boolean reportEnabled, boolean assistantEnabled, String provider,
+            String baseUrl, String chatModel, String embeddingModel, int requestTimeoutSeconds, boolean externalAllowed) {}
 }
