@@ -39,7 +39,8 @@ fi
 recovery_database="$state_root/recovery/database.env"
 db_password_source="$active_runtime"
 if [[ ! -r "$db_password_source" && -r "$recovery_database" ]]; then db_password_source="$recovery_database"; fi
-if existing_db_password="$(gearvia_read_runtime_value "$db_password_source" MYSQL_APP_PASSWORD)" && [[ -n "$existing_db_password" ]]; then
+if existing_db_password="$(gearvia_read_runtime_value "$db_password_source" MYSQL_APP_PASSWORD)" \
+    && [[ -n "$existing_db_password" ]] && gearvia_password_is_valid "$existing_db_password"; then
   db_password="$existing_db_password"
 elif [[ -n "$provided_db_password" ]]; then
   db_password="$provided_db_password"
@@ -120,15 +121,25 @@ printf 'INSTALL_VERSION=1\nINSTALLED_AT=%s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" >
 if [[ "${GEARVIA_SKIP_RUNTIME:-0}" != "1" ]]; then gearvia_record_image_state "$state_root/install-state.env"; fi
 chmod 0600 "$state_root/install-state.env"
 
+gearvia_abort_startup() {
+  local reason="$1"
+  if [[ -f "$state_root/recovery/runtime.env.previous" ]]; then
+    install -m 0600 "$state_root/recovery/runtime.env.previous" "$config_root/runtime.env"
+    systemctl restart b2bgearvia.service >/dev/null 2>&1 || true
+    gearvia_die "$reason; the previous runtime configuration was restored"
+  fi
+  # First install: there is nothing to roll back to. Stop the crash-looping
+  # service so it does not keep retrying, and leave the operator a clean slate.
+  systemctl disable --now b2bgearvia.service >/dev/null 2>&1 || true
+  docker compose --env-file "$config_root/runtime.env" -f "$install_root/compose.yml" down >/dev/null 2>&1 || true
+  gearvia_die "$reason; the service was stopped. Fix the configuration and re-run the installer"
+}
+
 if [[ "${GEARVIA_SKIP_RUNTIME:-0}" != "1" ]]; then
   docker compose --env-file "$config_root/runtime.env" -f "$install_root/compose.yml" config --quiet
   systemctl daemon-reload
   if ! systemctl enable --now b2bgearvia.service; then
-    if [[ -f "$state_root/recovery/runtime.env.previous" ]]; then
-      install -m 0600 "$state_root/recovery/runtime.env.previous" "$config_root/runtime.env"
-      systemctl restart b2bgearvia.service >/dev/null 2>&1 || true
-    fi
-    gearvia_die "Service startup failed; previous runtime configuration was restored"
+    gearvia_abort_startup "Service startup failed"
   fi
   ready=false
   for _ in {1..60}; do
@@ -136,9 +147,7 @@ if [[ "${GEARVIA_SKIP_RUNTIME:-0}" != "1" ]]; then
     sleep 2
   done
   if [[ "$ready" != true ]]; then
-    [[ ! -f "$state_root/recovery/runtime.env.previous" ]] || install -m 0600 "$state_root/recovery/runtime.env.previous" "$config_root/runtime.env"
-    systemctl restart b2bgearvia.service >/dev/null 2>&1 || true
-    gearvia_die "Readiness failed; previous runtime configuration was restored"
+    gearvia_abort_startup "Readiness check failed"
   fi
   if ! systemctl enable --now gearvia-host-apply.path >/dev/null 2>&1; then
     gearvia_log "WARNING: gearvia-host-apply.path did not activate; domain/SSL changes from the admin console will not apply until it is enabled"

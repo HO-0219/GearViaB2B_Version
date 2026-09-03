@@ -74,7 +74,11 @@ gearvia_write_runtime_env() {
   secret_source="$active_runtime"
   if [[ ! -r "$secret_source" && -r "$recovery_database" ]]; then secret_source="$recovery_database"; fi
 
-  if existing="$(gearvia_read_runtime_value "$secret_source" MYSQL_APP_PASSWORD)" && [[ -n "$existing" ]]; then
+  # Only reuse a previously stored DB password if it still satisfies the current
+  # rules; otherwise a short password saved before validation would be replayed
+  # on every reinstall.
+  if existing="$(gearvia_read_runtime_value "$secret_source" MYSQL_APP_PASSWORD)" \
+      && [[ -n "$existing" ]] && gearvia_password_is_valid "$existing"; then
     db_password="$existing"
   fi
   if existing="$(gearvia_read_runtime_value "$secret_source" JWT_SECRET)" && [[ -n "$existing" ]]; then

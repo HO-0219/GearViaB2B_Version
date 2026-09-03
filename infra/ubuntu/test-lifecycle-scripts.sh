@@ -69,6 +69,17 @@ assert_absent "$tmp_root/etc/gearvia/tls"
 assert_file "$tmp_root/var/lib/gearvia/recovery/database.env"
 grep -Fq 'MYSQL_APP_PASSWORD=LocalDbPassword-2026!' "$tmp_root/var/lib/gearvia/recovery/database.env"
 
+# A too-short password left in the recovery file must not be replayed: a valid
+# provided password wins instead of crashing the backend on every reinstall.
+printf 'MYSQL_APP_PASSWORD=short\nMYSQL_ROOT_PASSWORD=irrelevant\n' \
+  > "$tmp_root/var/lib/gearvia/recovery/database.env"
+printf '%s' 'RecoveredMustRevalidate-2026!' > "$password_file"
+GEARVIA_TEST_ROOT="$tmp_root" GEARVIA_SKIP_RUNTIME=1 \
+  "$installer" --db-password-file "$password_file" >/dev/null
+grep -Fq 'MYSQL_APP_PASSWORD=RecoveredMustRevalidate-2026!' "$tmp_root/etc/gearvia/runtime.env" \
+  || fail "installer replayed an invalid recovered database password"
+GEARVIA_TEST_ROOT="$tmp_root" GEARVIA_SKIP_RUNTIME=1 "$uninstaller" >/dev/null
+
 if GEARVIA_TEST_ROOT="$tmp_root" GEARVIA_SKIP_RUNTIME=1 "$uninstaller" --purge-data --confirm-purge WRONG >/dev/null 2>&1; then
   fail "purge accepted an invalid confirmation"
 fi
