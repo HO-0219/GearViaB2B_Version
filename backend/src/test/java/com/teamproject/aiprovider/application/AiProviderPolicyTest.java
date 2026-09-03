@@ -34,6 +34,14 @@ class AiProviderPolicyTest {
     }
 
     @Test
+    void acceptsAnInternalHostnameThatResolvesToAPrivateAddress() {
+        // "localhost" is a name, not an IP literal — it must survive DNS resolution.
+        assertThat(policy.validate("INTERNAL_OPENAI_COMPATIBLE", "http://localhost:11434/v1",
+                "company-chat", "company-embed", 30, false).baseUrl())
+                .isEqualTo("http://localhost:11434/v1");
+    }
+
+    @Test
     void rejectsPublicOrCredentialBearingInternalEndpoints() {
         assertThatThrownBy(() -> policy.validate("INTERNAL_OPENAI_COMPATIBLE",
                 "https://example.com/v1", "model", "embed", 30, false)).isInstanceOf(ApplicationException.class);
