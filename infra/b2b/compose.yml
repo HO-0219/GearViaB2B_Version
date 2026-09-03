@@ -53,9 +53,6 @@ services:
       ADMIN_TRUSTED_PROXIES: ${ADMIN_TRUSTED_PROXIES:-172.16.0.0/12}
       FRONTEND_URL: ${FRONTEND_URL:?set FRONTEND_URL}
       ADMIN_FRONTEND_URL: ${ADMIN_FRONTEND_URL:?set ADMIN_FRONTEND_URL}
-      # Signs domain/TLS change requests dropped into /var/lib/gearvia/control;
-      # the root-owned gearvia-host-apply.path unit verifies the same key.
-      HOST_APPLY_REQUEST_HMAC_KEY: ${HOST_APPLY_REQUEST_HMAC_KEY:?set HOST_APPLY_REQUEST_HMAC_KEY}
       SERVER_PORT: 8081
       # MCP/Admin perform their own trusted-proxy validation and require the raw socket peer.
       SERVER_FORWARD_HEADERS_STRATEGY: none
@@ -100,9 +97,6 @@ services:
     volumes:
       - uploads:/opt/b2bgearvia/data/uploads
       - /opt/b2bgearvia/data/nas:/opt/b2bgearvia/data/nas
-      # Domain/TLS change requests are written here; the root-owned
-      # gearvia-host-apply.path unit on the host consumes them.
-      - /var/lib/gearvia/control:/var/lib/gearvia/control
     networks: [internal]
     depends_on:
       init-data: {condition: service_completed_successfully}

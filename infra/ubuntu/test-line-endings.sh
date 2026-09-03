@@ -15,11 +15,9 @@ scripts=(
   infra/ubuntu/lib/gearvia-common.sh
   infra/ubuntu/lib/gearvia-tls.sh
   infra/ubuntu/lib/gearvia-images.sh
-  infra/ubuntu/gearvia-host-apply.sh
   infra/ubuntu/test-lifecycle-scripts.sh
   infra/ubuntu/test-tls-automation.sh
   infra/ubuntu/test-image-selection.sh
-  infra/ubuntu/test-host-apply.sh
   infra/ubuntu/test-release-bundle.sh
   infra/ubuntu/test-line-endings.sh
 )

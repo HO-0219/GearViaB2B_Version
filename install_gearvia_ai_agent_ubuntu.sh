@@ -87,21 +87,13 @@ if [[ "${GEARVIA_SKIP_RUNTIME:-0}" != "1" ]]; then
   docker compose --env-file "$runtime_candidate" -f "$script_dir/infra/b2b/compose.yml" config --quiet
 fi
 
-control_root="$state_root/control"
-host_apply_root="$install_root/host-apply"
 if [[ -n "${GEARVIA_TEST_ROOT:-}" ]]; then
-  mkdir -p "$install_root/data/uploads" "$install_root/data/nas" "$install_root/config" "$config_root" "$tls_root" "$state_root/recovery" \
-    "$control_root/requests" "$control_root/results" "$control_root/candidates" "$host_apply_root/lib"
+  mkdir -p "$install_root/data/uploads" "$install_root/data/nas" "$install_root/config" "$config_root" "$tls_root" "$state_root/recovery"
 else
   install -d -m 0755 "$install_root" "$install_root/data/uploads" "$install_root/data/nas" "$install_root/config"
-  install -d -m 0700 "$config_root" "$tls_root" "$state_root" "$state_root/recovery" \
-    "$control_root" "$control_root/requests" "$control_root/results" "$control_root/candidates"
-  install -d -m 0755 "$host_apply_root" "$host_apply_root/lib"
+  install -d -m 0700 "$config_root" "$tls_root" "$state_root" "$state_root/recovery"
 fi
 install -m 0644 "$script_dir/infra/b2b/compose.yml" "$install_root/compose.yml"
-install -m 0700 "$script_dir/infra/ubuntu/gearvia-host-apply.sh" "$host_apply_root/gearvia-host-apply.sh"
-install -m 0644 "$script_dir/infra/ubuntu/lib/gearvia-common.sh" "$host_apply_root/lib/gearvia-common.sh"
-install -m 0644 "$script_dir/infra/ubuntu/lib/gearvia-tls.sh" "$host_apply_root/lib/gearvia-tls.sh"
 if [[ -f "$config_root/runtime.env" ]]; then
   install -m 0600 "$config_root/runtime.env" "$state_root/recovery/runtime.env.previous"
 fi
@@ -110,13 +102,7 @@ install -m 0600 "$tls_candidate/ca.key" "$tls_root/ca.key"
 install -m 0644 "$tls_candidate/ca.crt" "$tls_root/ca.crt"
 install -m 0600 "$tls_candidate/privkey.pem" "$tls_root/privkey.pem"
 install -m 0644 "$tls_candidate/fullchain.pem" "$tls_root/fullchain.pem"
-host_apply_key="$(gearvia_read_runtime_value "$config_root/runtime.env" HOST_APPLY_REQUEST_HMAC_KEY || true)"
-[[ -n "$host_apply_key" ]] || gearvia_die "runtime configuration is missing HOST_APPLY_REQUEST_HMAC_KEY"
-( umask 077; printf '%s' "$host_apply_key" > "$config_root/host-apply.key" )
-chmod 0600 "$config_root/host-apply.key"
 install -D -m 0644 "$script_dir/infra/b2b/systemd/b2bgearvia.service" "$unit_path"
-install -D -m 0644 "$script_dir/infra/ubuntu/systemd/gearvia-host-apply.service" "$(gearvia_root /etc/systemd/system/gearvia-host-apply.service)"
-install -D -m 0644 "$script_dir/infra/ubuntu/systemd/gearvia-host-apply.path" "$(gearvia_root /etc/systemd/system/gearvia-host-apply.path)"
 printf 'INSTALL_VERSION=1\nINSTALLED_AT=%s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > "$state_root/install-state.env"
 if [[ "${GEARVIA_SKIP_RUNTIME:-0}" != "1" ]]; then gearvia_record_image_state "$state_root/install-state.env"; fi
 chmod 0600 "$state_root/install-state.env"
@@ -148,9 +134,6 @@ if [[ "${GEARVIA_SKIP_RUNTIME:-0}" != "1" ]]; then
   done
   if [[ "$ready" != true ]]; then
     gearvia_abort_startup "Readiness check failed"
-  fi
-  if ! systemctl enable --now gearvia-host-apply.path >/dev/null 2>&1; then
-    gearvia_log "WARNING: gearvia-host-apply.path did not activate; domain/SSL changes from the admin console will not apply until it is enabled"
   fi
 fi
 install -m 0600 "$config_root/runtime.env" "$state_root/recovery/runtime.env.last-known-good"

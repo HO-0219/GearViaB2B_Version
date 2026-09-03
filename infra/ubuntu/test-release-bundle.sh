@@ -14,9 +14,6 @@ required=(
   infra/b2b/nginx.conf.template
   infra/b2b/runtime.env.example
   infra/b2b/systemd/b2bgearvia.service
-  infra/ubuntu/gearvia-host-apply.sh
-  infra/ubuntu/systemd/gearvia-host-apply.service
-  infra/ubuntu/systemd/gearvia-host-apply.path
   infra/ubuntu/lib/gearvia-common.sh
   infra/ubuntu/lib/gearvia-tls.sh
   infra/ubuntu/lib/gearvia-images.sh
@@ -29,7 +26,6 @@ done
 scripts=(
   install_gearvia_ai_agent_ubuntu.sh
   uninstall_gearvia_ai_agent_ubuntu.sh
-  infra/ubuntu/gearvia-host-apply.sh
   infra/ubuntu/lib/gearvia-common.sh
   infra/ubuntu/lib/gearvia-tls.sh
   infra/ubuntu/lib/gearvia-images.sh
