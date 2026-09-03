@@ -123,6 +123,44 @@ class AdminDeploymentSettingsApiTest {
     }
 
     @Test
+    void draftRejectsACertificateThatDoesNotCoverThePublicUrl() throws Exception {
+        mvc.perform(multipart("/api/v1/admin/deployment-settings/drafts")
+                        .file(cert()).file(key())
+                        .param("publicUrl", "https://not-in-the-cert.example")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + adminToken()))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("DEPLOYMENT_CERTIFICATE_HOST_MISMATCH"));
+    }
+
+    @Test
+    void draftIsRejectedWhileAnotherChangeIsInProgress() throws Exception {
+        String token = adminToken();
+        long jobId = createDraft(token);
+        mvc.perform(post("/api/v1/admin/deployment-settings/{id}/test", jobId)
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+                .andExpect(status().isOk());
+
+        mvc.perform(multipart("/api/v1/admin/deployment-settings/drafts")
+                        .file(cert()).file(key()).param("publicUrl", "https://gearvia.corp")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("DEPLOYMENT_CHANGE_IN_PROGRESS"));
+    }
+
+    @Test
+    void aNewDraftSupersedesAnUntestedDraftAndClearsItsKeyMaterial() throws Exception {
+        String token = adminToken();
+        long first = createDraft(token);
+        long second = createDraft(token);
+
+        assertThat(first).isNotEqualTo(second);
+        mvc.perform(get("/api/v1/admin/deployment-settings/jobs/{id}", first)
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+                .andExpect(status().isNotFound());
+        assertThat(Files.exists(controlRoot.resolve("candidates").resolve("tls-" + first))).isFalse();
+    }
+
+    @Test
     void applyRejectsUntestedJob() throws Exception {
         String token = adminToken();
         long jobId = createDraft(token);

@@ -31,12 +31,16 @@ import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
+import java.security.cert.CertificateParsingException;
 import java.security.cert.X509Certificate;
 import java.security.interfaces.RSAPrivateCrtKey;
 import java.security.interfaces.RSAPublicKey;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.util.Base64;
+import java.util.EnumSet;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 @Service
@@ -44,6 +48,10 @@ public class DeploymentSettingsService {
 
     private static final int MAX_PEM_BYTES = 64 * 1024;
     private static final String CANDIDATE_MODE = "uploaded";
+
+    /** A domain/TLS change is in flight while a job is in one of these states. */
+    private static final Set<Status> ACTIVE_STATES = EnumSet.of(
+            Status.TESTING, Status.TEST_SUCCEEDED, Status.NOTIFYING, Status.SWITCHED);
 
     private final DeploymentSettingsRepository settings;
     private final InfrastructureChangeJobRepository jobs;
@@ -91,7 +99,13 @@ public class DeploymentSettingsService {
         String normalizedUrl = normalizeUrl(publicUrl);
         byte[] certPem = read(certificate, "certificate");
         byte[] keyPem = read(privateKey, "privateKey");
-        validateMaterial(certPem, keyPem);
+        validateMaterial(certPem, keyPem, hostOf(normalizedUrl));
+
+        if (!jobs.findByTypeAndStatusIn(Type.DOMAIN_TLS, ACTIVE_STATES).isEmpty()) {
+            throw error("DEPLOYMENT_CHANGE_IN_PROGRESS", HttpStatus.CONFLICT,
+                    "이미 진행 중인 도메인/SSL 변경이 있습니다. 완료 또는 실패 후 다시 시도하세요.");
+        }
+        discardSupersededDrafts();
 
         User actor = users.findById(actorId)
                 .orElseThrow(() -> error("DEPLOYMENT_ACTOR_NOT_FOUND", HttpStatus.NOT_FOUND,
@@ -102,6 +116,17 @@ public class DeploymentSettingsService {
 
         hostApply.writeCandidate(requestId(job.getId()), certPem, keyPem);
         return view(job);
+    }
+
+    /** Drops never-tested drafts and clears the key material left by earlier failed attempts. */
+    private void discardSupersededDrafts() {
+        for (InfrastructureChangeJob prior :
+                jobs.findByTypeAndStatusIn(Type.DOMAIN_TLS, EnumSet.of(Status.DRAFT, Status.FAILED))) {
+            hostApply.deleteCandidate(requestId(prior.getId()));
+            if (prior.getStatus() == Status.DRAFT) {
+                jobs.delete(prior);
+            }
+        }
     }
 
     @Transactional
@@ -115,7 +140,7 @@ public class DeploymentSettingsService {
                     "초안 상태의 작업만 테스트할 수 있습니다.");
         }
         byte[][] material = readCandidate(job.getId());
-        validateMaterial(material[0], material[1]);
+        validateMaterial(material[0], material[1], hostOf(job.getRedactedTarget()));
         job.transitionTo(Status.TESTING, 0, null);
         job.transitionTo(Status.TEST_SUCCEEDED, 100, "인증서 형식, 만료일, 개인 키 일치를 확인했습니다.");
         return view(jobs.saveAndFlush(job));
@@ -219,6 +244,7 @@ public class DeploymentSettingsService {
             job.transitionTo(Status.ROLLED_BACK, 100,
                     "이전 인증서로 복구되었습니다 (" + result.status() + ").");
         }
+        hostApply.deleteCandidate(requestId(job.getId()));
     }
 
     /** The host applier emits the certificate's notAfter as an ISO-8601 UTC instant. */
@@ -234,7 +260,7 @@ public class DeploymentSettingsService {
         }
     }
 
-    private void validateMaterial(byte[] certPem, byte[] keyPem) {
+    private void validateMaterial(byte[] certPem, byte[] keyPem, String targetHost) {
         if (certPem.length == 0 || keyPem.length == 0) {
             throw error("DEPLOYMENT_MATERIAL_EMPTY", HttpStatus.BAD_REQUEST, "인증서와 개인 키가 필요합니다.");
         }
@@ -250,6 +276,57 @@ public class DeploymentSettingsService {
                     "인증서가 만료되었거나 아직 유효하지 않습니다.");
         }
         assertKeyMatchesCertificate(certificate, parsePrivateKey(keyPem));
+        assertCertificateCoversHost(certificate, targetHost);
+    }
+
+    /** The uploaded certificate must present the public URL host as a SAN (or matching CN). */
+    private void assertCertificateCoversHost(X509Certificate certificate, String host) {
+        String target = host == null ? "" : host.toLowerCase();
+        Set<String> names = new LinkedHashSet<>();
+        try {
+            var sans = certificate.getSubjectAlternativeNames();
+            if (sans != null) {
+                for (List<?> entry : sans) {
+                    Object type = entry.get(0);
+                    Object value = entry.get(1);
+                    if ((Integer.valueOf(2).equals(type) || Integer.valueOf(7).equals(type))
+                            && value instanceof String name) {
+                        names.add(name.toLowerCase());
+                    }
+                }
+            }
+        } catch (CertificateParsingException ignored) {
+            // fall through to the CN check
+        }
+        String subject = certificate.getSubjectX500Principal().getName();
+        for (String part : subject.split(",")) {
+            String trimmed = part.trim();
+            if (trimmed.regionMatches(true, 0, "CN=", 0, 3)) {
+                names.add(trimmed.substring(3).toLowerCase());
+            }
+        }
+        boolean covered = names.stream().anyMatch(name -> hostMatches(name, target));
+        if (!covered) {
+            throw error("DEPLOYMENT_CERTIFICATE_HOST_MISMATCH", HttpStatus.BAD_REQUEST,
+                    "인증서가 공개 URL 호스트(" + host + ")를 포함하지 않습니다.");
+        }
+    }
+
+    private static boolean hostMatches(String certName, String host) {
+        if (certName.equals(host)) {
+            return true;
+        }
+        if (certName.startsWith("*.")) {
+            String suffix = certName.substring(1); // ".example.com"
+            int dot = host.indexOf('.');
+            return dot > 0 && host.substring(dot).equals(suffix);
+        }
+        return false;
+    }
+
+    private static String hostOf(String url) {
+        java.net.URI uri = java.net.URI.create(url);
+        return uri.getHost() == null ? "" : uri.getHost();
     }
 
     private X509Certificate parseCertificate(byte[] pem) {

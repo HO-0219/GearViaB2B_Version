@@ -45,6 +45,18 @@ public class HostApplyGateway {
         }
     }
 
+    /** Removes a candidate's certificate and private key once the job no longer needs them. */
+    public void deleteCandidate(String requestId) {
+        Path dir = controlRoot.resolve("candidates").resolve(requestId);
+        try {
+            Files.deleteIfExists(dir.resolve("fullchain.pem"));
+            Files.deleteIfExists(dir.resolve("privkey.pem"));
+            Files.deleteIfExists(dir);
+        } catch (IOException ignored) {
+            // best effort; a stale candidate directory is harmless
+        }
+    }
+
     public void submit(String requestId, String publicUrl, String certificateMode) {
         if (hmacKey.length == 0) {
             throw new ApplicationException("DEPLOYMENT_HOST_KEY_MISSING", HttpStatus.SERVICE_UNAVAILABLE,
