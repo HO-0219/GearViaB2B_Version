@@ -53,6 +53,9 @@ services:
       ADMIN_TRUSTED_PROXIES: ${ADMIN_TRUSTED_PROXIES:-172.16.0.0/12}
       FRONTEND_URL: ${FRONTEND_URL:?set FRONTEND_URL}
       ADMIN_FRONTEND_URL: ${ADMIN_FRONTEND_URL:?set ADMIN_FRONTEND_URL}
+      # Signs domain/TLS change requests dropped into /var/lib/gearvia/control;
+      # the root-owned gearvia-host-apply.path unit verifies the same key.
+      HOST_APPLY_REQUEST_HMAC_KEY: ${HOST_APPLY_REQUEST_HMAC_KEY:?set HOST_APPLY_REQUEST_HMAC_KEY}
       SERVER_PORT: 8081
       # MCP/Admin perform their own trusted-proxy validation and require the raw socket peer.
       SERVER_FORWARD_HEADERS_STRATEGY: none
