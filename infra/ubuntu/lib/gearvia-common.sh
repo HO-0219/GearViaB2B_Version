@@ -30,8 +30,11 @@ gearvia_read_runtime_value() {
   return 1
 }
 
+# The backend rejects SPRING_DATASOURCE_PASSWORD shorter than 16 characters, so
+# enforce it here — otherwise a short password is only caught after the full
+# image build and compose bring-up.
 gearvia_password_is_valid() {
-  [[ -n "$1" && "$1" != *[[:cntrl:]]* ]]
+  [[ -n "$1" && "$1" != *[[:cntrl:]]* && "${#1}" -ge 16 ]]
 }
 
 gearvia_read_db_password() {
@@ -39,7 +42,7 @@ gearvia_read_db_password() {
   if [[ -n "$password_file" ]]; then
     [[ "$password_file" = /* && -r "$password_file" ]] || gearvia_die "--db-password-file must name a readable absolute file"
     password="$(<"$password_file")"
-    gearvia_password_is_valid "$password" || gearvia_die "Database password must not be empty or contain control characters"
+    gearvia_password_is_valid "$password" || gearvia_die "Database password must be at least 16 characters and contain no control characters"
     printf '%s' "$password"
     return
   fi
@@ -51,7 +54,7 @@ gearvia_read_db_password() {
     IFS= read -r -s confirmation
     printf '\n' >&2
     if ! gearvia_password_is_valid "$password"; then
-      gearvia_log "Database password must not be empty or contain control characters" >&2
+      gearvia_log "Database password must be at least 16 characters and contain no control characters" >&2
     elif [[ "$password" != "$confirmation" ]]; then
       gearvia_log "Database passwords do not match" >&2
     else

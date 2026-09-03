@@ -49,4 +49,9 @@ if grep -qE '<release-digest>|<sha256>|복사' infra/b2b/runtime.env.example; th
   fail "runtime.env.example still contains a placeholder digest or copy instruction"
 fi
 
+# 5. The application unit bounds its start so a never-healthy container fails the
+#    unit instead of hanging `systemctl enable --now` forever.
+grep -qE '^TimeoutStartSec=[1-9][0-9]+$' infra/b2b/systemd/b2bgearvia.service \
+  || fail "b2bgearvia.service must set a finite TimeoutStartSec"
+
 echo "Ubuntu release bundle tests passed"

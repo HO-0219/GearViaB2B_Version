@@ -140,7 +140,9 @@ if [[ "${GEARVIA_SKIP_RUNTIME:-0}" != "1" ]]; then
     systemctl restart b2bgearvia.service >/dev/null 2>&1 || true
     gearvia_die "Readiness failed; previous runtime configuration was restored"
   fi
-  systemctl enable --now gearvia-host-apply.path >/dev/null 2>&1 || true
+  if ! systemctl enable --now gearvia-host-apply.path >/dev/null 2>&1; then
+    gearvia_log "WARNING: gearvia-host-apply.path did not activate; domain/SSL changes from the admin console will not apply until it is enabled"
+  fi
 fi
 install -m 0600 "$config_root/runtime.env" "$state_root/recovery/runtime.env.last-known-good"
 gearvia_log "Installation completed. Runtime data and database volumes are preserved across reruns."

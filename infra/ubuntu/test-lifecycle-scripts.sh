@@ -29,6 +29,12 @@ printf 'ID=ubuntu\nVERSION_ID="24.04"\n' > "$tmp_root/etc/os-release"
 if GEARVIA_TEST_ROOT="$tmp_root" GEARVIA_TEST_ARCH="aarch64" "$installer" --dry-run --db-password-file "$password_file" >/dev/null 2>&1; then
   fail "unsupported architecture was accepted"
 fi
+
+short_password_file="$tmp_root/db-password-short"
+printf '%s' 'Short-2026!' > "$short_password_file"   # 11 chars
+if GEARVIA_TEST_ROOT="$tmp_root" GEARVIA_SKIP_RUNTIME=1 "$installer" --dry-run --db-password-file "$short_password_file" >/dev/null 2>&1; then
+  fail "database password shorter than 16 characters was accepted"
+fi
 GEARVIA_TEST_ROOT="$tmp_root" GEARVIA_SKIP_RUNTIME=1 "$installer" --dry-run --db-password-file "$password_file" >/dev/null
 assert_absent "$tmp_root/opt/b2bgearvia"
 

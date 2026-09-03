@@ -9,7 +9,9 @@ WorkingDirectory=/opt/b2bgearvia
 ExecStart=/usr/bin/docker compose --env-file /etc/gearvia/runtime.env -f /opt/b2bgearvia/compose.yml up -d
 ExecStop=/usr/bin/docker compose --env-file /etc/gearvia/runtime.env -f /opt/b2bgearvia/compose.yml down
 RemainAfterExit=yes
-TimeoutStartSec=0
+# `docker compose up -d` blocks on depends_on health conditions; bound it so a
+# never-healthy container fails the unit instead of hanging `systemctl` forever.
+TimeoutStartSec=600
 
 [Install]
 WantedBy=multi-user.target
