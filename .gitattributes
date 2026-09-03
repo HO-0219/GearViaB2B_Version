@@ -7,3 +7,7 @@ uninstall_gearvia_ai_agent_ubuntu.sh text eol=lf
 
 # systemd unit files are read on Linux hosts only.
 infra/ubuntu/systemd/* text eol=lf
+
+# The Maven wrapper is chmod'd and executed inside the Linux backend build image;
+# a CRLF shebang makes it fail with "./mvnw: not found".
+mvnw text eol=lf

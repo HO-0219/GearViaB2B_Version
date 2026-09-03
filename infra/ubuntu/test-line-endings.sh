@@ -20,6 +20,7 @@ scripts=(
   infra/ubuntu/test-image-selection.sh
   infra/ubuntu/test-release-bundle.sh
   infra/ubuntu/test-line-endings.sh
+  backend/mvnw
 )
 
 for script in "${scripts[@]}"; do
