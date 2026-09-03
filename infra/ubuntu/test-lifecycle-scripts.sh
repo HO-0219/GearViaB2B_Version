@@ -35,6 +35,12 @@ printf '%s' 'Short-2026!' > "$short_password_file"   # 11 chars
 if GEARVIA_TEST_ROOT="$tmp_root" GEARVIA_SKIP_RUNTIME=1 "$installer" --dry-run --db-password-file "$short_password_file" >/dev/null 2>&1; then
   fail "database password shorter than 16 characters was accepted"
 fi
+
+quote_password_file="$tmp_root/db-password-quote"
+printf '%s' "has-a-quote-'-in-it-here" > "$quote_password_file"
+if GEARVIA_TEST_ROOT="$tmp_root" GEARVIA_SKIP_RUNTIME=1 "$installer" --dry-run --db-password-file "$quote_password_file" >/dev/null 2>&1; then
+  fail "database password containing a quote was accepted"
+fi
 GEARVIA_TEST_ROOT="$tmp_root" GEARVIA_SKIP_RUNTIME=1 "$installer" --dry-run --db-password-file "$password_file" >/dev/null
 assert_absent "$tmp_root/opt/b2bgearvia"
 
