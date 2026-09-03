@@ -5,6 +5,7 @@ import com.teamproject.authentication.application.AccessSessionIssuer;
 import com.teamproject.admin.domain.AdminNoticeRepository;
 import com.teamproject.authentication.domain.token.RefreshToken.ClientMode;
 import com.teamproject.authentication.domain.token.SessionDevice;
+import com.teamproject.deployment.application.DeploymentSettingsService;
 import com.teamproject.deployment.domain.DeploymentSettings;
 import com.teamproject.deployment.domain.DeploymentSettingsRepository;
 import com.teamproject.user.domain.User;
@@ -37,7 +38,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         "app.admin.allowed-ips=127.0.0.1",
         "app.host-apply.control-root=${java.io.tmpdir}/gearvia-tls-api-test",
         "app.host-apply.hmac-key=test-hmac-key-abcdef0123456789",
-        "app.host-apply.result-wait-ms=4000"
+        "app.host-apply.result-wait-ms=1500",
+        "app.host-apply.reconcile-timeout-ms=50",
+        "app.host-apply.reconcile-ms=3600000"
 })
 @AutoConfigureMockMvc
 @Transactional
@@ -52,6 +55,7 @@ class AdminDeploymentSettingsApiTest {
     @Autowired AccessSessionIssuer sessions;
     @Autowired DeploymentSettingsRepository settings;
     @Autowired AdminNoticeRepository notices;
+    @Autowired DeploymentSettingsService service;
 
     @BeforeAll
     static void generateMaterial() throws Exception {
@@ -143,8 +147,8 @@ class AdminDeploymentSettingsApiTest {
                 "requestId=tls-" + jobId,
                 "status=APPLIED",
                 "code=OK",
-                "certificateIssuer=CN=gearvia.corp",
-                "certificateNotAfter=Jan  1 00:00:00 2027 GMT",
+                "certificateIssuer=CN = gearvia.corp",
+                "certificateNotAfter=2027-01-01T00:00:00Z",
                 "certificateSans=DNS:gearvia.corp,DNS:localhost") + "\n");
 
         mvc.perform(post("/api/v1/admin/deployment-settings/{id}/apply", jobId)
@@ -157,12 +161,42 @@ class AdminDeploymentSettingsApiTest {
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.publicUrl").value("https://gearvia.corp"))
+                .andExpect(jsonPath("$.certificateIssuer").value("CN = gearvia.corp"))
+                .andExpect(jsonPath("$.certificateNotAfter").value("2027-01-01T00:00"))
+                .andExpect(jsonPath("$.certificateSans").value("DNS:gearvia.corp,DNS:localhost"))
+                .andExpect(jsonPath("$.applyVersion").value(1))
                 .andExpect(jsonPath("$.privateKey").doesNotExist());
 
         assertThat(settings.findById(DeploymentSettings.SINGLETON_ID))
                 .get().extracting(DeploymentSettings::getPublicUrl).isEqualTo("https://gearvia.corp");
         assertThat(notices.findAll())
                 .anyMatch(notice -> notice.getTitle().contains("gearvia.corp"));
+    }
+
+    @Test
+    void applyRollsBackAndKeepsSettingsWhenHostReportsFailure() throws Exception {
+        String token = adminToken();
+        long jobId = createDraft(token);
+
+        mvc.perform(post("/api/v1/admin/deployment-settings/{id}/test", jobId)
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+                .andExpect(status().isOk());
+
+        Path results = controlRoot.resolve("results");
+        Files.createDirectories(results);
+        Files.writeString(results.resolve("tls-" + jobId + ".env"), String.join("\n",
+                "requestId=tls-" + jobId,
+                "status=ROLLED_BACK",
+                "code=HEALTH_CHECK_FAILED",
+                "certificateIssuer=", "certificateNotAfter=", "certificateSans=") + "\n");
+
+        mvc.perform(post("/api/v1/admin/deployment-settings/{id}/apply", jobId)
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("ROLLED_BACK"))
+                .andExpect(jsonPath("$.failureCode").value("HEALTH_CHECK_FAILED"));
+
+        assertThat(settings.findById(DeploymentSettings.SINGLETON_ID)).isEmpty();
     }
 
     @Test
@@ -197,5 +231,52 @@ class AdminDeploymentSettingsApiTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("COMPLETED"));
         writer.join();
+    }
+
+    private long switchedJob(String token) throws Exception {
+        long jobId = createDraft(token);
+        mvc.perform(post("/api/v1/admin/deployment-settings/{id}/test", jobId)
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+                .andExpect(status().isOk());
+        Files.createDirectories(controlRoot.resolve("results"));
+        Files.deleteIfExists(controlRoot.resolve("results").resolve("tls-" + jobId + ".env"));
+        mvc.perform(post("/api/v1/admin/deployment-settings/{id}/apply", jobId)
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("SWITCHED"));
+        return jobId;
+    }
+
+    @Test
+    void reconcileCompletesSwitchedJobWhenTheResultArrivesLate() throws Exception {
+        String token = adminToken();
+        long jobId = switchedJob(token);
+
+        Files.writeString(controlRoot.resolve("results").resolve("tls-" + jobId + ".env"),
+                String.join("\n", "requestId=tls-" + jobId, "status=APPLIED", "code=OK",
+                        "certificateIssuer=CN = gearvia.corp",
+                        "certificateNotAfter=2027-01-01T00:00:00Z",
+                        "certificateSans=DNS:gearvia.corp") + "\n");
+
+        assertThat(service.reconcilePendingApplies()).isEqualTo(1);
+        mvc.perform(get("/api/v1/admin/deployment-settings/jobs/{id}", jobId)
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+                .andExpect(jsonPath("$.status").value("COMPLETED"));
+        assertThat(settings.findById(DeploymentSettings.SINGLETON_ID))
+                .get().extracting(DeploymentSettings::getPublicUrl).isEqualTo("https://gearvia.corp");
+    }
+
+    @Test
+    void reconcileFailsSwitchedJobAfterTheTimeoutAndKeepsSettings() throws Exception {
+        String token = adminToken();
+        long jobId = switchedJob(token);
+        Thread.sleep(120);
+
+        assertThat(service.reconcilePendingApplies()).isEqualTo(1);
+        mvc.perform(get("/api/v1/admin/deployment-settings/jobs/{id}", jobId)
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+                .andExpect(jsonPath("$.status").value("FAILED"))
+                .andExpect(jsonPath("$.failureCode").value("HOST_APPLY_TIMEOUT"));
+        assertThat(settings.findById(DeploymentSettings.SINGLETON_ID)).isEmpty();
     }
 }

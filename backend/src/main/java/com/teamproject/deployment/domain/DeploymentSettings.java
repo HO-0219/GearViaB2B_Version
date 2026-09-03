@@ -53,6 +53,24 @@ public class DeploymentSettings {
         this.updatedAt = LocalDateTime.now();
     }
 
+    /** Records the URL together with the certificate metadata reported by the host applier. */
+    public DeploymentSettings(String publicUrl, String certificateIssuer,
+            LocalDateTime certificateNotAfter, String certificateSans, long applyVersion) {
+        this(publicUrl);
+        this.certificateIssuer = trimToLength(certificateIssuer, 255);
+        this.certificateNotAfter = certificateNotAfter;
+        this.certificateSans = trimToLength(certificateSans, 1024);
+        this.applyVersion = applyVersion;
+    }
+
+    private static String trimToLength(String value, int maxLength) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        String trimmed = value.trim();
+        return trimmed.length() <= maxLength ? trimmed : trimmed.substring(0, maxLength);
+    }
+
     /**
      * Validates the public URL rules: HTTPS scheme, a host, no user info, no path,
      * no query or fragment, and no explicit default HTTPS port.

@@ -105,6 +105,13 @@ describe('AdminDeploymentSettingsPage', () => {
     expect(await screen.findByText('https://new.gearvia.corp')).toBeTruthy();
   });
 
+  test('shows the certificate metadata returned by the settings endpoint', async () => {
+    render(<LanguageProvider><AdminDeploymentSettingsPage /></LanguageProvider>);
+    expect(await screen.findByText('CN=GearVia Local CA')).toBeTruthy();
+    expect(screen.getByText('2027-01-01T00:00:00')).toBeTruthy();
+    expect(screen.getByText('gearvia.corp, localhost')).toBeTruthy();
+  });
+
   test('stops polling and shows the rollback reason when apply is rolled back', async () => {
     vi.mocked(adminApi.applyDeploymentJob).mockResolvedValue(
       job({ status: 'SWITCHED', progressPercent: 80 }) as never,

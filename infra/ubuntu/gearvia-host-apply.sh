@@ -70,12 +70,36 @@ pubkey_hash_from_key() {
   openssl pkey -in "$1" -pubout -outform der 2>/dev/null | sha256sum | cut -d' ' -f1
 }
 
-host_apply_healthy() {
+# A single probe of the freshly recreated web container.
+host_apply_health_probe() {
   case "${GEARVIA_TEST_HEALTH:-}" in
     ok) return 0 ;;
     fail) return 1 ;;
+    slow)
+      # Test hook: fail the first probe, then succeed, exercising the retry loop.
+      local marker="${GEARVIA_TEST_HEALTH_MARKER:?slow health test needs GEARVIA_TEST_HEALTH_MARKER}"
+      local n
+      n=$(( $(cat "$marker" 2>/dev/null || echo 0) + 1 ))
+      printf '%s' "$n" > "$marker"
+      (( n >= 2 ))
+      return
+      ;;
   esac
   curl --insecure --fail --silent --max-time 5 https://127.0.0.1/healthz >/dev/null 2>&1
+}
+
+# `docker compose up -d` returns before nginx has bound :443, so a single probe
+# almost always fails on real hardware and forces an unnecessary rollback. Retry
+# for up to GEARVIA_HEALTH_ATTEMPTS * GEARVIA_HEALTH_INTERVAL seconds.
+host_apply_healthy() {
+  local attempts="${GEARVIA_HEALTH_ATTEMPTS:-20}" interval="${GEARVIA_HEALTH_INTERVAL:-2}" i
+  for (( i = 0; i < attempts; i++ )); do
+    if host_apply_health_probe; then
+      return 0
+    fi
+    (( i + 1 < attempts )) && sleep "$interval"
+  done
+  return 1
 }
 
 recreate_web() {
@@ -134,6 +158,8 @@ fi
 
 cert_issuer="$(openssl x509 -in "$tls_root/fullchain.pem" -noout -issuer 2>/dev/null | sed 's/^issuer= *//' || true)"
 cert_not_after="$(openssl x509 -in "$tls_root/fullchain.pem" -noout -enddate 2>/dev/null | sed 's/^notAfter=//' || true)"
+# Normalise the OpenSSL date to an ISO-8601 UTC instant the backend can parse.
+cert_not_after="$(date -u -d "$cert_not_after" +%Y-%m-%dT%H:%M:%SZ 2>/dev/null || printf '%s' "$cert_not_after")"
 san_block="$(openssl x509 -in "$tls_root/fullchain.pem" -noout -ext subjectAltName 2>/dev/null || true)"
 cert_sans="$(printf '%s\n' "$san_block" | awk '/DNS:|IP Address:/ {gsub(/ /,""); print}' | paste -sd, -)"
 result_status="APPLIED"

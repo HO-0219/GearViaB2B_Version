@@ -80,6 +80,7 @@ export function AdminDeploymentSettingsPage({ pollIntervalMs = 2000 }: { pollInt
           <dt>{t('만료일', 'Expires')}</dt><dd>{status.certificateNotAfter ?? '-'}</dd>
           <dt>{t('SAN', 'SAN')}</dt><dd>{status.certificateSans.join(', ') || '-'}</dd>
           <dt>{t('상태', 'Status')}</dt><dd>{status.status}</dd>
+          <dt>{t('적용 버전', 'Apply version')}</dt><dd>{status.applyVersion}</dd>
         </dl>
       )}
 

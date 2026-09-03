@@ -53,6 +53,7 @@ public class DeploymentSettingsService {
     private final AdminNoticeService notices;
     private final Path controlRoot;
     private final long resultWaitMs;
+    private final long reconcileTimeoutMs;
 
     public DeploymentSettingsService(DeploymentSettingsRepository settings,
             InfrastructureChangeJobRepository jobs, UserRepository users, HostApplyGateway hostApply,
@@ -60,7 +61,9 @@ public class DeploymentSettingsService {
             @org.springframework.beans.factory.annotation.Value(
                     "${app.host-apply.control-root:/var/lib/gearvia/control}") String controlRoot,
             @org.springframework.beans.factory.annotation.Value(
-                    "${app.host-apply.result-wait-ms:6000}") long resultWaitMs) {
+                    "${app.host-apply.result-wait-ms:6000}") long resultWaitMs,
+            @org.springframework.beans.factory.annotation.Value(
+                    "${app.host-apply.reconcile-timeout-ms:300000}") long reconcileTimeoutMs) {
         this.settings = settings;
         this.jobs = jobs;
         this.users = users;
@@ -69,6 +72,7 @@ public class DeploymentSettingsService {
         this.notices = notices;
         this.controlRoot = Path.of(controlRoot);
         this.resultWaitMs = resultWaitMs;
+        this.reconcileTimeoutMs = reconcileTimeoutMs;
     }
 
     @Transactional(readOnly = true)
@@ -157,6 +161,34 @@ public class DeploymentSettingsService {
         }
     }
 
+    /**
+     * Completes apply jobs that were left in {@code SWITCHED} because the client
+     * stopped polling before the async host result landed. If the result is now
+     * present it finalizes normally; if none arrives within
+     * {@code reconcile-timeout-ms} the job is marked {@code FAILED} and the live
+     * service state is left untouched.
+     */
+    @Transactional
+    public int reconcilePendingApplies() {
+        java.time.LocalDateTime cutoff =
+                java.time.LocalDateTime.now().minus(java.time.Duration.ofMillis(reconcileTimeoutMs));
+        int changed = 0;
+        for (InfrastructureChangeJob job :
+                jobs.findByTypeAndStatus(Type.DOMAIN_TLS, Status.SWITCHED)) {
+            HostApplyResult result = hostApply.readResult(requestId(job.getId())).orElse(null);
+            if (result != null) {
+                finalizeFromResult(job, result);
+            } else if (job.getUpdatedAt().isBefore(cutoff)) {
+                job.transitionTo(Status.FAILED, 100, "HOST_APPLY_TIMEOUT");
+            } else {
+                continue;
+            }
+            jobs.saveAndFlush(job);
+            changed++;
+        }
+        return changed;
+    }
+
     @Transactional
     public JobView jobView(Long jobId) {
         InfrastructureChangeJob job = requireJob(jobId);
@@ -177,11 +209,28 @@ public class DeploymentSettingsService {
         if (result.succeeded()) {
             job.transitionTo(Status.SWITCHED, 80, "후보 인증서를 적용했습니다.");
             job.transitionTo(Status.COMPLETED, 100, "SAN: " + result.certificateSans());
-            settings.save(new DeploymentSettings(job.getRedactedTarget()));
+            long nextVersion = settings.findById(DeploymentSettings.SINGLETON_ID)
+                    .map(DeploymentSettings::getApplyVersion).orElse(0L) + 1;
+            settings.save(new DeploymentSettings(job.getRedactedTarget(), result.certificateIssuer(),
+                    parseCertNotAfter(result.certificateNotAfter()), result.certificateSans(),
+                    nextVersion));
         } else {
             job.transitionTo(Status.FAILED, 100, result.code());
             job.transitionTo(Status.ROLLED_BACK, 100,
                     "이전 인증서로 복구되었습니다 (" + result.status() + ").");
+        }
+    }
+
+    /** The host applier emits the certificate's notAfter as an ISO-8601 UTC instant. */
+    private static java.time.LocalDateTime parseCertNotAfter(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        try {
+            return java.time.LocalDateTime.ofInstant(
+                    java.time.Instant.parse(value.trim()), java.time.ZoneOffset.UTC);
+        } catch (java.time.format.DateTimeParseException e) {
+            return null;
         }
     }
 

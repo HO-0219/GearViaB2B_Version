@@ -119,6 +119,20 @@ echo "$out" | grep -Eq '^status=APPLIED$' || fail "expected status=APPLIED, got:
 result="$control/results/req-ok.env"
 [[ -f "$result" ]] || fail "result file not written"
 grep -Eq '^certificateSans=.*new\.gearvia\.corp' "$result" || fail "result missing certificate SANs"
-grep -Eq '^certificateNotAfter=.+' "$result" || fail "result missing certificate expiry"
+grep -Eq '^certificateNotAfter=[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$' "$result" \
+  || fail "result certificate expiry is not an ISO-8601 UTC instant"
+
+# 6. A web container that is briefly unready after recreation is retried, not
+#    rolled back (the real curl probe races nginx startup on real hardware).
+make_candidate 'req-slow'
+slow_candidate_sum="$(sha256sum "$control/candidates/req-slow/fullchain.pem" | cut -d' ' -f1)"
+write_request 'req-slow' 'https://gearvia.corp' uploaded "$(sign 'req-slow' 'https://gearvia.corp' uploaded)"
+rm -f "$tmp_root/slow-marker"
+GEARVIA_TEST_HEALTH=slow GEARVIA_TEST_HEALTH_MARKER="$tmp_root/slow-marker" \
+  GEARVIA_HEALTH_INTERVAL=0 GEARVIA_HEALTH_ATTEMPTS=5 run_apply
+assert_code OK
+echo "$out" | grep -Eq '^status=APPLIED$' || fail "slow-but-healthy web should not roll back, got:\n$out"
+[[ "$(sha256sum "$tls/fullchain.pem" | cut -d' ' -f1)" == "$slow_candidate_sum" ]] \
+  || fail "candidate certificate was not installed after a retried health probe"
 
 echo "Ubuntu host apply tests passed"
