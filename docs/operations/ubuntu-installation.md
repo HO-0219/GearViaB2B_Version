@@ -43,11 +43,23 @@ sudo ./install_gearvia_ai_agent_ubuntu.sh --db-password-file /secure/mysql-app-p
 
 이미지는 `infra/images/<이름>.tar` 번들 로드, 로컬 이미지 재사용, 애플리케이션 소스 빌드
 순서로 준비합니다. MySQL 8.4와 BusyBox 1.37은 로컬에 없을 때만 가져오므로 폐쇄망에서는
-해당 tar 번들을 릴리스에 포함하십시오.
+해당 tar 번들을 릴리스에 포함하십시오. 적용된 이미지 ID는 `/var/lib/gearvia/install-state.env`에
+기록됩니다.
+
+`runtime.env`, JWT·MFA·MySQL 비밀값은 설치기가 생성하며 재실행 시 보존됩니다.
+`infra/b2b/runtime.env.example`은 생성되는 키 목록 확인용이며 직접 복사하지 않습니다.
+접속 주소(`FRONTEND_URL`)와 서버 인증서를 바꾸려면 `runtime.env`를 편집하고
+`/etc/gearvia/tls/{fullchain,privkey}.pem`을 교체한 뒤 `sudo systemctl restart b2bgearvia`
+하십시오.
+
+첫 설치 시 관리자 계정이 자동 생성됩니다 — 아이디 `admin`, 초기 비밀번호 `admin`.
+자격 증명은 `/etc/gearvia/initial-admin.txt`에도 기록됩니다. **첫 로그인 직후 비밀번호를
+변경해야 하며**(강제됨), 변경 후 그 파일을 삭제하십시오. 최초 관리자 시크릿
+(`/opt/b2bgearvia/bootstrap/admin.env`)은 계정 생성 뒤 자동 삭제됩니다.
 
 ## 제거
 
-기본 제거는 서비스를 중지하고 활성 설정과 TLS 키/인증서를 삭제하지만 Docker 데이터베이스
+기본 제거는 서비스를 중지하고 활성 설정, TLS 키/인증서를 삭제하지만 Docker 데이터베이스
 볼륨, 로컬/NAS 파일 및 DB 비밀번호 전용 복구 상태는 보존합니다.
 
 ```bash
@@ -61,4 +73,13 @@ Docker 명명 볼륨과 외부 마운트 NAS의 파일은 별도로 해당 스�
 sudo ./uninstall_gearvia_ai_agent_ubuntu.sh --purge-data --confirm-purge GEARVIA
 ```
 
-릴리스 패키지를 만들기 전에 `bash infra/ubuntu/test-lifecycle-scripts.sh`를 실행하십시오.
+릴리스 패키지를 만들기 전에 다음 집중 검증을 모두 실행하십시오.
+
+```bash
+bash infra/ubuntu/test-lifecycle-scripts.sh
+bash infra/ubuntu/test-tls-automation.sh
+bash infra/ubuntu/test-image-selection.sh
+bash infra/ubuntu/test-line-endings.sh
+bash infra/ubuntu/test-release-bundle.sh
+bash infra/b2b/test-virtualbox-config.sh
+```

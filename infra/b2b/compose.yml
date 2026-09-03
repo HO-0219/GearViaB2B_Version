@@ -26,12 +26,42 @@ services:
     volumes: [mysql-data:/var/lib/mysql]
     networks: [internal]
     healthcheck:
-      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -ub2bgearvia -p$$MYSQL_PASSWORD --silent"]
+      # Probe as root: its password is preserved across reinstalls, so the check
+      # stays valid even when MYSQL_APP_PASSWORD changes and db-init has not yet
+      # re-granted the application account on the persisted volume.
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p$$MYSQL_ROOT_PASSWORD --silent"]
       interval: 10s
       timeout: 5s
       retries: 30
       start_period: 30s
     stop_grace_period: 30s
+    logging: *logging
+
+  # A persisted mysql-data volume keeps the application account on whatever
+  # password it was first created with; the MYSQL_USER/MYSQL_PASSWORD image
+  # variables are ignored on a non-empty datadir. Reconcile it every start so a
+  # reinstall that rotates MYSQL_APP_PASSWORD does not fail the backend with
+  # "Access denied" (ERROR 1045).
+  db-init:
+    image: ${MYSQL_IMAGE:-mysql:8.4}
+    profiles: ["bundled-db"]
+    restart: "no"
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?set MYSQL_ROOT_PASSWORD}
+      MYSQL_APP_PASSWORD: ${MYSQL_APP_PASSWORD:?set MYSQL_APP_PASSWORD}
+    command:
+      - sh
+      - -ceu
+      - |
+        mysql -h mysql -uroot -p"$$MYSQL_ROOT_PASSWORD" -e "
+          CREATE DATABASE IF NOT EXISTS b2bgearvia CHARACTER SET utf8mb4;
+          CREATE USER IF NOT EXISTS 'b2bgearvia'@'%' IDENTIFIED BY '$$MYSQL_APP_PASSWORD';
+          ALTER USER 'b2bgearvia'@'%' IDENTIFIED BY '$$MYSQL_APP_PASSWORD';
+          GRANT ALL PRIVILEGES ON b2bgearvia.* TO 'b2bgearvia'@'%';
+          FLUSH PRIVILEGES;"
+    depends_on:
+      mysql: {condition: service_healthy}
+    networks: [internal]
     logging: *logging
 
   backend:
@@ -53,6 +83,9 @@ services:
       ADMIN_TRUSTED_PROXIES: ${ADMIN_TRUSTED_PROXIES:-172.16.0.0/12}
       FRONTEND_URL: ${FRONTEND_URL:?set FRONTEND_URL}
       ADMIN_FRONTEND_URL: ${ADMIN_FRONTEND_URL:?set ADMIN_FRONTEND_URL}
+      # The installer drops the first-administrator secret here; BootstrapAdmin
+      # creates the account on first start and deletes the file.
+      BOOTSTRAP_ADMIN_SECRET_FILE: ${BOOTSTRAP_ADMIN_SECRET_FILE:-/run/b2bgearvia-bootstrap/admin.env}
       SERVER_PORT: 8081
       # MCP/Admin perform their own trusted-proxy validation and require the raw socket peer.
       SERVER_FORWARD_HEADERS_STRATEGY: none
@@ -97,9 +130,12 @@ services:
     volumes:
       - uploads:/opt/b2bgearvia/data/uploads
       - /opt/b2bgearvia/data/nas:/opt/b2bgearvia/data/nas
+      # Writable: BootstrapAdmin removes admin.env after creating the account.
+      - /opt/b2bgearvia/bootstrap:/run/b2bgearvia-bootstrap
     networks: [internal]
     depends_on:
       init-data: {condition: service_completed_successfully}
+      db-init: {condition: service_completed_successfully, required: false}
       mysql: {condition: service_healthy, required: false}
     healthcheck:
       test: ["CMD-SHELL", "curl --fail --silent http://127.0.0.1:8081/api/v1/health/ready"]

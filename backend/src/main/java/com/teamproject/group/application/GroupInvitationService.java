@@ -3,6 +3,7 @@ package com.teamproject.group.application;
 import com.teamproject.authentication.infrastructure.crypto.HashService;
 import com.teamproject.authentication.infrastructure.mail.MailService;
 import com.teamproject.common.exception.ApplicationException;
+import com.teamproject.deployment.application.PublicUrlProvider;
 import com.teamproject.group.application.dto.GroupDtos.InvitationResponse;
 import com.teamproject.group.application.dto.GroupDtos.InviteLinkResponse;
 import com.teamproject.group.application.dto.GroupDtos.MemberResponse;
@@ -29,13 +30,13 @@ public class GroupInvitationService {
     private final UserRepository users;
     private final HashService hashes;
     private final MailService mail;
-    private final String frontendUrl;
+    private final PublicUrlProvider publicUrls;
     private final long invitationHours;
 
     public GroupInvitationService(GroupAuthorization authorization, GroupInvitationRepository invitations,
             GroupInviteLinkRepository inviteLinks, GroupMemberRepository members,
             UserRepository users, HashService hashes, MailService mail,
-            @Value("${app.frontend-url}") String frontendUrl,
+            PublicUrlProvider publicUrls,
             @Value("${app.group.invitation-hours}") long invitationHours) {
         this.authorization = authorization;
         this.invitations = invitations;
@@ -44,7 +45,7 @@ public class GroupInvitationService {
         this.users = users;
         this.hashes = hashes;
         this.mail = mail;
-        this.frontendUrl = frontendUrl;
+        this.publicUrls = publicUrls;
         this.invitationHours = invitationHours;
     }
 
@@ -70,7 +71,7 @@ public class GroupInvitationService {
         String token = Base64.getUrlEncoder().withoutPadding().encodeToString(random.generateSeed(32));
         GroupInvitation invitation = invitations.save(new GroupInvitation(inviter.getGroup(), email, inviter,
                 hashes.sha256(token), LocalDateTime.now().plusHours(invitationHours)));
-        String link = frontendUrl + "/group-invitations/accept?token=" + token;
+        String link = publicUrls.current() + "/group-invitations/accept?token=" + token;
         mail.sendBestEffort(email, "[B2BGearVia] 그룹 초대", inviter.getGroup().getName()
                 + " 그룹에 초대되었습니다.\n" + link + "\n" + invitationHours + "시간 안에 수락해 주세요.");
         return response(invitation);
@@ -88,7 +89,7 @@ public class GroupInvitationService {
         String token = Base64.getUrlEncoder().withoutPadding().encodeToString(random.generateSeed(32));
         GroupInviteLink inviteLink = inviteLinks.save(new GroupInviteLink(inviter.getGroup(), inviter,
                 hashes.sha256(token), now.plusHours(invitationHours)));
-        return response(inviteLink, frontendUrl + "/group-invitations/accept?token=" + token);
+        return response(inviteLink, publicUrls.current() + "/group-invitations/accept?token=" + token);
     }
 
     @Transactional

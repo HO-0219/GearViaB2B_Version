@@ -29,6 +29,18 @@ printf 'ID=ubuntu\nVERSION_ID="24.04"\n' > "$tmp_root/etc/os-release"
 if GEARVIA_TEST_ROOT="$tmp_root" GEARVIA_TEST_ARCH="aarch64" "$installer" --dry-run --db-password-file "$password_file" >/dev/null 2>&1; then
   fail "unsupported architecture was accepted"
 fi
+
+short_password_file="$tmp_root/db-password-short"
+printf '%s' 'Short-2026!' > "$short_password_file"   # 11 chars
+if GEARVIA_TEST_ROOT="$tmp_root" GEARVIA_SKIP_RUNTIME=1 "$installer" --dry-run --db-password-file "$short_password_file" >/dev/null 2>&1; then
+  fail "database password shorter than 16 characters was accepted"
+fi
+
+quote_password_file="$tmp_root/db-password-quote"
+printf '%s' "has-a-quote-'-in-it-here" > "$quote_password_file"
+if GEARVIA_TEST_ROOT="$tmp_root" GEARVIA_SKIP_RUNTIME=1 "$installer" --dry-run --db-password-file "$quote_password_file" >/dev/null 2>&1; then
+  fail "database password containing a quote was accepted"
+fi
 GEARVIA_TEST_ROOT="$tmp_root" GEARVIA_SKIP_RUNTIME=1 "$installer" --dry-run --db-password-file "$password_file" >/dev/null
 assert_absent "$tmp_root/opt/b2bgearvia"
 
@@ -43,6 +55,12 @@ grep -Fq 'MYSQL_APP_PASSWORD=LocalDbPassword-2026!' "$tmp_root/etc/gearvia/runti
 if [[ "$(uname -s)" != MINGW* ]]; then
   [[ "$(stat -c '%a' "$tmp_root/etc/gearvia/runtime.env")" == "600" ]] || fail "runtime configuration is not mode 0600"
 fi
+
+# First administrator secret is provisioned for BootstrapAdmin to consume.
+assert_file "$tmp_root/opt/b2bgearvia/bootstrap/admin.env"
+assert_file "$tmp_root/etc/gearvia/initial-admin.txt"
+grep -Fq 'username=admin' "$tmp_root/opt/b2bgearvia/bootstrap/admin.env"
+grep -Fq 'password=admin' "$tmp_root/opt/b2bgearvia/bootstrap/admin.env"
 if (cd "$tmp_root" && GEARVIA_TEST_ROOT="$tmp_root" GEARVIA_SKIP_RUNTIME=1 \
   "$installer" --db-password-file db-password >/dev/null 2>&1); then
   fail "relative database password file was accepted on rerun"
@@ -60,8 +78,21 @@ GEARVIA_TEST_ROOT="$tmp_root" GEARVIA_SKIP_RUNTIME=1 "$uninstaller" >/dev/null
 assert_file "$tmp_root/opt/b2bgearvia/data/local/file.bin"
 assert_absent "$tmp_root/etc/gearvia/runtime.env"
 assert_absent "$tmp_root/etc/gearvia/tls"
+assert_absent "$tmp_root/opt/b2bgearvia/bootstrap"
+assert_absent "$tmp_root/etc/gearvia/initial-admin.txt"
 assert_file "$tmp_root/var/lib/gearvia/recovery/database.env"
 grep -Fq 'MYSQL_APP_PASSWORD=LocalDbPassword-2026!' "$tmp_root/var/lib/gearvia/recovery/database.env"
+
+# A too-short password left in the recovery file must not be replayed: a valid
+# provided password wins instead of crashing the backend on every reinstall.
+printf 'MYSQL_APP_PASSWORD=short\nMYSQL_ROOT_PASSWORD=irrelevant\n' \
+  > "$tmp_root/var/lib/gearvia/recovery/database.env"
+printf '%s' 'RecoveredMustRevalidate-2026!' > "$password_file"
+GEARVIA_TEST_ROOT="$tmp_root" GEARVIA_SKIP_RUNTIME=1 \
+  "$installer" --db-password-file "$password_file" >/dev/null
+grep -Fq 'MYSQL_APP_PASSWORD=RecoveredMustRevalidate-2026!' "$tmp_root/etc/gearvia/runtime.env" \
+  || fail "installer replayed an invalid recovered database password"
+GEARVIA_TEST_ROOT="$tmp_root" GEARVIA_SKIP_RUNTIME=1 "$uninstaller" >/dev/null
 
 if GEARVIA_TEST_ROOT="$tmp_root" GEARVIA_SKIP_RUNTIME=1 "$uninstaller" --purge-data --confirm-purge WRONG >/dev/null 2>&1; then
   fail "purge accepted an invalid confirmation"

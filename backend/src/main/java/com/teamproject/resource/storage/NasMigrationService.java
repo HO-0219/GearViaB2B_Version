@@ -4,12 +4,27 @@ import java.io.IOException;
 import java.nio.file.FileStore;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Arrays;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 
 public final class NasMigrationService {
     private static final int MAX_FILES = 100_000;
+    private static final long DEFAULT_MAX_FILE_BYTES = 256L * 1024 * 1024;
+    private static final long DEFAULT_MAX_TOTAL_BYTES = 8L * 1024 * 1024 * 1024;
+
+    private final long maxFileBytes;
+    private final long maxTotalBytes;
+
+    public NasMigrationService() {
+        this(DEFAULT_MAX_FILE_BYTES, DEFAULT_MAX_TOTAL_BYTES);
+    }
+
+    NasMigrationService(long maxFileBytes, long maxTotalBytes) {
+        this.maxFileBytes = maxFileBytes;
+        this.maxTotalBytes = maxTotalBytes;
+    }
 
     public NasPreflight preflight(Path sourceRoot, Path targetRoot, FileStorage source) {
         Path sourcePath = sourceRoot.toAbsolutePath().normalize();
@@ -24,7 +39,15 @@ public final class NasMigrationService {
             List<String> keys = boundedKeys(source);
             long sourceBytes = 0;
             for (String key : keys) {
-                sourceBytes = Math.addExact(sourceBytes, source.get(key).content().length);
+                // One file resident at a time; the StoredFile is not retained past this line.
+                long size = source.get(key).content().length;
+                if (size > maxFileBytes) {
+                    return new NasPreflight(false, keys.size(), sourceBytes, 0, 0, "", "NAS_FILE_TOO_LARGE");
+                }
+                sourceBytes = Math.addExact(sourceBytes, size);
+                if (sourceBytes > maxTotalBytes) {
+                    return new NasPreflight(false, keys.size(), sourceBytes, 0, 0, "", "NAS_DATASET_TOO_LARGE");
+                }
             }
             long reserve = Math.max(1L, Math.ceilDiv(sourceBytes, 10L));
             long requiredBytes = Math.addExact(sourceBytes, reserve);
@@ -48,36 +71,68 @@ public final class NasMigrationService {
         } catch (RuntimeException exception) {
             return MigrationResult.failed("NAS_SOURCE_LIST_FAILED");
         }
+        List<String> copied = new ArrayList<>();
         long verifiedBytes = 0;
         for (String key : keys) {
-            FileStorage.StoredFile expected;
+            byte[] expectedDigest;
+            String expectedContentType;
+            int expectedLength;
             try {
-                expected = source.get(key);
+                FileStorage.StoredFile expected = source.get(key);
+                if (expected.content().length > maxFileBytes) {
+                    return cleanUp(target, copied, "NAS_FILE_TOO_LARGE");
+                }
+                expectedDigest = sha256(expected.content());
+                expectedContentType = expected.contentType();
+                expectedLength = expected.content().length;
                 target.put(key, expected.content(), expected.contentType());
+                copied.add(key);
             } catch (RuntimeException exception) {
-                return MigrationResult.failed("NAS_COPY_FAILED");
+                return cleanUp(target, copied, "NAS_COPY_FAILED");
             }
             try {
                 FileStorage.StoredFile actual = target.get(key);
-                if (!Arrays.equals(expected.content(), actual.content())
-                        || !Objects.equals(expected.contentType(), actual.contentType())) {
-                    return MigrationResult.failed("NAS_VERIFY_FAILED");
+                if (!java.util.Arrays.equals(expectedDigest, sha256(actual.content()))
+                        || !java.util.Objects.equals(expectedContentType, actual.contentType())) {
+                    return cleanUp(target, copied, "NAS_VERIFY_FAILED");
                 }
-                verifiedBytes = Math.addExact(verifiedBytes, actual.content().length);
             } catch (RuntimeException exception) {
-                return MigrationResult.failed("NAS_VERIFY_FAILED");
+                return cleanUp(target, copied, "NAS_VERIFY_FAILED");
             }
+            verifiedBytes = Math.addExact(verifiedBytes, expectedLength);
         }
         try {
             switchProvider.run();
             return new MigrationResult(true, keys.size(), verifiedBytes, null);
         } catch (RuntimeException exception) {
+            // The data is fully in place; only the provider flip failed. Leave the
+            // copied files — a retry re-runs the switch — and surface the failure.
             return MigrationResult.failed("NAS_SWITCH_FAILED");
         }
     }
 
     public MigrationResult rollback(FileStorage current, FileStorage previous, Runnable restoreProvider) {
         return migrateAndVerify(current, previous, restoreProvider);
+    }
+
+    /** Best-effort removal of the partial copy so a later retry (or abandonment) leaves no orphans. */
+    private MigrationResult cleanUp(FileStorage target, List<String> copied, String failureCode) {
+        for (String key : copied) {
+            try {
+                target.delete(key);
+            } catch (RuntimeException ignored) {
+                // leaving one stale file is better than aborting cleanup
+            }
+        }
+        return MigrationResult.failed(failureCode);
+    }
+
+    private byte[] sha256(byte[] content) {
+        try {
+            return MessageDigest.getInstance("SHA-256").digest(content);
+        } catch (NoSuchAlgorithmException exception) {
+            throw new IllegalStateException("SHA-256 is unavailable", exception);
+        }
     }
 
     private List<String> boundedKeys(FileStorage storage) {

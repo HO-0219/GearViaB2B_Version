@@ -5,9 +5,9 @@ import com.teamproject.authentication.application.token.OneTimeTokenService;
 import com.teamproject.authentication.application.token.RefreshTokenService;
 import com.teamproject.authentication.infrastructure.mail.MailService;
 import com.teamproject.common.exception.ApplicationException;
+import com.teamproject.deployment.application.PublicUrlProvider;
 import com.teamproject.user.domain.User;
 import com.teamproject.user.domain.UserRepository;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -22,17 +22,17 @@ public class RecoveryService {
     private final OneTimeTokenService oneTimeTokens;
     private final RefreshTokenService refreshTokens;
     private final MailService mail;
-    private final String frontendUrl;
+    private final PublicUrlProvider publicUrls;
 
     public RecoveryService(UserRepository users, PasswordEncoder passwordEncoder,
             OneTimeTokenService oneTimeTokens, RefreshTokenService refreshTokens, MailService mail,
-            @Value("${app.frontend-url}") String frontendUrl) {
+            PublicUrlProvider publicUrls) {
         this.users = users;
         this.passwordEncoder = passwordEncoder;
         this.oneTimeTokens = oneTimeTokens;
         this.refreshTokens = refreshTokens;
         this.mail = mail;
-        this.frontendUrl = frontendUrl;
+        this.publicUrls = publicUrls;
     }
 
     @Transactional(readOnly = true)
@@ -47,7 +47,7 @@ public class RecoveryService {
         users.findByEmailIgnoreCase(normalizeEmail(rawEmail)).ifPresent(user -> {
             String token = oneTimeTokens.issueResetToken(user.getEmail());
             mail.sendBestEffort(user.getEmail(), "[Gearvia] 비밀번호 재설정",
-                    frontendUrl + "/reset-password?email=" + user.getEmail() + "&token=" + token);
+                    publicUrls.current() + "/reset-password?email=" + user.getEmail() + "&token=" + token);
         });
     }
 

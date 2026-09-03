@@ -39,7 +39,8 @@ fi
 recovery_database="$state_root/recovery/database.env"
 db_password_source="$active_runtime"
 if [[ ! -r "$db_password_source" && -r "$recovery_database" ]]; then db_password_source="$recovery_database"; fi
-if existing_db_password="$(gearvia_read_runtime_value "$db_password_source" MYSQL_APP_PASSWORD)" && [[ -n "$existing_db_password" ]]; then
+if existing_db_password="$(gearvia_read_runtime_value "$db_password_source" MYSQL_APP_PASSWORD)" \
+    && [[ -n "$existing_db_password" ]] && gearvia_password_is_valid "$existing_db_password"; then
   db_password="$existing_db_password"
 elif [[ -n "$provided_db_password" ]]; then
   db_password="$provided_db_password"
@@ -87,12 +88,29 @@ if [[ "${GEARVIA_SKIP_RUNTIME:-0}" != "1" ]]; then
 fi
 
 if [[ -n "${GEARVIA_TEST_ROOT:-}" ]]; then
-  mkdir -p "$install_root/data/uploads" "$install_root/data/nas" "$install_root/config" "$config_root" "$tls_root" "$state_root/recovery"
+  mkdir -p "$install_root/data/uploads" "$install_root/data/nas" "$install_root/config" "$install_root/bootstrap" "$config_root" "$tls_root" "$state_root/recovery"
 else
   install -d -m 0755 "$install_root" "$install_root/data/uploads" "$install_root/data/nas" "$install_root/config"
+  install -d -m 0700 -o 10001 -g 10001 "$install_root/bootstrap"
   install -d -m 0700 "$config_root" "$tls_root" "$state_root" "$state_root/recovery"
 fi
 install -m 0644 "$script_dir/infra/b2b/compose.yml" "$install_root/compose.yml"
+
+# First administrator: BootstrapAdmin creates the account from this file on first
+# start and then deletes it. initial-admin.txt is the operator's readable copy
+# and, once present, marks that the first admin was already provisioned.
+initial_admin_note="$config_root/initial-admin.txt"
+bootstrap_admin_file="$install_root/bootstrap/admin.env"
+if [[ ! -f "$initial_admin_note" && ! -f "$bootstrap_admin_file" ]]; then
+  admin_domain="${public_url#https://}"; admin_domain="${admin_domain%%[:/]*}"
+  ( umask 077
+    printf 'username=admin\nemail=admin@%s\nname=GearVia Administrator\npassword=admin\n' "$admin_domain" > "$bootstrap_admin_file"
+    printf 'GearVia initial administrator\nURL=%s\nusername=admin\npassword=admin\n\nChange this password at the first login; this file can then be deleted.\n' \
+      "$public_url" > "$initial_admin_note"
+  )
+  [[ -n "${GEARVIA_TEST_ROOT:-}" ]] || chown 10001:10001 "$bootstrap_admin_file"
+  gearvia_log "First administrator: username 'admin', password 'admin' — change it at the first login ($initial_admin_note)"
+fi
 if [[ -f "$config_root/runtime.env" ]]; then
   install -m 0600 "$config_root/runtime.env" "$state_root/recovery/runtime.env.previous"
 fi
@@ -106,15 +124,25 @@ printf 'INSTALL_VERSION=1\nINSTALLED_AT=%s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" >
 if [[ "${GEARVIA_SKIP_RUNTIME:-0}" != "1" ]]; then gearvia_record_image_state "$state_root/install-state.env"; fi
 chmod 0600 "$state_root/install-state.env"
 
+gearvia_abort_startup() {
+  local reason="$1"
+  if [[ -f "$state_root/recovery/runtime.env.previous" ]]; then
+    install -m 0600 "$state_root/recovery/runtime.env.previous" "$config_root/runtime.env"
+    systemctl restart b2bgearvia.service >/dev/null 2>&1 || true
+    gearvia_die "$reason; the previous runtime configuration was restored"
+  fi
+  # First install: there is nothing to roll back to. Stop the crash-looping
+  # service so it does not keep retrying, and leave the operator a clean slate.
+  systemctl disable --now b2bgearvia.service >/dev/null 2>&1 || true
+  docker compose --env-file "$config_root/runtime.env" -f "$install_root/compose.yml" down >/dev/null 2>&1 || true
+  gearvia_die "$reason; the service was stopped. Fix the configuration and re-run the installer"
+}
+
 if [[ "${GEARVIA_SKIP_RUNTIME:-0}" != "1" ]]; then
   docker compose --env-file "$config_root/runtime.env" -f "$install_root/compose.yml" config --quiet
   systemctl daemon-reload
   if ! systemctl enable --now b2bgearvia.service; then
-    if [[ -f "$state_root/recovery/runtime.env.previous" ]]; then
-      install -m 0600 "$state_root/recovery/runtime.env.previous" "$config_root/runtime.env"
-      systemctl restart b2bgearvia.service >/dev/null 2>&1 || true
-    fi
-    gearvia_die "Service startup failed; previous runtime configuration was restored"
+    gearvia_abort_startup "Service startup failed"
   fi
   ready=false
   for _ in {1..60}; do
@@ -122,9 +150,7 @@ if [[ "${GEARVIA_SKIP_RUNTIME:-0}" != "1" ]]; then
     sleep 2
   done
   if [[ "$ready" != true ]]; then
-    [[ ! -f "$state_root/recovery/runtime.env.previous" ]] || install -m 0600 "$state_root/recovery/runtime.env.previous" "$config_root/runtime.env"
-    systemctl restart b2bgearvia.service >/dev/null 2>&1 || true
-    gearvia_die "Readiness failed; previous runtime configuration was restored"
+    gearvia_abort_startup "Readiness check failed"
   fi
 fi
 install -m 0600 "$config_root/runtime.env" "$state_root/recovery/runtime.env.last-known-good"

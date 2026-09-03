@@ -6,11 +6,25 @@ import org.springframework.stereotype.Component;
 import javax.sql.DataSource;
 import java.sql.Connection;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 @Component
 public class DependencyReadiness {
+    // A stale NFS/SMB mount makes a plain filesystem probe block indefinitely; run
+    // it on a side thread so readiness reports "down" instead of hanging the request.
+    private static final int STORAGE_PROBE_TIMEOUT_SECONDS = 3;
+
     private final DataSource dataSource;
     private final DynamicFileStorage storage;
+    private final ExecutorService storageProbePool = Executors.newSingleThreadExecutor(runnable -> {
+        Thread thread = new Thread(runnable, "readiness-storage-probe");
+        thread.setDaemon(true);
+        return thread;
+    });
 
     public DependencyReadiness(DataSource dataSource, DynamicFileStorage storage) {
         this.dataSource = dataSource;
@@ -33,10 +47,17 @@ public class DependencyReadiness {
     }
 
     private Component storageHealth() {
+        Future<DynamicFileStorage.ActiveHealth> probe = storageProbePool.submit(storage::activeHealth);
         try {
-            DynamicFileStorage.ActiveHealth health = storage.activeHealth();
+            DynamicFileStorage.ActiveHealth health = probe.get(STORAGE_PROBE_TIMEOUT_SECONDS, TimeUnit.SECONDS);
             return new Component("storage", health.up(), health.provider());
-        } catch (RuntimeException ignored) {
+        } catch (TimeoutException timeout) {
+            probe.cancel(true);
+            return new Component("storage", false, "timeout");
+        } catch (InterruptedException interrupted) {
+            Thread.currentThread().interrupt();
+            return new Component("storage", false, "unavailable");
+        } catch (java.util.concurrent.ExecutionException failed) {
             return new Component("storage", false, "unavailable");
         }
     }

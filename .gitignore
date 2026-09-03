@@ -3,6 +3,7 @@
 *
 
 !.gitignore
+!.gitattributes
 !README.md
 !B2BGearVia_B2B_설치운영_매뉴얼.pdf
 

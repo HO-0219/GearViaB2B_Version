@@ -44,17 +44,26 @@ public class AiProviderPolicy {
         return new AiProviderProfile(provider, baseUrl, model, embeddingModel, timeoutSeconds, externalAllowed);
     }
 
+    /**
+     * Accepts an internal LLM host — IP literal or hostname — only when every DNS
+     * answer is a loopback, link-local, or RFC1918/ULA private address. A hostname
+     * that resolves anywhere public (or does not resolve) is rejected.
+     */
     private boolean resolvesOnlyToPrivateAddresses(String host) {
-        boolean literal = host.equals("localhost") || host.matches("[0-9]{1,3}(\\.[0-9]{1,3}){3}") || host.contains(":");
-        if (!literal) return false;
+        String bracketless = host.startsWith("[") && host.endsWith("]")
+                ? host.substring(1, host.length() - 1) : host;
         try {
-            InetAddress[] addresses = InetAddress.getAllByName(host);
-            if (addresses.length == 0) return false;
+            InetAddress[] addresses = InetAddress.getAllByName(bracketless);
+            if (addresses.length == 0) {
+                return false;
+            }
             for (InetAddress address : addresses) {
                 byte[] bytes = address.getAddress();
-                boolean ula = bytes.length == 16 && (bytes[0] & 0xfe) == 0xfc;
-                if (!(address.isAnyLocalAddress() || address.isLoopbackAddress() || address.isSiteLocalAddress()
-                        || address.isLinkLocalAddress() || ula)) return false;
+                boolean uniqueLocalV6 = bytes.length == 16 && (bytes[0] & 0xfe) == 0xfc;
+                if (!(address.isAnyLocalAddress() || address.isLoopbackAddress()
+                        || address.isSiteLocalAddress() || address.isLinkLocalAddress() || uniqueLocalV6)) {
+                    return false;
+                }
             }
             return true;
         } catch (java.net.UnknownHostException exception) {

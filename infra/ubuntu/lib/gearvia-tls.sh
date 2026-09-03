@@ -9,13 +9,25 @@ gearvia_is_private_ipv4() {
 }
 
 gearvia_detect_primary_address() {
-  local candidates="" candidate route_address=""
+  local candidates="" candidate route_address="" nat_fallback=""
+
+  # An explicit override always wins — the operator knows which address the
+  # instance is actually reached on when autodetection cannot.
+  if [[ -n "${GEARVIA_PUBLIC_ADDRESS:-}" ]]; then
+    gearvia_is_private_ipv4 "$GEARVIA_PUBLIC_ADDRESS" \
+      || gearvia_die "GEARVIA_PUBLIC_ADDRESS must be a private IPv4 address: $GEARVIA_PUBLIC_ADDRESS"
+    printf '%s' "$GEARVIA_PUBLIC_ADDRESS"
+    return
+  fi
+
   if [[ -v GEARVIA_TEST_IP_CANDIDATES ]]; then
     candidates="$GEARVIA_TEST_IP_CANDIDATES"
   else
     if command -v ip >/dev/null 2>&1; then
       route_address="$(ip -4 route get 1.1.1.1 2>/dev/null | awk '{ for (i = 1; i <= NF; i++) if ($i == "src") { print $(i + 1); exit } }')"
-      candidates="$route_address $(ip -o -4 address show scope global 2>/dev/null | awk '{print $4}')"
+      # Drop container/bridge interfaces (docker0, br-*, veth*, virbr*): their
+      # addresses are private but never how an operator reaches the host.
+      candidates="$route_address $(ip -o -4 address show scope global 2>/dev/null | awk '$2 !~ /^(docker|br-|veth|virbr)/ { print $4 }')"
     fi
     if command -v hostname >/dev/null 2>&1; then
       candidates="$candidates $(hostname -I 2>/dev/null || true)"
@@ -24,12 +36,25 @@ gearvia_detect_primary_address() {
 
   for candidate in $candidates; do
     candidate="${candidate%/*}"
-    if gearvia_is_private_ipv4 "$candidate"; then
-      printf '%s' "$candidate"
-      return
+    gearvia_is_private_ipv4 "$candidate" || continue
+    # A VirtualBox NAT adapter always holds 10.0.2.15/24 and carries the guest's
+    # default route, so "ip route get" reports it first — but it is reachable
+    # only from inside the guest, never from the host or the LAN. Bake it into
+    # FRONTEND_URL and every request from the real address is a CORS 403. Accept
+    # it only when the host-only / LAN address cannot be found.
+    if [[ "$candidate" == 10.0.2.* ]]; then
+      [[ -n "$nat_fallback" ]] || nat_fallback="$candidate"
+      continue
     fi
+    printf '%s' "$candidate"
+    return
   done
-  gearvia_die "사설 IPv4 주소를 감지하지 못했습니다. 호스트의 고정 IP 또는 네트워크 설정을 확인하십시오"
+
+  if [[ -n "$nat_fallback" ]]; then
+    printf '%s' "$nat_fallback"
+    return
+  fi
+  gearvia_die "사설 IPv4 주소를 감지하지 못했습니다. GEARVIA_PUBLIC_ADDRESS 로 접속 주소를 지정하거나 네트워크 설정을 확인하십시오"
 }
 
 gearvia_generate_local_ca() {
@@ -54,6 +79,16 @@ gearvia_generate_local_ca() {
   )
 }
 
+# "openssl x509 -checkip / -checkhost" always exit 0 — they only report the
+# result as text on stdout. Inspect that text so a stale certificate (for
+# example after the host address changes and the installer is re-run) is
+# actually re-issued instead of silently kept.
+gearvia_cert_covers() {
+  local cert="$1" flag="$2" value="$3" output
+  output="$(openssl x509 -in "$cert" -noout "$flag" "$value" 2>/dev/null)" || return 1
+  [[ "$output" == *"does match certificate"* ]]
+}
+
 gearvia_issue_server_cert() {
   local tls_dir="$1" address="$2" host_name="$3"
   gearvia_is_private_ipv4 "$address" || gearvia_die "Server certificate address must be a private IPv4 address"
@@ -61,10 +96,10 @@ gearvia_issue_server_cert() {
   gearvia_generate_local_ca "$tls_dir"
 
   if [[ -f "$tls_dir/privkey.pem" && -f "$tls_dir/fullchain.pem" ]] \
-    && openssl x509 -in "$tls_dir/fullchain.pem" -noout -checkip "$address" >/dev/null 2>&1 \
-    && openssl x509 -in "$tls_dir/fullchain.pem" -noout -checkhost "$host_name" >/dev/null 2>&1 \
-    && openssl x509 -in "$tls_dir/fullchain.pem" -noout -checkhost localhost >/dev/null 2>&1 \
-    && openssl x509 -in "$tls_dir/fullchain.pem" -noout -checkip 127.0.0.1 >/dev/null 2>&1; then
+    && gearvia_cert_covers "$tls_dir/fullchain.pem" -checkip "$address" \
+    && gearvia_cert_covers "$tls_dir/fullchain.pem" -checkhost "$host_name" \
+    && gearvia_cert_covers "$tls_dir/fullchain.pem" -checkhost localhost \
+    && gearvia_cert_covers "$tls_dir/fullchain.pem" -checkip 127.0.0.1; then
     chmod 0600 "$tls_dir/privkey.pem"
     chmod 0644 "$tls_dir/fullchain.pem"
     return

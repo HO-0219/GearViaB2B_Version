@@ -82,6 +82,40 @@ class NasMigrationServiceTest {
     }
 
     @Test
+    void preflightRejectsFilesAndDatasetsLargerThanTheConfiguredLimits() {
+        LocalFileStorage source = new LocalFileStorage(localRoot.toString());
+        source.put("big.bin", new byte[64], "application/octet-stream");
+
+        assertThat(new NasMigrationService(32, 4096).preflight(localRoot, nasRoot, source).failureCode())
+                .isEqualTo("NAS_FILE_TOO_LARGE");
+        assertThat(new NasMigrationService(4096, 32).preflight(localRoot, nasRoot, source).failureCode())
+                .isEqualTo("NAS_DATASET_TOO_LARGE");
+    }
+
+    @Test
+    void aPartialCopyFailureRemovesTheFilesAlreadyWrittenToTheTarget() {
+        LocalFileStorage source = new LocalFileStorage(localRoot.toString());
+        source.put("a.txt", "one".getBytes(StandardCharsets.UTF_8), "text/plain");
+        source.put("b.txt", "two".getBytes(StandardCharsets.UTF_8), "text/plain");
+        NasFileStorage realTarget = new NasFileStorage(nasRoot.toString());
+        FileStorage target = new FileStorage() {
+            @Override public void put(String key, byte[] content, String contentType) {
+                if (key.equals("b.txt")) throw new IllegalStateException("simulated mid-migration failure");
+                realTarget.put(key, content, contentType);
+            }
+            @Override public StoredFile get(String key) { return realTarget.get(key); }
+            @Override public void delete(String key) { realTarget.delete(key); }
+            @Override public java.util.List<String> listKeys() { return realTarget.listKeys(); }
+        };
+
+        NasMigrationService.MigrationResult result = new NasMigrationService()
+                .migrateAndVerify(source, target, () -> { throw new AssertionError("must not switch"); });
+
+        assertThat(result.failureCode()).isEqualTo("NAS_COPY_FAILED");
+        assertThat(realTarget.listKeys()).isEmpty();
+    }
+
+    @Test
     void rollbackCopiesVerifiedDataBeforeRestoringThePreviousProvider() {
         LocalFileStorage previous = new LocalFileStorage(localRoot.toString());
         NasFileStorage current = new NasFileStorage(nasRoot.toString());
