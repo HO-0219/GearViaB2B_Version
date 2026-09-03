@@ -3,7 +3,9 @@ package com.teamproject.mcp.domain;
 import com.teamproject.user.domain.User;
 import jakarta.persistence.*;
 
+import java.time.Duration;
 import java.time.LocalDateTime;
+import java.util.Objects;
 
 @Entity
 @Table(name = "mcp_personal_tokens", uniqueConstraints =
@@ -47,10 +49,20 @@ public class McpPersonalToken {
         return revokedAt == null && expiresAt.isAfter(now) && user.isActive();
     }
 
+    /** How often a still-identical usage is written back — every request would be write amplification. */
+    private static final Duration TOUCH_INTERVAL = Duration.ofSeconds(60);
+
     public void used(String ip, String client) {
+        String nextIp = limit(ip, 64);
+        String nextClient = limit(client, 60);
+        boolean sourceChanged = !Objects.equals(nextIp, lastIp) || !Objects.equals(nextClient, clientLabel);
+        boolean stale = lastUsedAt == null || lastUsedAt.isBefore(LocalDateTime.now().minus(TOUCH_INTERVAL));
+        if (!sourceChanged && !stale) {
+            return;
+        }
         this.lastUsedAt = LocalDateTime.now();
-        this.lastIp = limit(ip, 64);
-        this.clientLabel = limit(client, 60);
+        this.lastIp = nextIp;
+        this.clientLabel = nextClient;
     }
 
     public void revoke() {

@@ -30,6 +30,25 @@ class DependencyReadinessTest {
     }
 
     @Test
+    void aHangingStorageProbeReportsDownInsteadOfBlockingReadiness() throws Exception {
+        when(dataSource.getConnection()).thenReturn(connection);
+        when(connection.isValid(2)).thenReturn(true);
+        when(storage.activeHealth()).thenAnswer(invocation -> {
+            Thread.sleep(10_000);
+            return new DynamicFileStorage.ActiveHealth("nas_mount", true);
+        });
+
+        long startedAt = System.nanoTime();
+        DependencyReadiness.ReadinessSnapshot snapshot = readiness.check();
+        long elapsedMillis = (System.nanoTime() - startedAt) / 1_000_000;
+
+        assertThat(elapsedMillis).isLessThan(6_000);
+        assertThat(snapshot.up()).isFalse();
+        assertThat(snapshot.components()).filteredOn(component -> component.name().equals("storage"))
+                .allMatch(component -> !component.up() && component.detail().equals("timeout"));
+    }
+
+    @Test
     void databaseFailureIsReportedInternallyWithoutThrowing() throws Exception {
         when(dataSource.getConnection()).thenThrow(new SQLException("mysql.internal password rejected"));
         when(storage.activeHealth()).thenReturn(new DynamicFileStorage.ActiveHealth("local", true));

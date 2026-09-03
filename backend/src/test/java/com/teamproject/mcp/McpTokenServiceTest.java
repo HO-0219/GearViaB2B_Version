@@ -49,6 +49,23 @@ class McpTokenServiceTest {
     }
 
     @Test
+    void doesNotRewriteUsageMetadataForEveryIdenticalRequest() {
+        long userId = account("mcp_token_touch");
+        McpTokenService.CreatedToken created = tokens.create(userId, "Codex", 30);
+
+        tokens.authenticate(created.token(), "10.0.0.9", "codex");
+        var afterFirst = tokenRepository.findById(created.id()).orElseThrow().getLastUsedAt();
+        tokens.authenticate(created.token(), "10.0.0.9", "codex");
+        var afterSecond = tokenRepository.findById(created.id()).orElseThrow().getLastUsedAt();
+        assertThat(afterSecond).isEqualTo(afterFirst);
+
+        tokens.authenticate(created.token(), "10.0.0.10", "codex");
+        var afterMoved = tokenRepository.findById(created.id()).orElseThrow();
+        assertThat(afterMoved.getLastIp()).isEqualTo("10.0.0.10");
+        assertThat(afterMoved.getLastUsedAt()).isAfterOrEqualTo(afterFirst);
+    }
+
+    @Test
     void rejectsUnboundedLabelsAndExpiry() {
         long userId = account("mcp_token_bounds");
 
