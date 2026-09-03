@@ -44,8 +44,8 @@ if [[ "${GEARVIA_SKIP_RUNTIME:-0}" != "1" ]]; then
   fi
 fi
 
-rm -f -- "$install_root/compose.yml" "$unit_path" "$config_root/runtime.env"
-rm -rf -- "$config_root/tls"
+rm -f -- "$install_root/compose.yml" "$unit_path" "$config_root/runtime.env" "$config_root/initial-admin.txt"
+rm -rf -- "$config_root/tls" "$install_root/bootstrap"
 rm -f -- "$state_root/recovery/runtime.env.previous" "$state_root/recovery/runtime.env.last-known-good"
 rm -rf -- "$state_root/recovery/tls.previous" "$state_root/recovery/tls.last-known-good"
 rmdir "$config_root" 2>/dev/null || true

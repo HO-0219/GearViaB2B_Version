@@ -52,6 +52,11 @@ sudo ./install_gearvia_ai_agent_ubuntu.sh --db-password-file /secure/mysql-app-p
 `/etc/gearvia/tls/{fullchain,privkey}.pem`을 교체한 뒤 `sudo systemctl restart b2bgearvia`
 하십시오.
 
+첫 설치 시 관리자 계정이 자동 생성됩니다 — 아이디 `admin`, 초기 비밀번호 `admin`.
+자격 증명은 `/etc/gearvia/initial-admin.txt`에도 기록됩니다. **첫 로그인 직후 비밀번호를
+변경해야 하며**(강제됨), 변경 후 그 파일을 삭제하십시오. 최초 관리자 시크릿
+(`/opt/b2bgearvia/bootstrap/admin.env`)은 계정 생성 뒤 자동 삭제됩니다.
+
 ## 제거
 
 기본 제거는 서비스를 중지하고 활성 설정, TLS 키/인증서를 삭제하지만 Docker 데이터베이스

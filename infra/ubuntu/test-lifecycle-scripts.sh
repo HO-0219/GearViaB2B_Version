@@ -55,6 +55,12 @@ grep -Fq 'MYSQL_APP_PASSWORD=LocalDbPassword-2026!' "$tmp_root/etc/gearvia/runti
 if [[ "$(uname -s)" != MINGW* ]]; then
   [[ "$(stat -c '%a' "$tmp_root/etc/gearvia/runtime.env")" == "600" ]] || fail "runtime configuration is not mode 0600"
 fi
+
+# First administrator secret is provisioned for BootstrapAdmin to consume.
+assert_file "$tmp_root/opt/b2bgearvia/bootstrap/admin.env"
+assert_file "$tmp_root/etc/gearvia/initial-admin.txt"
+grep -Fq 'username=admin' "$tmp_root/opt/b2bgearvia/bootstrap/admin.env"
+grep -Fq 'password=admin' "$tmp_root/opt/b2bgearvia/bootstrap/admin.env"
 if (cd "$tmp_root" && GEARVIA_TEST_ROOT="$tmp_root" GEARVIA_SKIP_RUNTIME=1 \
   "$installer" --db-password-file db-password >/dev/null 2>&1); then
   fail "relative database password file was accepted on rerun"
@@ -72,6 +78,8 @@ GEARVIA_TEST_ROOT="$tmp_root" GEARVIA_SKIP_RUNTIME=1 "$uninstaller" >/dev/null
 assert_file "$tmp_root/opt/b2bgearvia/data/local/file.bin"
 assert_absent "$tmp_root/etc/gearvia/runtime.env"
 assert_absent "$tmp_root/etc/gearvia/tls"
+assert_absent "$tmp_root/opt/b2bgearvia/bootstrap"
+assert_absent "$tmp_root/etc/gearvia/initial-admin.txt"
 assert_file "$tmp_root/var/lib/gearvia/recovery/database.env"
 grep -Fq 'MYSQL_APP_PASSWORD=LocalDbPassword-2026!' "$tmp_root/var/lib/gearvia/recovery/database.env"
 

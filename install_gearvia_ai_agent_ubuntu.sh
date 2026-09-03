@@ -88,12 +88,29 @@ if [[ "${GEARVIA_SKIP_RUNTIME:-0}" != "1" ]]; then
 fi
 
 if [[ -n "${GEARVIA_TEST_ROOT:-}" ]]; then
-  mkdir -p "$install_root/data/uploads" "$install_root/data/nas" "$install_root/config" "$config_root" "$tls_root" "$state_root/recovery"
+  mkdir -p "$install_root/data/uploads" "$install_root/data/nas" "$install_root/config" "$install_root/bootstrap" "$config_root" "$tls_root" "$state_root/recovery"
 else
   install -d -m 0755 "$install_root" "$install_root/data/uploads" "$install_root/data/nas" "$install_root/config"
+  install -d -m 0700 -o 10001 -g 10001 "$install_root/bootstrap"
   install -d -m 0700 "$config_root" "$tls_root" "$state_root" "$state_root/recovery"
 fi
 install -m 0644 "$script_dir/infra/b2b/compose.yml" "$install_root/compose.yml"
+
+# First administrator: BootstrapAdmin creates the account from this file on first
+# start and then deletes it. initial-admin.txt is the operator's readable copy
+# and, once present, marks that the first admin was already provisioned.
+initial_admin_note="$config_root/initial-admin.txt"
+bootstrap_admin_file="$install_root/bootstrap/admin.env"
+if [[ ! -f "$initial_admin_note" && ! -f "$bootstrap_admin_file" ]]; then
+  admin_domain="${public_url#https://}"; admin_domain="${admin_domain%%[:/]*}"
+  ( umask 077
+    printf 'username=admin\nemail=admin@%s\nname=GearVia Administrator\npassword=admin\n' "$admin_domain" > "$bootstrap_admin_file"
+    printf 'GearVia initial administrator\nURL=%s\nusername=admin\npassword=admin\n\nChange this password at the first login; this file can then be deleted.\n' \
+      "$public_url" > "$initial_admin_note"
+  )
+  [[ -n "${GEARVIA_TEST_ROOT:-}" ]] || chown 10001:10001 "$bootstrap_admin_file"
+  gearvia_log "First administrator: username 'admin', password 'admin' — change it at the first login ($initial_admin_note)"
+fi
 if [[ -f "$config_root/runtime.env" ]]; then
   install -m 0600 "$config_root/runtime.env" "$state_root/recovery/runtime.env.previous"
 fi

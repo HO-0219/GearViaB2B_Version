@@ -83,6 +83,9 @@ services:
       ADMIN_TRUSTED_PROXIES: ${ADMIN_TRUSTED_PROXIES:-172.16.0.0/12}
       FRONTEND_URL: ${FRONTEND_URL:?set FRONTEND_URL}
       ADMIN_FRONTEND_URL: ${ADMIN_FRONTEND_URL:?set ADMIN_FRONTEND_URL}
+      # The installer drops the first-administrator secret here; BootstrapAdmin
+      # creates the account on first start and deletes the file.
+      BOOTSTRAP_ADMIN_SECRET_FILE: ${BOOTSTRAP_ADMIN_SECRET_FILE:-/run/b2bgearvia-bootstrap/admin.env}
       SERVER_PORT: 8081
       # MCP/Admin perform their own trusted-proxy validation and require the raw socket peer.
       SERVER_FORWARD_HEADERS_STRATEGY: none
@@ -127,6 +130,8 @@ services:
     volumes:
       - uploads:/opt/b2bgearvia/data/uploads
       - /opt/b2bgearvia/data/nas:/opt/b2bgearvia/data/nas
+      # Writable: BootstrapAdmin removes admin.env after creating the account.
+      - /opt/b2bgearvia/bootstrap:/run/b2bgearvia-bootstrap
     networks: [internal]
     depends_on:
       init-data: {condition: service_completed_successfully}
